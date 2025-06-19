@@ -30,7 +30,7 @@ export const Navigation = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-gray-800">
       <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
         <div className="text-2xl font-bold">
           💩 POOPEE 🦛
@@ -51,7 +51,7 @@ export const Navigation = () => {
           ) : (
             <Button 
               onClick={() => navigate('/auth')}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-gray-700 hover:bg-gray-600 border border-gray-600"
             >
               Sign In
             </Button>

@@ -1,4 +1,3 @@
-
 import { HeroSection } from "@/components/HeroSection";
 import { SneakPeekSection } from "@/components/SneakPeekSection";
 import { MintInfoSection } from "@/components/MintInfoSection";
@@ -9,7 +8,7 @@ import { Navigation } from "@/components/Navigation";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white">
       <Navigation />
       <HeroSection />
       <SneakPeekSection />

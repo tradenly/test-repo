@@ -42,17 +42,17 @@ export const SneakPeekSection = () => {
   ];
 
   return (
-    <section id="sneak-peek" className="py-20 px-4 bg-gray-800">
+    <section id="sneak-peek" className="py-20 px-4 bg-gradient-to-b from-gray-800 via-black to-gray-900">
       <div className="max-w-6xl mx-auto text-center">
         <h2 className="text-5xl md:text-6xl font-bold text-white mb-4">
-          What is SPOOPEE? 👻
+          What is POOPEE? 🦛
         </h2>
         <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
-          SPOOPEE is a meme coin and NFT collection with no use case, no promises, and no future. Basically, what all of them are anyway, but we're just more upfront and forthcoming about it.
+          POOPEE is a meme coin and NFT collection with no use case, no promises, and no future. Basically, what all of them are anyway, but we're just more upfront and forthcoming about it.
         </p>
         
         <div className="mb-16">
-          <h3 className="text-3xl font-bold text-purple-400 mb-8 italic">
+          <h3 className="text-3xl font-bold text-gray-300 mb-8 italic">
             "We are not here to moon. We're here to float." 🌙
           </h3>
         </div>
@@ -67,7 +67,7 @@ export const SneakPeekSection = () => {
               {nftImages.map((nft, index) => (
                 <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                   <div className="p-4">
-                    <div className="bg-gray-700 rounded-xl p-4 hover:scale-105 transition-transform duration-300 hover:bg-gray-600">
+                    <div className="bg-gray-800 rounded-xl p-4 hover:scale-105 transition-transform duration-300 hover:bg-gray-700 border border-gray-700">
                       <img
                         src={nft.src}
                         alt={nft.caption}
@@ -79,13 +79,13 @@ export const SneakPeekSection = () => {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious className="bg-purple-600 hover:bg-purple-700 text-white border-none" />
-            <CarouselNext className="bg-purple-600 hover:bg-purple-700 text-white border-none" />
+            <CarouselPrevious className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600" />
+            <CarouselNext className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600" />
           </Carousel>
         </div>
 
         <div className="mt-12">
-          <p className="text-2xl text-purple-400 font-bold">
+          <p className="text-2xl text-gray-300 font-bold">
             Coming to the toilet near you! 🚽✨
           </p>
         </div>
