@@ -166,8 +166,8 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
                   </div>
                   <p className="text-sm text-gray-400 mb-2">{pool.description}</p>
                   <div className="text-xs text-gray-500">
-                    Min: {parseFloat(pool.min_stake_amount || "0").toLocaleString()} {pool.token_symbol}
-                    {pool.lock_period_days > 0 && ` • ${pool.lock_period_days} days lock`}
+                    Min: {parseFloat(pool.min_stake_amount?.toString() || "0").toLocaleString()} {pool.token_symbol}
+                    {pool.lock_period_days && pool.lock_period_days > 0 && ` • ${pool.lock_period_days} days lock`}
                   </div>
                 </div>
               ))}
@@ -191,7 +191,7 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
                         {stake.staking_pools?.name}
                       </h3>
                       <p className="text-sm text-gray-400">
-                        Staked: {parseFloat(stake.amount).toLocaleString()} {stake.staking_pools?.token_symbol}
+                        Staked: {parseFloat(stake.amount.toString()).toLocaleString()} {stake.staking_pools?.token_symbol}
                       </p>
                       <p className="text-xs text-gray-500">
                         Started: {new Date(stake.start_date).toLocaleDateString()}
