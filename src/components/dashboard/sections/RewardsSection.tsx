@@ -1,0 +1,252 @@
+
+import { User } from "@supabase/supabase-js";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Gift, TrendingUp, Clock, CheckCircle } from "lucide-react";
+
+interface RewardsSectionProps {
+  user: User;
+}
+
+export const RewardsSection = ({ user }: RewardsSectionProps) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: rewards } = useQuery({
+    queryKey: ["stakingRewards", user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("staking_rewards")
+        .select(`
+          *,
+          user_stakes(
+            staking_pools(name, token_symbol)
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("reward_date", { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const claimRewardMutation = useMutation({
+    mutationFn: async (rewardId: string) => {
+      const { error } = await supabase
+        .from("staking_rewards")
+        .update({
+          claimed: true,
+          claim_date: new Date().toISOString(),
+        })
+        .eq("id", rewardId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stakingRewards", user.id] });
+      toast({
+        title: "Reward claimed",
+        description: "Your reward has been successfully claimed.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to claim reward. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Claim reward error:", error);
+    },
+  });
+
+  const unclaimedRewards = rewards?.filter(reward => !reward.claimed) || [];
+  const claimedRewards = rewards?.filter(reward => reward.claimed) || [];
+  const totalUnclaimed = unclaimedRewards.reduce((sum, reward) => sum + parseFloat(reward.reward_amount.toString()), 0);
+  const totalClaimed = claimedRewards.reduce((sum, reward) => sum + parseFloat(reward.reward_amount.toString()), 0);
+
+  const claimAllRewards = async () => {
+    try {
+      const claimPromises = unclaimedRewards.map(reward => 
+        claimRewardMutation.mutateAsync(reward.id)
+      );
+      await Promise.all(claimPromises);
+    } catch (error) {
+      console.error("Error claiming all rewards:", error);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Rewards</h1>
+          <p className="text-gray-400">Track and claim your staking rewards</p>
+        </div>
+        {unclaimedRewards.length > 0 && (
+          <Button
+            onClick={claimAllRewards}
+            disabled={claimRewardMutation.isPending}
+            className="bg-green-700 hover:bg-green-600"
+          >
+            <Gift className="mr-2 h-4 w-4" />
+            Claim All ({unclaimedRewards.length})
+          </Button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-300">
+              Unclaimed Rewards
+            </CardTitle>
+            <Clock className="h-4 w-4 text-orange-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              {totalUnclaimed.toFixed(2)} POOPEE
+            </div>
+            <p className="text-xs text-gray-400">
+              {unclaimedRewards.length} pending rewards
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-300">
+              Total Claimed
+            </CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              {totalClaimed.toFixed(2)} POOPEE
+            </div>
+            <p className="text-xs text-gray-400">
+              {claimedRewards.length} claimed rewards
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-300">
+              Total Earned
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              {(totalUnclaimed + totalClaimed).toFixed(2)} POOPEE
+            </div>
+            <p className="text-xs text-gray-400">
+              All time earnings
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {unclaimedRewards.length > 0 && (
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Gift className="h-5 w-5 text-orange-400" />
+              Unclaimed Rewards
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {unclaimedRewards.map((reward) => (
+                <div key={reward.id} className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                  <div>
+                    <h3 className="font-medium text-white">
+                      {parseFloat(reward.reward_amount.toString()).toFixed(4)} POOPEE
+                    </h3>
+                    <p className="text-sm text-gray-400">
+                      From: {reward.user_stakes?.staking_pools?.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Earned: {new Date(reward.reward_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => claimRewardMutation.mutate(reward.id)}
+                    disabled={claimRewardMutation.isPending}
+                    size="sm"
+                    className="bg-green-700 hover:bg-green-600"
+                  >
+                    Claim
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="bg-gray-800/40 border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-white">Reward History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {rewards && rewards.length > 0 ? (
+            <div className="space-y-4">
+              {rewards.slice(0, 10).map((reward) => (
+                <div key={reward.id} className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                  <div className="flex items-center space-x-3">
+                    <div className={`p-2 rounded-full ${reward.claimed ? 'bg-green-600/20' : 'bg-orange-600/20'}`}>
+                      {reward.claimed ? (
+                        <CheckCircle className="h-4 w-4 text-green-400" />
+                      ) : (
+                        <Clock className="h-4 w-4 text-orange-400" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-white">
+                        {parseFloat(reward.reward_amount.toString()).toFixed(4)} POOPEE
+                      </h3>
+                      <p className="text-sm text-gray-400">
+                        {reward.user_stakes?.staking_pools?.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(reward.reward_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-sm font-medium ${reward.claimed ? 'text-green-400' : 'text-orange-400'}`}>
+                      {reward.claimed ? 'Claimed' : 'Pending'}
+                    </div>
+                    {reward.claimed && reward.claim_date && (
+                      <div className="text-xs text-gray-500">
+                        {new Date(reward.claim_date).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {rewards.length > 10 && (
+                <p className="text-sm text-gray-400 text-center">
+                  +{rewards.length - 10} more rewards in history
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Gift className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-400">No rewards yet</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Start staking to earn rewards
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

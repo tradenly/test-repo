@@ -54,8 +54,8 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
     },
   });
 
-  const totalStaked = stakes?.reduce((sum, stake) => sum + parseFloat(stake.amount), 0) || 0;
-  const totalRewards = rewards?.reduce((sum, reward) => sum + parseFloat(reward.reward_amount), 0) || 0;
+  const totalStaked = stakes?.reduce((sum, stake) => sum + parseFloat(stake.amount.toString()), 0) || 0;
+  const totalRewards = rewards?.reduce((sum, reward) => sum + parseFloat(reward.reward_amount.toString()), 0) || 0;
 
   return (
     <div className="space-y-8">
@@ -149,7 +149,7 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
                 <div key={stake.id} className="flex items-center justify-between">
                   <div>
                     <p className="text-white font-medium">
-                      Staked {parseFloat(stake.amount).toLocaleString()} POOPEE
+                      Staked {parseFloat(stake.amount.toString()).toLocaleString()} POOPEE
                     </p>
                     <p className="text-sm text-gray-400">
                       {stake.staking_pools?.name}
