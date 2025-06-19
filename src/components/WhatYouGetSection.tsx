@@ -3,23 +3,23 @@ import { Button } from "@/components/ui/button";
 
 export const WhatYouGetSection = () => {
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-purple-600 via-pink-500 to-red-500">
+    <section className="py-20 px-4 bg-gray-800">
       <div className="max-w-4xl mx-auto text-center">
         <h2 className="text-5xl font-bold text-white mb-16">
           The Blubber Paper 📜
         </h2>
         
-        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-12 mb-16">
+        <div className="bg-gray-700 rounded-xl p-12 mb-16 border border-gray-600">
           <div className="text-8xl mb-6">📋</div>
           <h3 className="text-3xl font-bold text-white mb-8">
             Our Revolutionary Non-Roadmap
           </h3>
           
-          <div className="space-y-6 text-xl text-gray-200">
+          <div className="space-y-6 text-xl text-gray-300">
             <p>No staking.</p>
             <p>No DAO.</p>
             <p>No alpha.</p>
-            <p className="text-2xl font-bold text-yellow-300">
+            <p className="text-2xl font-bold text-purple-400">
               Just hippos, vibes, and maybe some toilet paper.
             </p>
           </div>
@@ -30,7 +30,7 @@ export const WhatYouGetSection = () => {
             Join the Tropical Fattys 🌴
           </h3>
           
-          <p className="text-xl text-gray-200 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
             Become one of the finest most prized communities in crypto. Or just join our Discord channel to complain about being rug-pulled.
           </p>
           
@@ -56,7 +56,7 @@ export const WhatYouGetSection = () => {
             </Button>
           </div>
           
-          <p className="text-sm text-yellow-300 font-bold">
+          <p className="text-sm text-purple-400 font-bold">
             Subscribe for epic updates. Or don't. Whatever.
           </p>
         </div>
