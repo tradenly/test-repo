@@ -11,7 +11,13 @@ export const MintInfoSection = () => {
         
         <div className="grid md:grid-cols-2 gap-8 mb-16">
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
-            <div className="text-6xl mb-4">📱</div>
+            <div className="mb-4">
+              <img 
+                src="/lovable-uploads/94398dd3-8fbc-453f-a517-4ba31ec9e3d5.png" 
+                alt="SUI Network Icon" 
+                className="w-16 h-16 mx-auto"
+              />
+            </div>
             <h3 className="text-2xl font-bold text-white mb-4">SUI NFT Mint</h3>
             <div className="space-y-3 text-left">
               <p className="text-lg text-gray-300"><span className="font-bold">Platform:</span> TradePort</p>
@@ -28,7 +34,13 @@ export const MintInfoSection = () => {
           </div>
 
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
-            <div className="text-6xl mb-4">🎯</div>
+            <div className="mb-4">
+              <img 
+                src="/lovable-uploads/1b2b8e90-5d58-42db-b73f-5dd406333bf1.png" 
+                alt="Cardano Icon" 
+                className="w-16 h-16 mx-auto"
+              />
+            </div>
             <h3 className="text-2xl font-bold text-white mb-4">Cardano Token</h3>
             <div className="space-y-3 text-left">
               <p className="text-lg text-gray-300"><span className="font-bold">Token:</span> POOPEE</p>
