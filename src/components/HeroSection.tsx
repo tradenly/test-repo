@@ -41,6 +41,15 @@ export const HeroSection = () => {
             Expect nothing. Receive less.
           </p>
           
+          {/* Full-width image above the button */}
+          <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] mb-6">
+            <img 
+              src="/lovable-uploads/ed37bd4a-8be3-4640-8138-5b1ae0add67d.png" 
+              alt="Tropical Fatty's Island with Poopee"
+              className="w-full h-auto object-cover"
+            />
+          </div>
+          
           <Button 
             onClick={scrollToSneakPeek}
             className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-full text-xl transform hover:scale-105 transition-all duration-300 shadow-lg border border-gray-600"
