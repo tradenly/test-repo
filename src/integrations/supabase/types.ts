@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      nft_holdings: {
+        Row: {
+          acquired_at: string | null
+          blockchain: Database["public"]["Enums"]["blockchain_type"]
+          collection_name: string
+          id: string
+          image_url: string | null
+          is_staked: boolean | null
+          nft_id: string
+          token_name: string | null
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string | null
+          blockchain: Database["public"]["Enums"]["blockchain_type"]
+          collection_name: string
+          id?: string
+          image_url?: string | null
+          is_staked?: boolean | null
+          nft_id: string
+          token_name?: string | null
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string | null
+          blockchain?: Database["public"]["Enums"]["blockchain_type"]
+          collection_name?: string
+          id?: string
+          image_url?: string | null
+          is_staked?: boolean | null
+          nft_id?: string
+          token_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -33,6 +69,220 @@ export type Database = {
         }
         Relationships: []
       }
+      staking_pools: {
+        Row: {
+          apy_percentage: number
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          lock_period_days: number | null
+          min_stake_amount: number | null
+          name: string
+          token_symbol: string
+        }
+        Insert: {
+          apy_percentage: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          lock_period_days?: number | null
+          min_stake_amount?: number | null
+          name: string
+          token_symbol: string
+        }
+        Update: {
+          apy_percentage?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          lock_period_days?: number | null
+          min_stake_amount?: number | null
+          name?: string
+          token_symbol?: string
+        }
+        Relationships: []
+      }
+      staking_rewards: {
+        Row: {
+          claim_date: string | null
+          claimed: boolean | null
+          id: string
+          reward_amount: number
+          reward_date: string | null
+          stake_id: string
+          transaction_hash: string | null
+          user_id: string
+        }
+        Insert: {
+          claim_date?: string | null
+          claimed?: boolean | null
+          id?: string
+          reward_amount: number
+          reward_date?: string | null
+          stake_id: string
+          transaction_hash?: string | null
+          user_id: string
+        }
+        Update: {
+          claim_date?: string | null
+          claimed?: boolean | null
+          id?: string
+          reward_amount?: number
+          reward_date?: string | null
+          stake_id?: string
+          transaction_hash?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staking_rewards_stake_id_fkey"
+            columns: ["stake_id"]
+            isOneToOne: false
+            referencedRelation: "user_stakes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      token_balances: {
+        Row: {
+          balance: number
+          blockchain: Database["public"]["Enums"]["blockchain_type"]
+          id: string
+          last_updated: string | null
+          token_symbol: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          blockchain: Database["public"]["Enums"]["blockchain_type"]
+          id?: string
+          last_updated?: string | null
+          token_symbol: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          blockchain?: Database["public"]["Enums"]["blockchain_type"]
+          id?: string
+          last_updated?: string | null
+          token_symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_social_accounts: {
+        Row: {
+          created_at: string | null
+          id: string
+          platform: Database["public"]["Enums"]["social_platform"]
+          profile_url: string | null
+          user_id: string
+          username: string
+          verified: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          platform: Database["public"]["Enums"]["social_platform"]
+          profile_url?: string | null
+          user_id: string
+          username: string
+          verified?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          platform?: Database["public"]["Enums"]["social_platform"]
+          profile_url?: string | null
+          user_id?: string
+          username?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
+      user_stakes: {
+        Row: {
+          amount: number
+          created_at: string | null
+          end_date: string | null
+          id: string
+          pool_id: string
+          start_date: string | null
+          status: Database["public"]["Enums"]["stake_status"] | null
+          transaction_hash: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          pool_id: string
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["stake_status"] | null
+          transaction_hash?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          pool_id?: string
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["stake_status"] | null
+          transaction_hash?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_stakes_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "staking_pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_wallets: {
+        Row: {
+          blockchain: Database["public"]["Enums"]["blockchain_type"]
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          updated_at: string | null
+          user_id: string
+          wallet_address: string
+          wallet_name: string | null
+        }
+        Insert: {
+          blockchain: Database["public"]["Enums"]["blockchain_type"]
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          wallet_address: string
+          wallet_name?: string | null
+        }
+        Update: {
+          blockchain?: Database["public"]["Enums"]["blockchain_type"]
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          wallet_address?: string
+          wallet_name?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -41,7 +291,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      blockchain_type: "cardano" | "sui" | "ethereum" | "bitcoin"
+      social_platform:
+        | "twitter"
+        | "discord"
+        | "telegram"
+        | "instagram"
+        | "youtube"
+      stake_status: "active" | "pending" | "completed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -156,6 +413,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      blockchain_type: ["cardano", "sui", "ethereum", "bitcoin"],
+      social_platform: [
+        "twitter",
+        "discord",
+        "telegram",
+        "instagram",
+        "youtube",
+      ],
+      stake_status: ["active", "pending", "completed", "cancelled"],
+    },
   },
 } as const
