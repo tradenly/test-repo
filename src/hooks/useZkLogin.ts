@@ -13,6 +13,7 @@ interface ZkLoginState {
   maxEpoch: number | null;
   randomness: string | null;
   error: string | null;
+  hasValidJWT: boolean;
 }
 
 const STORAGE_KEY = 'zklogin_state';
@@ -27,13 +28,22 @@ export const useZkLogin = () => {
     maxEpoch: null,
     randomness: null,
     error: null,
+    hasValidJWT: false,
   });
+
+  // Check for valid JWT token
+  const checkJWTValidity = useCallback(() => {
+    const jwtToken = localStorage.getItem('current_jwt');
+    return !!jwtToken;
+  }, []);
 
   // Initialize from localStorage on mount
   useEffect(() => {
     const loadStoredState = () => {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
+        const hasValidJWT = checkJWTValidity();
+        
         if (stored) {
           const parsed = JSON.parse(stored);
           
@@ -54,20 +64,26 @@ export const useZkLogin = () => {
             maxEpoch: parsed.maxEpoch || null,
             randomness: parsed.randomness || null,
             ephemeralKeyPair,
+            hasValidJWT,
             isInitialized: true,
           }));
         } else {
-          setState(prev => ({ ...prev, isInitialized: true }));
+          setState(prev => ({ ...prev, hasValidJWT, isInitialized: true }));
         }
       } catch (error) {
         console.error('Failed to load ZK Login state:', error);
         localStorage.removeItem(STORAGE_KEY);
-        setState(prev => ({ ...prev, error: 'Failed to load saved state', isInitialized: true }));
+        setState(prev => ({ 
+          ...prev, 
+          error: 'Failed to load saved state', 
+          hasValidJWT: false,
+          isInitialized: true 
+        }));
       }
     };
 
     loadStoredState();
-  }, []);
+  }, [checkJWTValidity]);
 
   const saveState = useCallback((newState: Partial<ZkLoginState>) => {
     try {
@@ -180,6 +196,7 @@ export const useZkLogin = () => {
         userAddress,
         isLoading: false,
         ephemeralKeyPair,
+        hasValidJWT: true,
         error: null,
       };
       
@@ -193,24 +210,29 @@ export const useZkLogin = () => {
       setState(prev => ({ 
         ...prev, 
         isLoading: false, 
+        hasValidJWT: false,
         error: error instanceof Error ? error.message : 'Failed to complete login' 
       }));
     }
   }, [saveState]);
 
-  // Execute transactions using standard SUI approach
+  // Enhanced transaction execution with better error handling
   const executeTransaction = useCallback(async (transaction: any) => {
     try {
       console.log('Executing transaction...');
       
       if (!state.userAddress || !state.ephemeralKeyPair) {
-        throw new Error('User not authenticated or missing keypair');
+        throw new Error('ZK Login authentication required for transactions');
+      }
+
+      if (!state.hasValidJWT) {
+        throw new Error('ZK Login session expired. Please log in again with Google.');
       }
 
       // Get the current JWT token
       const jwtToken = localStorage.getItem('current_jwt');
       if (!jwtToken) {
-        throw new Error('No JWT token found');
+        throw new Error('ZK Login session not found. Please complete Google authentication.');
       }
 
       // For now, we'll return a success response
@@ -234,7 +256,12 @@ export const useZkLogin = () => {
         error: error instanceof Error ? error.message : 'Transaction failed',
       };
     }
-  }, [state.userAddress, state.ephemeralKeyPair]);
+  }, [state.userAddress, state.ephemeralKeyPair, state.hasValidJWT]);
+
+  // Function to check if user is ready for transactions
+  const isReadyForTransactions = useCallback(() => {
+    return !!(state.userAddress && state.ephemeralKeyPair && state.hasValidJWT);
+  }, [state.userAddress, state.ephemeralKeyPair, state.hasValidJWT]);
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
@@ -247,6 +274,7 @@ export const useZkLogin = () => {
       maxEpoch: null,
       randomness: null,
       error: null,
+      hasValidJWT: false,
     });
   }, []);
 
@@ -255,6 +283,7 @@ export const useZkLogin = () => {
     startZkLogin,
     handleOAuthCallback,
     executeTransaction,
+    isReadyForTransactions,
     logout,
   };
 };

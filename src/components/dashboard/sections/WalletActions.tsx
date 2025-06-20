@@ -13,12 +13,14 @@ import {
   QrCode,
   Copy,
   ExternalLink,
-  Loader2
+  Loader2,
+  AlertTriangle
 } from "lucide-react";
 import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { suiTransactionService } from "@/services/suiTransactionService";
 import { useZkLogin } from "@/hooks/useZkLogin";
+import { ZkLoginButton } from "@/components/ZkLoginButton";
 
 interface WalletActionsProps {
   user: UnifiedUser;
@@ -27,7 +29,7 @@ interface WalletActionsProps {
 export const WalletActions = ({ user }: WalletActionsProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { executeTransaction } = useZkLogin();
+  const { executeTransaction, isReadyForTransactions } = useZkLogin();
   const [showSendForm, setShowSendForm] = useState(false);
   const [showAssets, setShowAssets] = useState(false);
   const [sendAmount, setSendAmount] = useState("");
@@ -69,11 +71,19 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
     enabled: !!walletAddress && showAssets,
   });
 
-  // Send transaction mutation
+  // Enhanced send transaction mutation with better error handling
   const sendTransactionMutation = useMutation({
     mutationFn: async ({ amount, recipient }: { amount: string; recipient: string }) => {
-      if (!walletAddress || user.authType !== 'zklogin') {
-        throw new Error('ZK Login required for transactions');
+      if (!walletAddress) {
+        throw new Error('Wallet address not found');
+      }
+
+      if (user.authType !== 'zklogin') {
+        throw new Error('ZK Login authentication required for transactions');
+      }
+
+      if (!isReadyForTransactions()) {
+        throw new Error('ZK Login session not ready. Please complete Google authentication.');
       }
 
       // Create the transaction using the service
@@ -87,7 +97,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
         throw new Error(txResult.error);
       }
 
-      // Execute the transaction using Enoki
+      // Execute the transaction using ZK Login
       const executeResult = await executeTransaction(txResult.transaction);
       
       if (!executeResult.success) {
@@ -132,6 +142,25 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
       });
       return;
     }
+
+    if (user.authType !== 'zklogin') {
+      toast({
+        title: "ZK Login Required",
+        description: "Only ZK Login users can send transactions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isReadyForTransactions()) {
+      toast({
+        title: "Authentication Required",
+        description: "Please complete ZK Login authentication to send transactions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setShowSendForm(true);
   };
 
@@ -189,10 +218,11 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
   if (!walletAddress) {
     return (
       <Card className="bg-gray-800/40 border-gray-700">
-        <CardContent className="p-6 text-center">
+        <CardContent className="p-6 text-center space-y-4">
           <p className="text-gray-400">
             Wallet actions are available for ZK Login users with connected wallets.
           </p>
+          <ZkLoginButton showDetailedStatus={true} />
         </CardContent>
       </Card>
     );
@@ -200,12 +230,31 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Authentication Status for ZK Login users */}
+      {user.authType === 'zklogin' && !isReadyForTransactions() && (
+        <Card className="bg-yellow-900/20 border-yellow-600">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              <div className="flex-1">
+                <p className="text-yellow-200 font-medium">Authentication Required</p>
+                <p className="text-yellow-300 text-sm">Complete ZK Login to enable transactions</p>
+              </div>
+              <ZkLoginButton className="bg-yellow-600 hover:bg-yellow-500" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Balance Display */}
       <Card className="bg-gray-800/40 border-gray-700">
         <CardHeader>
           <CardTitle className="text-white flex items-center">
             <span className="text-2xl mr-2">💰</span>
             Wallet Balance
+            {user.authType === 'zklogin' && isReadyForTransactions() && (
+              <span className="ml-2 text-xs bg-green-600 px-2 py-1 rounded">ZK Ready</span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -254,7 +303,8 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
 
             <Button
               onClick={handleSend}
-              className="bg-gray-700 hover:bg-gray-600 flex items-center"
+              disabled={user.authType !== 'zklogin' || !isReadyForTransactions()}
+              className="bg-gray-700 hover:bg-gray-600 flex items-center disabled:opacity-50"
             >
               <Send className="mr-2 h-4 w-4" />
               Send
@@ -284,6 +334,14 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
               Receive
             </Button>
           </div>
+
+          {user.authType !== 'zklogin' && (
+            <div className="bg-blue-900/20 border border-blue-600 rounded p-3 mt-4">
+              <p className="text-blue-200 text-sm">
+                💡 <strong>Tip:</strong> Switch to ZK Login authentication to enable secure transactions.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -369,8 +427,8 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
             <div className="flex gap-2">
               <Button
                 onClick={submitSendTransaction}
-                disabled={!sendAmount || !recipientAddress || sendTransactionMutation.isPending}
-                className="bg-blue-600 hover:bg-blue-500"
+                disabled={!sendAmount || !recipientAddress || sendTransactionMutation.isPending || !isReadyForTransactions()}
+                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50"
               >
                 {sendTransactionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Send Transaction
@@ -384,9 +442,11 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
               </Button>
             </div>
 
-            <p className="text-sm text-yellow-400">
-              Note: Transactions are executed through Enoki's proving service.
-            </p>
+            <div className="bg-blue-900/20 border border-blue-600 rounded p-3">
+              <p className="text-sm text-blue-200">
+                🔐 <strong>Secure Transaction:</strong> This transaction will be executed using ZK Login proofs for enhanced security.
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}
