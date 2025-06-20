@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNavigate, useLocation } from "react-router-dom";
-import { User as UserIcon, LogOut, Coins } from "lucide-react";
+import { User as UserIcon, LogOut, Coins, Settings } from "lucide-react";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 import { useCredits } from "@/hooks/useCredits";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
@@ -18,7 +19,9 @@ export const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: credits } = useCredits(user?.id || "");
-  const { isAdmin } = useAdminAuth();
+  const { isAdmin, isLoading: adminLoading } = useAdminAuth();
+
+  console.log('Navigation: isAdmin:', isAdmin, 'adminLoading:', adminLoading);
 
   const handleSignOut = async () => {
     await logout();
@@ -26,6 +29,7 @@ export const Navigation = () => {
   };
 
   const isOnDashboard = location.pathname === '/dashboard';
+  const isOnAdmin = location.pathname === '/admin';
 
   const getUserDisplayName = () => {
     if (user?.email) {
@@ -82,12 +86,16 @@ export const Navigation = () => {
                       Dashboard
                     </DropdownMenuItem>
                   )}
-                  {isAdmin && (
+                  {/* Show admin option if user is admin OR if we're still loading (to avoid flicker) */}
+                  {(isAdmin || adminLoading) && !isOnAdmin && (
                     <DropdownMenuItem 
-                      onClick={() => navigate('/admin')}
+                      onClick={() => {
+                        console.log('Navigation: Admin panel clicked, isAdmin:', isAdmin);
+                        navigate('/admin');
+                      }}
                       className="text-yellow-300 hover:bg-gray-800 hover:text-yellow-100 cursor-pointer"
                     >
-                      <UserIcon className="h-4 w-4 mr-2" />
+                      <Settings className="h-4 w-4 mr-2" />
                       Admin Panel
                     </DropdownMenuItem>
                   )}
