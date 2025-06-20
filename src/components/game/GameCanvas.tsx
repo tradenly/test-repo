@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -473,14 +472,14 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       
       <div className="flex flex-col gap-2">
         {gameState === 'menu' && (
-          <Card className="bg-gray-800/90 border-gray-700 p-2 w-36">
-            <h3 className="text-sm font-bold text-white mb-2">🦛 Flappy Hippos</h3>
-            <p className="text-gray-300 text-xs mb-2">
-              Click or Space to flap! Navigate pipes!
+          <Card className="bg-gray-800/90 border-gray-700 p-2 w-28">
+            <h3 className="text-xs font-bold text-white mb-1">🦛 Hippos</h3>
+            <p className="text-gray-300 text-xs mb-1">
+              Click/Space to flap!
             </p>
-            <div className="flex items-center justify-center gap-1 mb-2">
+            <div className="flex items-center justify-center gap-1 mb-1">
               <Coins className="h-3 w-3 text-yellow-400" />
-              <span className="text-white text-xs">Cost: 1 | {credits}</span>
+              <span className="text-white text-xs">{credits}</span>
             </div>
             <Button 
               onClick={startGame} 
@@ -495,22 +494,22 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         )}
 
         {gameState === 'gameOver' && (
-          <Card className="bg-gray-800/90 border-gray-700 p-2 w-36">
-            <h3 className="text-sm font-bold text-white mb-2">Game Over!</h3>
-            <p className="text-gray-300 text-xs mb-2">Score: {score}</p>
+          <Card className="bg-gray-800/90 border-gray-700 p-2 w-28">
+            <h3 className="text-xs font-bold text-white mb-1">Game Over!</h3>
+            <p className="text-gray-300 text-xs mb-1">Score: {score}</p>
             <div className="flex flex-col gap-1">
-              <Button onClick={resetGame} variant="outline" size="sm" className="w-full text-xs">
+              <Button onClick={resetGame} variant="outline" size="sm" className="w-full text-xs py-1">
                 <RotateCcw className="h-3 w-3 mr-1" />
                 Restart
               </Button>
               <Button 
                 onClick={startGame} 
                 disabled={!canPlay || !isInitialized}
-                className="bg-green-600 hover:bg-green-500 w-full text-xs"
+                className="bg-green-600 hover:bg-green-500 w-full text-xs py-1"
                 size="sm"
               >
                 <Play className="h-3 w-3 mr-1" />
-                Play Again
+                Again
               </Button>
             </div>
           </Card>
