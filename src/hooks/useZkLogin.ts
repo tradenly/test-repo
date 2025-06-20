@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
@@ -144,7 +143,7 @@ export const useZkLogin = () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      console.log('Handling OAuth callback with Enoki integration...');
+      console.log('Handling OAuth callback with proper salt derivation...');
 
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
@@ -157,7 +156,7 @@ export const useZkLogin = () => {
         throw new Error('Incomplete ZK Login state found');
       }
 
-      console.log('Found stored state, using Enoki for address derivation...');
+      console.log('Found stored state, using proper salt derivation...');
 
       // Reconstruct ephemeral keypair
       const privateKeyBytes = new Uint8Array(ephemeralPrivateKey);
@@ -167,61 +166,26 @@ export const useZkLogin = () => {
 
       const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
 
-      // Use Enoki to create ZK Login signature and derive address
-      try {
-        console.log('Creating ZK Login signature with Enoki...');
-        
-        // Use Enoki's createZkLoginSignature method to get the salt and signature
-        const zkLoginSignature = await enokiFlow.createZkLoginSignature({
-          jwt: idToken,
-          ephemeralKeyPair,
-          userSalt: randomness,
-        });
+      // Use the standard ZK Login approach with the randomness as salt
+      // The randomness we generated should be used as the salt for deterministic address generation
+      console.log('Deriving address using randomness as salt...');
+      
+      const salt = BigInt(randomness);
+      const userAddress = jwtToAddress(idToken, salt);
+      
+      console.log('Generated user address:', userAddress);
 
-        console.log('Successfully created ZK Login signature with Enoki');
-
-        // Extract the salt from the signature or use a proper method to get address
-        // For now, let's derive the address using the JWT and a proper salt
-        // We'll use the standard zkLogin approach but with proper salt handling
-        
-        // Generate address using the JWT - Enoki should handle the salt internally
-        const userAddress = jwtToAddress(idToken, BigInt(randomness));
-        console.log('Generated user address:', userAddress);
-
-        const newState = {
-          userAddress,
-          isLoading: false,
-          ephemeralKeyPair,
-          error: null,
-        };
-        
-        setState(prev => ({ ...prev, ...newState }));
-        saveState({ randomness, maxEpoch, ...newState });
-        
-        console.log('ZK Login completed successfully with Enoki integration');
-        
-      } catch (enokiError) {
-        console.error('Enoki ZK Login signature creation failed:', enokiError);
-        
-        // Fallback: Use manual address derivation with a deterministic salt
-        console.log('Using fallback address derivation...');
-        
-        // Use a proper salt derivation based on the JWT
-        const salt = BigInt(randomness);
-        const userAddress = jwtToAddress(idToken, salt);
-        
-        const newState = {
-          userAddress,
-          isLoading: false,
-          ephemeralKeyPair,
-          error: null,
-        };
-        
-        setState(prev => ({ ...prev, ...newState }));
-        saveState({ randomness, maxEpoch, ...newState });
-        
-        console.log('ZK Login completed with fallback address derivation');
-      }
+      const newState = {
+        userAddress,
+        isLoading: false,
+        ephemeralKeyPair,
+        error: null,
+      };
+      
+      setState(prev => ({ ...prev, ...newState }));
+      saveState({ randomness, maxEpoch, ...newState });
+      
+      console.log('ZK Login completed successfully');
       
     } catch (error) {
       console.error('Failed to handle OAuth callback:', error);
@@ -231,7 +195,7 @@ export const useZkLogin = () => {
         error: error instanceof Error ? error.message : 'Failed to complete login' 
       }));
     }
-  }, [saveState, enokiFlow]);
+  }, [saveState]);
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
