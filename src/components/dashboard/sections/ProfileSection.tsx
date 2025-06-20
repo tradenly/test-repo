@@ -8,8 +8,6 @@ import { Label } from "@/components/ui/label";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
 
 interface ProfileSectionProps {
   user: User;
@@ -25,16 +23,13 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
-
-  const form = useForm<ProfileForm>({
-    defaultValues: {
-      username: "",
-      full_name: "",
-      email: user.email || "",
-    },
+  const [formData, setFormData] = useState<ProfileForm>({
+    username: "",
+    full_name: "",
+    email: user.email || "",
   });
 
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", user.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -43,10 +38,13 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
         .eq("id", user.id)
         .single();
       
-      if (error && error.code !== "PGRST116") throw error;
+      if (error && error.code !== "PGRST116") {
+        console.error("Profile fetch error:", error);
+        return null;
+      }
       
       if (data) {
-        form.reset({
+        setFormData({
           username: data.username || "",
           full_name: data.full_name || "",
           email: user.email || "",
@@ -110,20 +108,32 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
     },
   });
 
-  const onSubmit = (data: ProfileForm) => {
+  const handleProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     updateProfileMutation.mutate({
-      username: data.username,
-      full_name: data.full_name,
+      username: formData.username,
+      full_name: formData.full_name,
     });
   };
 
   const handleEmailUpdate = () => {
-    const newEmail = form.getValues("email");
+    const newEmail = formData.email;
     if (newEmail && newEmail !== user.email) {
       setIsUpdatingEmail(true);
       updateEmailMutation.mutate(newEmail);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Profile Settings</h1>
+          <p className="text-gray-400">Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -137,53 +147,35 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
           <CardTitle className="text-white">Personal Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="full_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-300">Full Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        className="bg-gray-700 border-gray-600 text-white"
-                        placeholder="Enter your full name"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <form onSubmit={handleProfileSubmit} className="space-y-4">
+            <div>
+              <Label className="text-gray-300">Full Name</Label>
+              <Input
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                className="bg-gray-700 border-gray-600 text-white"
+                placeholder="Enter your full name"
               />
+            </div>
 
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-300">Username</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        className="bg-gray-700 border-gray-600 text-white"
-                        placeholder="Choose a username"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            <div>
+              <Label className="text-gray-300">Username</Label>
+              <Input
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                className="bg-gray-700 border-gray-600 text-white"
+                placeholder="Choose a username"
               />
+            </div>
 
-              <Button
-                type="submit"
-                disabled={updateProfileMutation.isPending}
-                className="bg-gray-700 hover:bg-gray-600"
-              >
-                {updateProfileMutation.isPending ? "Updating..." : "Update Profile"}
-              </Button>
-            </form>
-          </Form>
+            <Button
+              type="submit"
+              disabled={updateProfileMutation.isPending}
+              className="bg-gray-700 hover:bg-gray-600"
+            >
+              {updateProfileMutation.isPending ? "Updating..." : "Update Profile"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
@@ -197,24 +189,16 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
             <p className="text-white mt-1">{user.email}</p>
           </div>
           
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-gray-300">New Email</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    type="email"
-                    className="bg-gray-700 border-gray-600 text-white"
-                    placeholder="Enter new email address"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div>
+            <Label className="text-gray-300">New Email</Label>
+            <Input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="bg-gray-700 border-gray-600 text-white"
+              placeholder="Enter new email address"
+            />
+          </div>
 
           <Button
             onClick={handleEmailUpdate}

@@ -21,34 +21,50 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
   const [selectedPool, setSelectedPool] = useState("");
   const [stakeAmount, setStakeAmount] = useState("");
 
-  const { data: pools } = useQuery({
+  const { data: pools, isLoading: poolsLoading, error: poolsError } = useQuery({
     queryKey: ["stakingPools"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("staking_pools")
-        .select("*")
-        .eq("is_active", true)
-        .order("apy_percentage", { ascending: false });
-      
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from("staking_pools")
+          .select("*")
+          .eq("is_active", true)
+          .order("apy_percentage", { ascending: false });
+        
+        if (error) {
+          console.error("Pools fetch error:", error);
+          throw error;
+        }
+        return data || [];
+      } catch (error) {
+        console.error("Failed to fetch staking pools:", error);
+        throw error;
+      }
     },
   });
 
-  const { data: userStakes } = useQuery({
+  const { data: userStakes, isLoading: stakesLoading, error: stakesError } = useQuery({
     queryKey: ["userStakes", user.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_stakes")
-        .select(`
-          *,
-          staking_pools(name, apy_percentage, token_symbol)
-        `)
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from("user_stakes")
+          .select(`
+            *,
+            staking_pools(name, apy_percentage, token_symbol)
+          `)
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        
+        if (error) {
+          console.error("Stakes fetch error:", error);
+          throw error;
+        }
+        return data || [];
+      } catch (error) {
+        console.error("Failed to fetch user stakes:", error);
+        throw error;
+      }
     },
   });
 
@@ -96,6 +112,31 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
     createStakeMutation.mutate({ poolId: selectedPool, amount: stakeAmount });
   };
 
+  const isLoading = poolsLoading || stakesLoading;
+  const hasError = poolsError || stakesError;
+
+  if (hasError) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Staking</h1>
+          <p className="text-gray-400 text-red-400">Failed to load staking data. Please try refreshing the page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Staking</h1>
+          <p className="text-gray-400">Loading staking data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -119,11 +160,17 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
                   <SelectValue placeholder="Choose a staking pool" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
-                  {pools?.map((pool) => (
-                    <SelectItem key={pool.id} value={pool.id}>
-                      {pool.name} - {pool.apy_percentage}% APY
+                  {pools && pools.length > 0 ? (
+                    pools.map((pool) => (
+                      <SelectItem key={pool.id} value={pool.id}>
+                        {pool.name} - {pool.apy_percentage}% APY
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-pools" disabled>
+                      No pools available
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -141,7 +188,7 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
 
             <Button
               onClick={handleStake}
-              disabled={createStakeMutation.isPending || !selectedPool || !stakeAmount}
+              disabled={createStakeMutation.isPending || !selectedPool || !stakeAmount || !pools?.length}
               className="w-full bg-gray-700 hover:bg-gray-600"
             >
               {createStakeMutation.isPending ? "Creating Stake..." : "Stake Tokens"}
@@ -155,22 +202,26 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {pools?.map((pool) => (
-                <div key={pool.id} className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-white">{pool.name}</h3>
-                    <div className="flex items-center text-green-400">
-                      <TrendingUp className="h-4 w-4 mr-1" />
-                      {pool.apy_percentage}% APY
+              {pools && pools.length > 0 ? (
+                pools.map((pool) => (
+                  <div key={pool.id} className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-medium text-white">{pool.name}</h3>
+                      <div className="flex items-center text-green-400">
+                        <TrendingUp className="h-4 w-4 mr-1" />
+                        {pool.apy_percentage}% APY
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-400 mb-2">{pool.description || "No description available"}</p>
+                    <div className="text-xs text-gray-500">
+                      Min: {pool.min_stake_amount ? parseFloat(pool.min_stake_amount.toString()).toLocaleString() : "0"} {pool.token_symbol}
+                      {pool.lock_period_days && pool.lock_period_days > 0 && ` • ${pool.lock_period_days} days lock`}
                     </div>
                   </div>
-                  <p className="text-sm text-gray-400 mb-2">{pool.description}</p>
-                  <div className="text-xs text-gray-500">
-                    Min: {parseFloat(pool.min_stake_amount?.toString() || "0").toLocaleString()} {pool.token_symbol}
-                    {pool.lock_period_days && pool.lock_period_days > 0 && ` • ${pool.lock_period_days} days lock`}
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-gray-400 text-center py-8">No staking pools available at the moment.</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -188,21 +239,21 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium text-white">
-                        {stake.staking_pools?.name}
+                        {stake.staking_pools?.name || "Unknown Pool"}
                       </h3>
                       <p className="text-sm text-gray-400">
-                        Staked: {parseFloat(stake.amount.toString()).toLocaleString()} {stake.staking_pools?.token_symbol}
+                        Staked: {stake.amount ? parseFloat(stake.amount.toString()).toLocaleString() : "0"} {stake.staking_pools?.token_symbol || "POOPEE"}
                       </p>
                       <p className="text-xs text-gray-500">
-                        Started: {new Date(stake.start_date).toLocaleDateString()}
+                        Started: {stake.start_date ? new Date(stake.start_date).toLocaleDateString() : "Unknown"}
                       </p>
                     </div>
                     <div className="text-right">
                       <div className="text-green-400 font-medium">
-                        {stake.staking_pools?.apy_percentage}% APY
+                        {stake.staking_pools?.apy_percentage || 0}% APY
                       </div>
                       <div className="text-sm text-gray-400 capitalize">
-                        {stake.status}
+                        {stake.status || "active"}
                       </div>
                     </div>
                   </div>

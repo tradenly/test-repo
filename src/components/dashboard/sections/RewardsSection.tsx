@@ -15,22 +15,30 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: rewards } = useQuery({
+  const { data: rewards, isLoading, error } = useQuery({
     queryKey: ["stakingRewards", user.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("staking_rewards")
-        .select(`
-          *,
-          user_stakes(
-            staking_pools(name, token_symbol)
-          )
-        `)
-        .eq("user_id", user.id)
-        .order("reward_date", { ascending: false });
-      
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from("staking_rewards")
+          .select(`
+            *,
+            user_stakes(
+              staking_pools(name, token_symbol)
+            )
+          `)
+          .eq("user_id", user.id)
+          .order("reward_date", { ascending: false });
+        
+        if (error) {
+          console.error("Rewards fetch error:", error);
+          throw error;
+        }
+        return data || [];
+      } catch (error) {
+        console.error("Failed to fetch rewards:", error);
+        throw error;
+      }
     },
   });
 
@@ -65,8 +73,14 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
 
   const unclaimedRewards = rewards?.filter(reward => !reward.claimed) || [];
   const claimedRewards = rewards?.filter(reward => reward.claimed) || [];
-  const totalUnclaimed = unclaimedRewards.reduce((sum, reward) => sum + parseFloat(reward.reward_amount.toString()), 0);
-  const totalClaimed = claimedRewards.reduce((sum, reward) => sum + parseFloat(reward.reward_amount.toString()), 0);
+  const totalUnclaimed = unclaimedRewards.reduce((sum, reward) => {
+    const amount = reward.reward_amount ? parseFloat(reward.reward_amount.toString()) : 0;
+    return sum + amount;
+  }, 0);
+  const totalClaimed = claimedRewards.reduce((sum, reward) => {
+    const amount = reward.reward_amount ? parseFloat(reward.reward_amount.toString()) : 0;
+    return sum + amount;
+  }, 0);
 
   const claimAllRewards = async () => {
     try {
@@ -78,6 +92,28 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
       console.error("Error claiming all rewards:", error);
     }
   };
+
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Rewards</h1>
+          <p className="text-red-400">Failed to load rewards data. Please try refreshing the page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Rewards</h1>
+          <p className="text-gray-400">Loading rewards data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -165,13 +201,13 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
                 <div key={reward.id} className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg border border-gray-600">
                   <div>
                     <h3 className="font-medium text-white">
-                      {parseFloat(reward.reward_amount.toString()).toFixed(4)} POOPEE
+                      {reward.reward_amount ? parseFloat(reward.reward_amount.toString()).toFixed(4) : "0.0000"} POOPEE
                     </h3>
                     <p className="text-sm text-gray-400">
-                      From: {reward.user_stakes?.staking_pools?.name}
+                      From: {reward.user_stakes?.staking_pools?.name || "Unknown Pool"}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Earned: {new Date(reward.reward_date).toLocaleDateString()}
+                      Earned: {reward.reward_date ? new Date(reward.reward_date).toLocaleDateString() : "Unknown"}
                     </p>
                   </div>
                   <Button
@@ -208,13 +244,13 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
                     </div>
                     <div>
                       <h3 className="font-medium text-white">
-                        {parseFloat(reward.reward_amount.toString()).toFixed(4)} POOPEE
+                        {reward.reward_amount ? parseFloat(reward.reward_amount.toString()).toFixed(4) : "0.0000"} POOPEE
                       </h3>
                       <p className="text-sm text-gray-400">
-                        {reward.user_stakes?.staking_pools?.name}
+                        {reward.user_stakes?.staking_pools?.name || "Unknown Pool"}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {new Date(reward.reward_date).toLocaleDateString()}
+                        {reward.reward_date ? new Date(reward.reward_date).toLocaleDateString() : "Unknown date"}
                       </p>
                     </div>
                   </div>

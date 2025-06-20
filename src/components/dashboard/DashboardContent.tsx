@@ -1,6 +1,7 @@
 
 import { User } from "@supabase/supabase-js";
 import { DashboardSection } from "@/pages/Dashboard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DashboardOverview } from "./sections/DashboardOverview";
 import { ProfileSection } from "./sections/ProfileSection";
 import { WalletsSection } from "./sections/WalletsSection";
@@ -18,21 +19,53 @@ export const DashboardContent = ({ activeSection, user }: DashboardContentProps)
   const renderSection = () => {
     switch (activeSection) {
       case "overview":
-        return <DashboardOverview user={user} />;
+        return (
+          <ErrorBoundary>
+            <DashboardOverview user={user} />
+          </ErrorBoundary>
+        );
       case "profile":
-        return <ProfileSection user={user} />;
+        return (
+          <ErrorBoundary>
+            <ProfileSection user={user} />
+          </ErrorBoundary>
+        );
       case "wallets":
-        return <WalletsSection user={user} />;
+        return (
+          <ErrorBoundary>
+            <WalletsSection user={user} />
+          </ErrorBoundary>
+        );
       case "staking":
-        return <StakingSection user={user} />;
+        return (
+          <ErrorBoundary>
+            <StakingSection user={user} />
+          </ErrorBoundary>
+        );
       case "social":
-        return <SocialSection user={user} />;
+        return (
+          <ErrorBoundary>
+            <SocialSection user={user} />
+          </ErrorBoundary>
+        );
       case "portfolio":
-        return <PortfolioSection user={user} />;
+        return (
+          <ErrorBoundary>
+            <PortfolioSection user={user} />
+          </ErrorBoundary>
+        );
       case "rewards":
-        return <RewardsSection user={user} />;
+        return (
+          <ErrorBoundary>
+            <RewardsSection user={user} />
+          </ErrorBoundary>
+        );
       default:
-        return <DashboardOverview user={user} />;
+        return (
+          <ErrorBoundary>
+            <DashboardOverview user={user} />
+          </ErrorBoundary>
+        );
     }
   };
 
