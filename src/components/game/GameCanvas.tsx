@@ -1,0 +1,352 @@
+
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Coins, Play, RotateCcw } from "lucide-react";
+
+interface GameCanvasProps {
+  onGameEnd: (score: number, pipesPassedCount: number, duration: number) => void;
+  onGameStart: () => void;
+  canPlay: boolean;
+  credits: number;
+}
+
+export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCanvasProps) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gameRef = useRef<any>(null);
+  const [gameState, setGameState] = useState<'menu' | 'playing' | 'gameOver'>('menu');
+  const [score, setScore] = useState(0);
+  const [gameStartTime, setGameStartTime] = useState<number>(0);
+
+  const startGame = useCallback(() => {
+    if (!canPlay) return;
+    
+    onGameStart();
+    setGameState('playing');
+    setScore(0);
+    setGameStartTime(Date.now());
+    
+    if (gameRef.current) {
+      gameRef.current.start();
+    }
+  }, [canPlay, onGameStart]);
+
+  const resetGame = useCallback(() => {
+    setGameState('menu');
+    setScore(0);
+    if (gameRef.current) {
+      gameRef.current.reset();
+    }
+  }, []);
+
+  const handleGameOver = useCallback((finalScore: number, pipesPassedCount: number) => {
+    const duration = Math.floor((Date.now() - gameStartTime) / 1000);
+    setGameState('gameOver');
+    onGameEnd(finalScore, pipesPassedCount, duration);
+  }, [gameStartTime, onGameEnd]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size
+    canvas.width = 800;
+    canvas.height = 600;
+
+    // Game engine class
+    class GameEngine {
+      private ctx: CanvasRenderingContext2D;
+      private hippo: any;
+      private pipes: any[] = [];
+      private background: any;
+      private ground: any;
+      private gameRunning = false;
+      private animationId: number | null = null;
+      private score = 0;
+      private pipesPassedCount = 0;
+
+      constructor(context: CanvasRenderingContext2D) {
+        this.ctx = context;
+        this.reset();
+        this.bindEvents();
+      }
+
+      reset() {
+        this.hippo = {
+          x: 100,
+          y: 200,
+          width: 48,
+          height: 48,
+          velocity: 0,
+          rotation: 0
+        };
+        this.pipes = [];
+        this.gameRunning = false;
+        this.score = 0;
+        this.pipesPassedCount = 0;
+        this.addPipe();
+      }
+
+      bindEvents() {
+        const handleInput = () => {
+          if (this.gameRunning) {
+            this.hippo.velocity = -8;
+            this.hippo.rotation = -0.3;
+          }
+        };
+
+        canvas.addEventListener('click', handleInput);
+        document.addEventListener('keydown', (e) => {
+          if (e.code === 'Space') {
+            e.preventDefault();
+            handleInput();
+          }
+        });
+      }
+
+      start() {
+        this.gameRunning = true;
+        this.gameLoop();
+      }
+
+      gameLoop() {
+        if (!this.gameRunning) return;
+
+        this.update();
+        this.render();
+        this.animationId = requestAnimationFrame(() => this.gameLoop());
+      }
+
+      update() {
+        // Update hippo physics
+        this.hippo.velocity += 0.5; // gravity
+        this.hippo.y += this.hippo.velocity;
+        
+        // Gradually rotate hippo based on velocity
+        if (this.hippo.velocity > 0) {
+          this.hippo.rotation = Math.min(this.hippo.rotation + 0.05, 0.5);
+        }
+
+        // Update pipes
+        this.pipes.forEach(pipe => {
+          pipe.x -= 3;
+          
+          // Check if hippo passed pipe
+          if (!pipe.scored && pipe.x + pipe.width < this.hippo.x) {
+            pipe.scored = true;
+            this.score += 1;
+            this.pipesPassedCount += 1;
+            setScore(this.score);
+          }
+        });
+
+        // Remove off-screen pipes and add new ones
+        this.pipes = this.pipes.filter(pipe => pipe.x > -pipe.width);
+        
+        if (this.pipes.length === 0 || this.pipes[this.pipes.length - 1].x < 400) {
+          this.addPipe();
+        }
+
+        // Check collisions
+        this.checkCollisions();
+      }
+
+      addPipe() {
+        const gapSize = 140;
+        const minGapY = 50;
+        const maxGapY = canvas.height - gapSize - 100;
+        const gapY = Math.random() * (maxGapY - minGapY) + minGapY;
+
+        this.pipes.push({
+          x: canvas.width,
+          topHeight: gapY,
+          bottomY: gapY + gapSize,
+          bottomHeight: canvas.height - (gapY + gapSize),
+          width: 60,
+          scored: false
+        });
+      }
+
+      checkCollisions() {
+        // Ground collision
+        if (this.hippo.y + this.hippo.height > canvas.height - 50) {
+          this.gameOver();
+          return;
+        }
+
+        // Ceiling collision
+        if (this.hippo.y < 0) {
+          this.gameOver();
+          return;
+        }
+
+        // Pipe collision
+        this.pipes.forEach(pipe => {
+          if (this.hippo.x + this.hippo.width > pipe.x && 
+              this.hippo.x < pipe.x + pipe.width) {
+            if (this.hippo.y < pipe.topHeight || 
+                this.hippo.y + this.hippo.height > pipe.bottomY) {
+              this.gameOver();
+            }
+          }
+        });
+      }
+
+      gameOver() {
+        this.gameRunning = false;
+        if (this.animationId) {
+          cancelAnimationFrame(this.animationId);
+        }
+        handleGameOver(this.score, this.pipesPassedCount);
+      }
+
+      render() {
+        // Clear canvas
+        this.ctx.fillStyle = '#87CEEB';
+        this.ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw clouds
+        this.drawClouds();
+
+        // Draw pipes
+        this.pipes.forEach(pipe => this.drawPipe(pipe));
+
+        // Draw ground
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+
+        // Draw hippo
+        this.drawHippo();
+
+        // Draw score
+        this.ctx.fillStyle = 'white';
+        this.ctx.font = 'bold 32px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(this.score.toString(), canvas.width / 2, 50);
+      }
+
+      drawClouds() {
+        this.ctx.fillStyle = 'white';
+        this.ctx.globalAlpha = 0.7;
+        
+        // Simple cloud shapes
+        for (let i = 0; i < 3; i++) {
+          const x = (i * 300) + 50;
+          const y = 80 + (i * 30);
+          this.ctx.beginPath();
+          this.ctx.arc(x, y, 25, 0, Math.PI * 2);
+          this.ctx.arc(x + 25, y, 35, 0, Math.PI * 2);
+          this.ctx.arc(x + 50, y, 25, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
+        
+        this.ctx.globalAlpha = 1;
+      }
+
+      drawPipe(pipe: any) {
+        this.ctx.fillStyle = '#228B22';
+        
+        // Top pipe
+        this.ctx.fillRect(pipe.x, 0, pipe.width, pipe.topHeight);
+        
+        // Bottom pipe
+        this.ctx.fillRect(pipe.x, pipe.bottomY, pipe.width, pipe.bottomHeight);
+        
+        // Pipe caps
+        this.ctx.fillStyle = '#32CD32';
+        this.ctx.fillRect(pipe.x - 5, pipe.topHeight - 30, pipe.width + 10, 30);
+        this.ctx.fillRect(pipe.x - 5, pipe.bottomY, pipe.width + 10, 30);
+      }
+
+      drawHippo() {
+        this.ctx.save();
+        this.ctx.translate(this.hippo.x + this.hippo.width/2, this.hippo.y + this.hippo.height/2);
+        this.ctx.rotate(this.hippo.rotation);
+        
+        // Hippo body
+        this.ctx.fillStyle = '#8B4B8B';
+        this.ctx.fillRect(-this.hippo.width/2, -this.hippo.height/2, this.hippo.width, this.hippo.height);
+        
+        // Hippo eyes
+        this.ctx.fillStyle = 'white';
+        this.ctx.fillRect(-15, -15, 12, 8);
+        this.ctx.fillRect(3, -15, 12, 8);
+        
+        // Pupils
+        this.ctx.fillStyle = 'black';
+        this.ctx.fillRect(-12, -13, 4, 4);
+        this.ctx.fillRect(6, -13, 4, 4);
+        
+        // Nostrils
+        this.ctx.fillStyle = '#654365';
+        this.ctx.fillRect(-8, -5, 3, 2);
+        this.ctx.fillRect(5, -5, 3, 2);
+        
+        this.ctx.restore();
+      }
+    }
+
+    gameRef.current = new GameEngine(ctx);
+
+    return () => {
+      if (gameRef.current?.animationId) {
+        cancelAnimationFrame(gameRef.current.animationId);
+      }
+    };
+  }, [handleGameOver]);
+
+  return (
+    <div className="flex flex-col items-center space-y-4">
+      <canvas 
+        ref={canvasRef}
+        className="border-2 border-gray-300 rounded-lg bg-sky-200"
+        style={{ maxWidth: '100%', height: 'auto' }}
+      />
+      
+      {gameState === 'menu' && (
+        <Card className="bg-gray-800/90 border-gray-700 p-6 text-center">
+          <h3 className="text-xl font-bold text-white mb-4">🦛 Flappy Hippos</h3>
+          <p className="text-gray-300 mb-4">
+            Click or press Space to flap! Avoid the pipes and earn credits!
+          </p>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Coins className="h-4 w-4 text-yellow-400" />
+            <span className="text-white">Cost: 1 Credit | Balance: {credits}</span>
+          </div>
+          <Button 
+            onClick={startGame} 
+            disabled={!canPlay}
+            className="bg-green-600 hover:bg-green-500"
+          >
+            <Play className="h-4 w-4 mr-2" />
+            {canPlay ? 'Start Game' : 'Insufficient Credits'}
+          </Button>
+        </Card>
+      )}
+
+      {gameState === 'gameOver' && (
+        <Card className="bg-gray-800/90 border-gray-700 p-6 text-center">
+          <h3 className="text-xl font-bold text-white mb-4">Game Over!</h3>
+          <p className="text-gray-300 mb-4">Final Score: {score}</p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={resetGame} variant="outline">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Menu
+            </Button>
+            <Button 
+              onClick={startGame} 
+              disabled={!canPlay}
+              className="bg-green-600 hover:bg-green-500"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Play Again
+            </Button>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+};

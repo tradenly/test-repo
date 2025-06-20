@@ -9,6 +9,95 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      credit_transactions: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          game_session_id: string | null
+          id: string
+          metadata: Json | null
+          reference_id: string | null
+          status: string
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          game_session_id?: string | null
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          status?: string
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          game_session_id?: string | null
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          status?: string
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_game_session_id_fkey"
+            columns: ["game_session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          credits_earned: number
+          credits_spent: number
+          duration_seconds: number
+          game_type: string
+          id: string
+          pipes_passed: number
+          score: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          credits_earned?: number
+          credits_spent?: number
+          duration_seconds?: number
+          game_type?: string
+          id?: string
+          pipes_passed?: number
+          score?: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          credits_earned?: number
+          credits_spent?: number
+          duration_seconds?: number
+          game_type?: string
+          id?: string
+          pipes_passed?: number
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       nft_holdings: {
         Row: {
           acquired_at: string | null
@@ -169,6 +258,30 @@ export type Database = {
           id?: string
           last_updated?: string | null
           token_symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_credits: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
