@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus, Wallet } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
+import { WalletActions } from "./WalletActions";
 
 type BlockchainType = Database["public"]["Enums"]["blockchain_type"];
 
@@ -163,6 +163,9 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
           Add Wallet
         </Button>
       </div>
+
+      {/* Wallet Actions Component */}
+      <WalletActions user={user} />
 
       {/* Current ZK Login Wallet Display */}
       {user.authType === 'zklogin' && user.walletAddress && (
