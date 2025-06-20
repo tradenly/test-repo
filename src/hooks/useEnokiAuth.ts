@@ -30,7 +30,16 @@ export const useEnokiAuth = () => {
         setState(prev => ({ ...prev, isLoading: true }));
         
         // Check if user is already authenticated with Enoki
-        const address = enokiFlow.address;
+        // Try different ways to access the address based on Enoki API
+        let address: string | null = null;
+        
+        if (typeof enokiFlow.getAddress === 'function') {
+          address = await enokiFlow.getAddress();
+        } else if (enokiFlow.address) {
+          address = enokiFlow.address;
+        } else if (enokiFlow.user?.address) {
+          address = enokiFlow.user.address;
+        }
         
         if (address) {
           console.log('Enoki authenticated with address:', address);
@@ -64,7 +73,7 @@ export const useEnokiAuth = () => {
     };
 
     initializeAuth();
-  }, [enokiFlow.address]);
+  }, [enokiFlow]);
 
   const startZkLogin = useCallback(async () => {
     try {
@@ -79,7 +88,7 @@ export const useEnokiAuth = () => {
         redirectUrl: getRedirectUrl(),
         network: 'mainnet',
         extraParams: {
-          prompt: 'select_account', // Force account selection
+          prompt: 'select_account',
         },
       });
       
@@ -110,11 +119,19 @@ export const useEnokiAuth = () => {
         throw new Error('No authorization code found in callback');
       }
       
-      // Complete the OAuth flow with Enoki - pass just the code string
+      // Complete the OAuth flow with Enoki
       await enokiFlow.handleAuthCallback(authorizationCode);
       
-      // Get the authenticated address from the flow
-      const address = enokiFlow.address;
+      // Get the authenticated address - try multiple methods
+      let address: string | null = null;
+      
+      if (typeof enokiFlow.getAddress === 'function') {
+        address = await enokiFlow.getAddress();
+      } else if (enokiFlow.address) {
+        address = enokiFlow.address;
+      } else if (enokiFlow.user?.address) {
+        address = enokiFlow.user.address;
+      }
       
       if (!address) {
         throw new Error('Failed to get address after authentication');
@@ -152,15 +169,39 @@ export const useEnokiAuth = () => {
       // Set sender on the transaction
       transaction.setSender(state.userAddress);
       
-      // Use Enoki's sponsorAndExecuteTransactionBlock method
-      const result = await enokiFlow.sponsorAndExecuteTransactionBlock({
-        transactionBlock: transaction,
-        options: {
-          showEffects: true,
-          showEvents: true,
-          showObjectChanges: true,
-        },
-      });
+      // Try different Enoki transaction execution methods
+      let result;
+      
+      if (typeof enokiFlow.sponsorAndExecuteTransactionBlock === 'function') {
+        result = await enokiFlow.sponsorAndExecuteTransactionBlock({
+          transactionBlock: transaction,
+          options: {
+            showEffects: true,
+            showEvents: true,
+            showObjectChanges: true,
+          },
+        });
+      } else if (typeof enokiFlow.signAndExecuteTransactionBlock === 'function') {
+        result = await enokiFlow.signAndExecuteTransactionBlock({
+          transactionBlock: transaction,
+          options: {
+            showEffects: true,
+            showEvents: true,
+            showObjectChanges: true,
+          },
+        });
+      } else if (typeof enokiFlow.executeTransactionBlock === 'function') {
+        result = await enokiFlow.executeTransactionBlock({
+          transactionBlock: transaction,
+          options: {
+            showEffects: true,
+            showEvents: true,
+            showObjectChanges: true,
+          },
+        });
+      } else {
+        throw new Error('No transaction execution method available on Enoki flow');
+      }
       
       console.log('Transaction executed successfully:', result.digest);
       
@@ -191,8 +232,10 @@ export const useEnokiAuth = () => {
     try {
       console.log('Logging out from Enoki...');
       
-      // Use Enoki's logout method
-      await enokiFlow.logout();
+      // Use Enoki's logout method if available
+      if (typeof enokiFlow.logout === 'function') {
+        await enokiFlow.logout();
+      }
       
       setState({
         isInitialized: true,
