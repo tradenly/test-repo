@@ -17,21 +17,25 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'gameOver'>('menu');
   const [score, setScore] = useState(0);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const startGame = useCallback(() => {
-    if (!canPlay) return;
+    if (!canPlay || !isInitialized || !gameRef.current) {
+      console.log("Cannot start game - conditions not met:", { canPlay, isInitialized, gameRef: !!gameRef.current });
+      return;
+    }
     
+    console.log("Starting game...");
     onGameStart();
     setGameState('playing');
     setScore(0);
     setGameStartTime(Date.now());
     
-    if (gameRef.current) {
-      gameRef.current.start();
-    }
-  }, [canPlay, onGameStart]);
+    gameRef.current.start();
+  }, [canPlay, onGameStart, isInitialized]);
 
   const resetGame = useCallback(() => {
+    console.log("Resetting game...");
     setGameState('menu');
     setScore(0);
     if (gameRef.current) {
@@ -41,16 +45,25 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
   const handleGameOver = useCallback((finalScore: number, pipesPassedCount: number) => {
     const duration = Math.floor((Date.now() - gameStartTime) / 1000);
+    console.log("Game over - Score:", finalScore, "Duration:", duration);
     setGameState('gameOver');
     onGameEnd(finalScore, pipesPassedCount, duration);
   }, [gameStartTime, onGameEnd]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      console.log("Canvas not found");
+      return;
+    }
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.log("Canvas context not found");
+      return;
+    }
+
+    console.log("Initializing game engine...");
 
     // Set canvas size
     canvas.width = 800;
@@ -61,8 +74,6 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       private ctx: CanvasRenderingContext2D;
       private hippo: any;
       private pipes: any[] = [];
-      private background: any;
-      private ground: any;
       private gameRunning = false;
       private animationId: number | null = null;
       private score = 0;
@@ -72,9 +83,12 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx = context;
         this.reset();
         this.bindEvents();
+        this.render(); // Initial render to show the game world
+        console.log("Game engine initialized successfully");
       }
 
       reset() {
+        console.log("Resetting game state...");
         this.hippo = {
           x: 100,
           y: 200,
@@ -88,6 +102,9 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.score = 0;
         this.pipesPassedCount = 0;
         this.addPipe();
+        if (!this.gameRunning) {
+          this.render(); // Render initial state
+        }
       }
 
       bindEvents() {
@@ -108,6 +125,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       start() {
+        console.log("Starting game engine...");
         this.gameRunning = true;
         this.gameLoop();
       }
@@ -115,9 +133,14 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       gameLoop() {
         if (!this.gameRunning) return;
 
-        this.update();
-        this.render();
-        this.animationId = requestAnimationFrame(() => this.gameLoop());
+        try {
+          this.update();
+          this.render();
+          this.animationId = requestAnimationFrame(() => this.gameLoop());
+        } catch (error) {
+          console.error("Error in game loop:", error);
+          this.gameOver();
+        }
       }
 
       update() {
@@ -196,6 +219,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       gameOver() {
+        console.log("Game over triggered");
         this.gameRunning = false;
         if (this.animationId) {
           cancelAnimationFrame(this.animationId);
@@ -204,28 +228,32 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       render() {
-        // Clear canvas
-        this.ctx.fillStyle = '#87CEEB';
-        this.ctx.fillRect(0, 0, canvas.width, canvas.height);
+        try {
+          // Clear canvas with sky blue background
+          this.ctx.fillStyle = '#87CEEB';
+          this.ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw clouds
-        this.drawClouds();
+          // Draw clouds
+          this.drawClouds();
 
-        // Draw pipes
-        this.pipes.forEach(pipe => this.drawPipe(pipe));
+          // Draw pipes
+          this.pipes.forEach(pipe => this.drawPipe(pipe));
 
-        // Draw ground
-        this.ctx.fillStyle = '#8B4513';
-        this.ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+          // Draw ground
+          this.ctx.fillStyle = '#8B4513';
+          this.ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
 
-        // Draw hippo
-        this.drawHippo();
+          // Draw hippo
+          this.drawHippo();
 
-        // Draw score
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = 'bold 32px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(this.score.toString(), canvas.width / 2, 50);
+          // Draw score
+          this.ctx.fillStyle = 'white';
+          this.ctx.font = 'bold 32px Arial';
+          this.ctx.textAlign = 'center';
+          this.ctx.fillText(this.score.toString(), canvas.width / 2, 50);
+        } catch (error) {
+          console.error("Error in render:", error);
+        }
       }
 
       drawClouds() {
@@ -289,7 +317,13 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
     }
 
-    gameRef.current = new GameEngine(ctx);
+    try {
+      gameRef.current = new GameEngine(ctx);
+      setIsInitialized(true);
+      console.log("Game engine created and initialized");
+    } catch (error) {
+      console.error("Error creating game engine:", error);
+    }
 
     return () => {
       if (gameRef.current?.animationId) {
@@ -302,8 +336,8 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     <div className="flex flex-col items-center space-y-4">
       <canvas 
         ref={canvasRef}
-        className="border-2 border-gray-300 rounded-lg bg-sky-200"
-        style={{ maxWidth: '100%', height: 'auto' }}
+        className="border-2 border-gray-300 rounded-lg"
+        style={{ maxWidth: '100%', height: 'auto', backgroundColor: '#87CEEB' }}
       />
       
       {gameState === 'menu' && (
@@ -318,11 +352,11 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           </div>
           <Button 
             onClick={startGame} 
-            disabled={!canPlay}
+            disabled={!canPlay || !isInitialized}
             className="bg-green-600 hover:bg-green-500"
           >
             <Play className="h-4 w-4 mr-2" />
-            {canPlay ? 'Start Game' : 'Insufficient Credits'}
+            {!isInitialized ? 'Loading...' : canPlay ? 'Start Game' : 'Insufficient Credits'}
           </Button>
         </Card>
       )}
@@ -338,7 +372,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
             </Button>
             <Button 
               onClick={startGame} 
-              disabled={!canPlay}
+              disabled={!canPlay || !isInitialized}
               className="bg-green-600 hover:bg-green-500"
             >
               <Play className="h-4 w-4 mr-2" />
