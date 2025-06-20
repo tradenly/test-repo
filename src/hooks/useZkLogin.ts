@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
@@ -363,10 +364,24 @@ export const useZkLogin = () => {
     return !!(state.userAddress && state.ephemeralKeyPair && state.hasValidJWT);
   }, [state.userAddress, state.ephemeralKeyPair, state.hasValidJWT]);
 
+  // Enhanced logout function to properly clear all stored data
   const logout = useCallback(() => {
-    // Clear JWT but keep user-specific randomness for future logins
+    console.log('Logging out ZK Login user...');
+    
+    // Get current Google user ID before clearing state
+    const currentGoogleUserId = state.googleUserId;
+    
+    // Clear JWT token
     localStorage.removeItem('current_jwt');
     
+    // Clear user-specific stored data if we have a Google user ID
+    if (currentGoogleUserId) {
+      const storageKey = getStorageKey(currentGoogleUserId);
+      localStorage.removeItem(storageKey);
+      console.log('Cleared stored data for Google user:', currentGoogleUserId);
+    }
+    
+    // Reset all state to initial values
     setState({
       isInitialized: true,
       isLoading: false,
@@ -378,7 +393,9 @@ export const useZkLogin = () => {
       error: null,
       hasValidJWT: false,
     });
-  }, []);
+    
+    console.log('ZK Login logout completed - all data cleared');
+  }, [state.googleUserId, getStorageKey]);
 
   return {
     ...state,
