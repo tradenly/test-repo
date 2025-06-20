@@ -15,7 +15,7 @@ import {
   Copy
 } from "lucide-react";
 import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
-import { TransactionBlock } from "@mysten/sui/transactions";
+import { Transaction } from "@mysten/sui/transactions";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 
 interface WalletActionsProps {
