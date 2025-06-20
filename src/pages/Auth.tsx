@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { ZkLoginButton } from "@/components/ZkLoginButton";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -25,6 +25,14 @@ const Auth = () => {
       }
     });
   }, [navigate]);
+
+  const handleZkLoginSuccess = (address: string) => {
+    toast({
+      title: "ZK Login Success",
+      description: `Connected with address: ${address.slice(0, 10)}...`,
+    });
+    navigate('/dashboard');
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +99,23 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* ZK Login Option */}
+          <div className="mb-6">
+            <ZkLoginButton 
+              onSuccess={handleZkLoginSuccess}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            />
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-600" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-gray-800 px-2 text-gray-400">Or continue with email</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Existing email/password form */}
           <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-4">
             {isSignUp && (
               <>
