@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
@@ -39,9 +40,24 @@ export const useZkLogin = () => {
           // Fix: Properly reconstruct the Ed25519Keypair from stored private key bytes
           let ephemeralKeyPair = null;
           if (parsed.ephemeralPrivateKey) {
-            // Convert the stored array back to Uint8Array and create keypair
-            const privateKeyBytes = new Uint8Array(parsed.ephemeralPrivateKey);
-            ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
+            // Ensure we have exactly 32 bytes for the private key
+            let privateKeyBytes;
+            if (Array.isArray(parsed.ephemeralPrivateKey)) {
+              // If it's an array, take only the first 32 bytes
+              privateKeyBytes = new Uint8Array(parsed.ephemeralPrivateKey.slice(0, 32));
+            } else if (typeof parsed.ephemeralPrivateKey === 'string') {
+              // If it's a hex string, convert to bytes
+              const hex = parsed.ephemeralPrivateKey.replace('0x', '');
+              privateKeyBytes = new Uint8Array(hex.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []);
+            }
+            
+            // Only create keypair if we have exactly 32 bytes
+            if (privateKeyBytes && privateKeyBytes.length === 32) {
+              ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
+            } else {
+              console.warn('Invalid ephemeral key length, clearing stored state');
+              localStorage.removeItem(STORAGE_KEY);
+            }
           }
           
           setState(prev => ({
@@ -57,6 +73,7 @@ export const useZkLogin = () => {
         }
       } catch (error) {
         console.error('Failed to load ZK Login state:', error);
+        localStorage.removeItem(STORAGE_KEY); // Clear corrupted state
         setState(prev => ({ ...prev, error: 'Failed to load saved state', isInitialized: true }));
       }
     };
@@ -71,9 +88,9 @@ export const useZkLogin = () => {
         userAddress: newState.userAddress,
         maxEpoch: newState.maxEpoch,
         randomness: newState.randomness,
-        // Fix: Store only the private key bytes, not the full keypair object
+        // Fix: Store only the 32-byte private key, ensuring proper format
         ephemeralPrivateKey: newState.ephemeralKeyPair ? 
-          Array.from(newState.ephemeralKeyPair.getSecretKey()) : null,
+          Array.from(newState.ephemeralKeyPair.getSecretKey().slice(0, 32)) : null,
       };
       
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
@@ -166,8 +183,8 @@ export const useZkLogin = () => {
 
       // Step 1: Get salt from Enoki via edge function
       console.log('Requesting salt from Enoki...');
-      const saltResponse = await supabase.functions.invoke('zklogin-proof/salt', {
-        body: { jwt: idToken }
+      const saltResponse = await supabase.functions.invoke('zklogin-proof', {
+        body: { action: 'salt', jwt: idToken }
       });
 
       if (saltResponse.error) {
@@ -177,16 +194,26 @@ export const useZkLogin = () => {
       const { salt } = saltResponse.data;
       console.log('Salt received from Enoki');
 
-      // Step 2: Reconstruct ephemeral keypair
-      const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(
-        new Uint8Array(ephemeralPrivateKey)
-      );
+      // Step 2: Reconstruct ephemeral keypair - ensure exactly 32 bytes
+      let privateKeyBytes;
+      if (Array.isArray(ephemeralPrivateKey)) {
+        privateKeyBytes = new Uint8Array(ephemeralPrivateKey.slice(0, 32));
+      } else {
+        privateKeyBytes = new Uint8Array(ephemeralPrivateKey);
+      }
+      
+      if (privateKeyBytes.length !== 32) {
+        throw new Error(`Invalid private key length: ${privateKeyBytes.length}, expected 32`);
+      }
+
+      const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
       const ephemeralPublicKey = ephemeralKeyPair.getPublicKey();
 
       // Step 3: Generate ZK proof via Enoki edge function
       console.log('Requesting ZK proof from Enoki...');
-      const proofResponse = await supabase.functions.invoke('zklogin-proof/proof', {
+      const proofResponse = await supabase.functions.invoke('zklogin-proof', {
         body: {
+          action: 'proof',
           jwt: idToken,
           ephemeralPublicKey: ephemeralPublicKey.toSuiBytes(),
           maxEpoch,
@@ -208,11 +235,11 @@ export const useZkLogin = () => {
       const newState = {
         userAddress,
         isLoading: false,
+        ephemeralKeyPair,
       };
       
       setState(prev => ({ ...prev, ...newState }));
-      // Fix: Only pass valid ZkLoginState properties
-      saveState({ randomness, maxEpoch, ...newState, ephemeralKeyPair });
+      saveState({ randomness, maxEpoch, ...newState });
       
       console.log('ZK Login completed successfully, user address:', userAddress);
       

@@ -11,10 +11,12 @@ const ENOKI_API_KEY = 'enoki_public_39cb997c8013b5ddbf2b2463748a8ba0d8c6bf83983e
 const ENOKI_API_BASE_URL = 'https://api.enoki.mystenlabs.com';
 
 interface SaltRequest {
+  action: 'salt';
   jwt: string;
 }
 
 interface ProofRequest {
+  action: 'proof';
   jwt: string;
   ephemeralPublicKey: string;
   maxEpoch: number;
@@ -30,21 +32,21 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const path = url.pathname;
+    if (req.method !== 'POST') {
+      return new Response('Method not allowed', { 
+        status: 405, 
+        headers: corsHeaders 
+      });
+    }
 
-    console.log(`ZK Login Proof Function called with path: ${path}`);
+    const requestBody = await req.json();
+    const { action } = requestBody;
 
-    if (path.endsWith('/salt')) {
+    console.log(`ZK Login Proof Function called with action: ${action}`);
+
+    if (action === 'salt') {
       // Handle salt retrieval
-      if (req.method !== 'POST') {
-        return new Response('Method not allowed', { 
-          status: 405, 
-          headers: corsHeaders 
-        });
-      }
-
-      const { jwt }: SaltRequest = await req.json();
+      const { jwt }: SaltRequest = requestBody;
       
       if (!jwt) {
         return new Response('JWT is required', { 
@@ -55,41 +57,56 @@ Deno.serve(async (req) => {
 
       console.log('Requesting salt from Enoki for JWT...');
 
+      // Updated endpoint - using the correct Enoki salt endpoint
       const saltResponse = await fetch(`${ENOKI_API_BASE_URL}/v1/zklogin/salt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${ENOKI_API_KEY}`,
         },
-        body: JSON.stringify({ jwt }),
+        body: JSON.stringify({ token: jwt }),
       });
 
       if (!saltResponse.ok) {
         const errorText = await saltResponse.text();
         console.error('Enoki salt request failed:', errorText);
-        return new Response(`Failed to get salt: ${errorText}`, { 
-          status: saltResponse.status, 
-          headers: corsHeaders 
+        
+        // Try alternative endpoint if the first one fails
+        console.log('Trying alternative salt endpoint...');
+        const altSaltResponse = await fetch('https://salt.api.mystenlabs.com/get_salt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: jwt }),
+        });
+
+        if (!altSaltResponse.ok) {
+          const altErrorText = await altSaltResponse.text();
+          console.error('Alternative salt endpoint also failed:', altErrorText);
+          return new Response(`Failed to get salt: ${errorText}`, { 
+            status: saltResponse.status, 
+            headers: corsHeaders 
+          });
+        }
+
+        const altSaltData = await altSaltResponse.json();
+        console.log('Salt retrieved successfully from alternative endpoint');
+        return new Response(JSON.stringify({ salt: altSaltData.user_salt }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       const saltData = await saltResponse.json();
       console.log('Salt retrieved successfully from Enoki');
 
-      return new Response(JSON.stringify(saltData), {
+      return new Response(JSON.stringify({ salt: saltData.salt || saltData.user_salt }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 
-    } else if (path.endsWith('/proof')) {
+    } else if (action === 'proof') {
       // Handle ZK proof generation
-      if (req.method !== 'POST') {
-        return new Response('Method not allowed', { 
-          status: 405, 
-          headers: corsHeaders 
-        });
-      }
-
-      const proofRequest: ProofRequest = await req.json();
+      const proofRequest: ProofRequest = requestBody;
       
       const { jwt, ephemeralPublicKey, maxEpoch, jwtRandomness, salt, keyClaimName } = proofRequest;
 
@@ -135,8 +152,8 @@ Deno.serve(async (req) => {
       });
 
     } else {
-      return new Response('Not found', { 
-        status: 404, 
+      return new Response('Invalid action', { 
+        status: 400, 
         headers: corsHeaders 
       });
     }
