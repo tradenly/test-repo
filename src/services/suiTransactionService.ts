@@ -1,4 +1,3 @@
-
 import { SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
@@ -46,13 +45,8 @@ export class SuiTransactionService {
       
       console.log('Building transaction for signing...');
       
-      // Build transaction to get bytes for signing
-      const txBytes = await this.client.buildTransactionBlock({
-        transactionBlock: tx,
-        options: {
-          onlyTransactionKind: false,
-        },
-      });
+      // Build transaction bytes
+      const txBytes = await tx.build({ client: this.client });
       
       console.log('Signing transaction with ephemeral key...');
       
