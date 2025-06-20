@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
@@ -212,7 +211,8 @@ export const useZkLogin = () => {
       };
       
       setState(prev => ({ ...prev, ...newState }));
-      saveState({ randomness, maxEpoch, ephemeralPrivateKey, ...newState });
+      // Fix: Only pass valid ZkLoginState properties
+      saveState({ randomness, maxEpoch, ...newState, ephemeralKeyPair });
       
       console.log('ZK Login completed successfully, user address:', userAddress);
       
