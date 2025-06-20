@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
 import { jwtToAddress } from '@mysten/zklogin';
@@ -34,7 +34,10 @@ export const useZkLogin = () => {
     hasValidJWT: false,
   });
 
-  // Extract Google user ID from JWT token
+  // Add a ref to track if we're in the process of logging out
+  const isLoggingOut = useRef(false);
+
+  // Extract Google user ID from JWT token - memoized
   const extractGoogleUserId = useCallback((jwtToken: string): string | null => {
     try {
       const payload = JSON.parse(atob(jwtToken.split('.')[1]));
@@ -45,7 +48,7 @@ export const useZkLogin = () => {
     }
   }, []);
 
-  // Get storage key for a specific Google user
+  // Get storage key for a specific Google user - memoized
   const getStorageKey = useCallback((googleUserId: string) => {
     return `${STORAGE_PREFIX}${googleUserId}`;
   }, []);
@@ -56,7 +59,7 @@ export const useZkLogin = () => {
     return !!jwtToken;
   }, []);
 
-  // Get or create randomness for a Google user
+  // Get or create randomness for a Google user - stable function
   const getOrCreateRandomness = useCallback((googleUserId: string): string => {
     const storageKey = getStorageKey(googleUserId);
     const stored = localStorage.getItem(storageKey);
@@ -84,10 +87,17 @@ export const useZkLogin = () => {
     return newRandomness;
   }, [getStorageKey]);
 
-  // Initialize from localStorage and JWT on mount
+  // Initialize from localStorage and JWT on mount - with logout protection
   useEffect(() => {
     const loadStoredState = () => {
+      // Don't initialize if we're in the middle of logging out
+      if (isLoggingOut.current) {
+        console.log('Skipping initialization during logout');
+        return;
+      }
+
       try {
+        console.log('Loading stored ZK Login state...');
         const jwtToken = localStorage.getItem('current_jwt');
         const hasValidJWT = !!jwtToken;
         
@@ -143,6 +153,7 @@ export const useZkLogin = () => {
             setState(prev => ({ ...prev, hasValidJWT, isInitialized: true }));
           }
         } else {
+          console.log('No JWT found, setting initialized state');
           setState(prev => ({ ...prev, hasValidJWT: false, isInitialized: true }));
         }
       } catch (error) {
@@ -156,8 +167,11 @@ export const useZkLogin = () => {
       }
     };
 
-    loadStoredState();
-  }, [extractGoogleUserId, getStorageKey, getOrCreateRandomness]);
+    // Only run initialization once on mount
+    if (!state.isInitialized) {
+      loadStoredState();
+    }
+  }, [state.isInitialized]); // Only depend on isInitialized to prevent re-runs
 
   const saveState = useCallback((googleUserId: string, newState: Partial<ZkLoginState>) => {
     try {
@@ -364,15 +378,19 @@ export const useZkLogin = () => {
     return !!(state.userAddress && state.ephemeralKeyPair && state.hasValidJWT);
   }, [state.userAddress, state.ephemeralKeyPair, state.hasValidJWT]);
 
-  // Enhanced logout function to properly clear all stored data
+  // Enhanced logout function with proper state management
   const logout = useCallback(() => {
     console.log('Logging out ZK Login user...');
+    
+    // Set logout flag to prevent re-initialization
+    isLoggingOut.current = true;
     
     // Get current Google user ID before clearing state
     const currentGoogleUserId = state.googleUserId;
     
-    // Clear JWT token
+    // Clear JWT token first
     localStorage.removeItem('current_jwt');
+    console.log('Cleared JWT token');
     
     // Clear user-specific stored data if we have a Google user ID
     if (currentGoogleUserId) {
@@ -394,7 +412,12 @@ export const useZkLogin = () => {
       hasValidJWT: false,
     });
     
-    console.log('ZK Login logout completed - all data cleared');
+    // Reset logout flag after a short delay to allow state changes to settle
+    setTimeout(() => {
+      isLoggingOut.current = false;
+      console.log('ZK Login logout completed - all data cleared');
+    }, 100);
+    
   }, [state.googleUserId, getStorageKey]);
 
   return {
