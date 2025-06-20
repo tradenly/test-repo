@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,11 +10,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus, Users } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
+import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 
 type SocialPlatform = Database["public"]["Enums"]["social_platform"];
 
 interface SocialSectionProps {
-  user: User;
+  user: UnifiedUser;
 }
 
 interface AddSocialForm {
@@ -33,6 +33,27 @@ export const SocialSection = ({ user }: SocialSectionProps) => {
     username: "",
     profile_url: "",
   });
+
+  // Only show social management for Supabase users
+  if (user.authType !== 'supabase') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Social Accounts</h1>
+          <p className="text-gray-400">Social account management is currently available for email users only</p>
+        </div>
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardContent className="p-12 text-center">
+            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-white font-medium mb-2">Social Features Coming Soon</h3>
+            <p className="text-gray-400">
+              We're working on bringing social account linking to wallet users. Stay tuned!
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const { data: socialAccounts, isLoading } = useQuery({
     queryKey: ["userSocialAccounts", user.id],

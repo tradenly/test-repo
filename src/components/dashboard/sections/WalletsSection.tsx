@@ -1,6 +1,4 @@
-
 import { useState } from "react";
-import { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,11 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus, Wallet } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
+import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 
 type BlockchainType = Database["public"]["Enums"]["blockchain_type"];
 
 interface WalletsSectionProps {
-  user: User;
+  user: UnifiedUser;
 }
 
 interface AddWalletForm {
@@ -34,9 +33,14 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
     wallet_name: "",
   });
 
+  // Only fetch wallets for Supabase users
   const { data: wallets, isLoading } = useQuery({
     queryKey: ["userWallets", user.id],
     queryFn: async () => {
+      if (user.authType !== 'supabase') {
+        return [];
+      }
+      
       const { data, error } = await supabase
         .from("user_wallets")
         .select("*")
@@ -46,10 +50,15 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
       if (error) throw error;
       return data;
     },
+    enabled: user.authType === 'supabase',
   });
 
   const addWalletMutation = useMutation({
     mutationFn: async (walletData: AddWalletForm) => {
+      if (user.authType !== 'supabase') {
+        throw new Error('Wallet management only available for email users');
+      }
+      
       const { error } = await supabase
         .from("user_wallets")
         .insert({
@@ -137,6 +146,43 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
         return "🔗";
     }
   };
+
+  // Show current wallet for ZK Login users
+  if (user.authType === 'zklogin') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Wallet Management</h1>
+          <p className="text-gray-400">Your connected wallet information</p>
+        </div>
+
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="text-2xl">🌊</div>
+              <div>
+                <h3 className="text-white font-medium">Connected SUI Wallet</h3>
+                <p className="text-gray-400 text-sm">ZK Login Wallet</p>
+                <p className="text-gray-500 text-xs font-mono">
+                  {user.walletAddress?.slice(0, 20)}...{user.walletAddress?.slice(-10)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardContent className="p-12 text-center">
+            <Wallet className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-white font-medium mb-2">Additional Wallet Management</h3>
+            <p className="text-gray-400">
+              Sign up with email to manage multiple wallet addresses across different blockchains.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
