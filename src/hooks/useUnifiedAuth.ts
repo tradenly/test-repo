@@ -34,7 +34,7 @@ export const useUnifiedAuth = () => {
           return;
         }
 
-        // If no Supabase session, check ZK Login (only if initialized and has valid JWT)
+        // If no Supabase session, check ZK Login
         if (isInitialized && userAddress && hasValidJWT) {
           setUnifiedUser({
             id: userAddress,
@@ -84,22 +84,22 @@ export const useUnifiedAuth = () => {
     return () => subscription.unsubscribe();
   }, [userAddress, isInitialized, hasValidJWT]);
 
-  // Update when ZK Login state changes
+  // Update when ZK Login state changes (simplified)
   useEffect(() => {
     if (isInitialized && !unifiedUser?.supabaseUser) {
       if (userAddress && hasValidJWT) {
-        console.log('ZK Login state changed - setting unified user');
+        console.log('ZK Login authenticated - setting unified user');
         setUnifiedUser({
           id: userAddress,
           walletAddress: userAddress,
           authType: 'zklogin',
         });
       } else if (unifiedUser?.authType === 'zklogin') {
-        console.log('ZK Login state cleared - clearing unified user');
+        console.log('ZK Login cleared - clearing unified user');
         setUnifiedUser(null);
       }
     }
-  }, [userAddress, isInitialized, hasValidJWT, unifiedUser?.supabaseUser, unifiedUser?.authType]);
+  }, [userAddress, hasValidJWT, isInitialized, unifiedUser?.supabaseUser, unifiedUser?.authType]);
 
   const logout = async () => {
     try {

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
 import { jwtToAddress } from '@mysten/zklogin';
-import { ZK_LOGIN_CONFIG, getRedirectUrl, getCurrentEpoch, suiClient } from '@/config/zkLogin';
+import { ZK_LOGIN_CONFIG, getRedirectUrl, getCurrentEpoch } from '@/config/zkLogin';
 
 interface ZkLoginState {
   isInitialized: boolean;
@@ -19,6 +19,7 @@ interface ZkLoginState {
 
 const STORAGE_PREFIX = 'zklogin_user_';
 const CURRENT_JWT_KEY = 'current_jwt';
+const SESSION_KEYPAIR_KEY = 'session_ephemeral_keypair';
 
 export const useZkLogin = () => {
   const [state, setState] = useState<ZkLoginState>({
@@ -79,6 +80,45 @@ export const useZkLogin = () => {
     return newRandomness;
   }, [getStorageKey]);
 
+  // Save ephemeral keypair for session
+  const saveEphemeralKeyPair = useCallback((keypair: Ed25519Keypair) => {
+    try {
+      const keyData = {
+        privateKey: Array.from(keypair.getSecretKey().slice(0, 32)),
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(SESSION_KEYPAIR_KEY, JSON.stringify(keyData));
+      console.log('Saved ephemeral keypair for session');
+    } catch (error) {
+      console.error('Failed to save ephemeral keypair:', error);
+    }
+  }, []);
+
+  // Restore ephemeral keypair from session
+  const restoreEphemeralKeyPair = useCallback((): Ed25519Keypair | null => {
+    try {
+      const stored = localStorage.getItem(SESSION_KEYPAIR_KEY);
+      if (!stored) return null;
+
+      const keyData = JSON.parse(stored);
+      
+      // Check if keypair is not too old (1 hour max)
+      if (Date.now() - keyData.timestamp > 3600000) {
+        localStorage.removeItem(SESSION_KEYPAIR_KEY);
+        return null;
+      }
+
+      const privateKeyArray = new Uint8Array(keyData.privateKey);
+      const keypair = Ed25519Keypair.fromSecretKey(privateKeyArray);
+      console.log('Restored ephemeral keypair from session');
+      return keypair;
+    } catch (error) {
+      console.error('Failed to restore ephemeral keypair:', error);
+      localStorage.removeItem(SESSION_KEYPAIR_KEY);
+      return null;
+    }
+  }, []);
+
   // Initialize from localStorage on mount
   useEffect(() => {
     if (isLoggingOut.current || state.isInitialized) return;
@@ -87,7 +127,6 @@ export const useZkLogin = () => {
       try {
         console.log('Loading stored ZK Login state...');
         const jwtToken = localStorage.getItem(CURRENT_JWT_KEY);
-        const hasValidJWT = !!jwtToken;
         
         if (jwtToken) {
           const googleUserId = extractGoogleUserId(jwtToken);
@@ -96,9 +135,12 @@ export const useZkLogin = () => {
             // Get consistent randomness for this Google user
             const randomness = getOrCreateRandomness(googleUserId);
             
-            // Derive consistent address
+            // Derive consistent address using the same randomness
             const salt = BigInt(randomness);
             const userAddress = jwtToAddress(jwtToken, salt);
+            
+            // Try to restore ephemeral keypair
+            const ephemeralKeyPair = restoreEphemeralKeyPair();
             
             console.log('Loaded consistent state for Google user:', googleUserId);
             console.log('Derived address:', userAddress);
@@ -108,11 +150,12 @@ export const useZkLogin = () => {
               userAddress,
               randomness,
               googleUserId,
-              hasValidJWT,
+              ephemeralKeyPair,
+              hasValidJWT: true,
               isInitialized: true,
             }));
           } else {
-            setState(prev => ({ ...prev, hasValidJWT, isInitialized: true }));
+            setState(prev => ({ ...prev, hasValidJWT: true, isInitialized: true }));
           }
         } else {
           console.log('No JWT found, initializing clean state');
@@ -130,28 +173,7 @@ export const useZkLogin = () => {
     };
 
     loadStoredState();
-  }, []); // Only run once on mount
-
-  const saveUserState = useCallback((googleUserId: string, userData: {
-    randomness: string;
-    ephemeralKeyPair?: Ed25519Keypair;
-    maxEpoch?: number;
-  }) => {
-    try {
-      const storageKey = getStorageKey(googleUserId);
-      const stateToSave = {
-        randomness: userData.randomness,
-        maxEpoch: userData.maxEpoch,
-        ephemeralPrivateKey: userData.ephemeralKeyPair ? 
-          Array.from(userData.ephemeralKeyPair.getSecretKey().slice(0, 32)) : null,
-      };
-      
-      localStorage.setItem(storageKey, JSON.stringify(stateToSave));
-      console.log('Saved user state for Google user:', googleUserId);
-    } catch (error) {
-      console.error('Failed to save ZK Login state:', error);
-    }
-  }, [getStorageKey]);
+  }, [extractGoogleUserId, getOrCreateRandomness, restoreEphemeralKeyPair]);
 
   const startZkLogin = useCallback(async () => {
     try {
@@ -166,16 +188,19 @@ export const useZkLogin = () => {
       
       console.log(`Current epoch: ${currentEpoch}, Max epoch: ${maxEpoch}`);
       
+      // Save the ephemeral keypair for later restoration
+      saveEphemeralKeyPair(ephemeralKeyPair);
+      
       const ephemeralPublicKey = ephemeralKeyPair.getPublicKey();
       
-      // Use temporary randomness for nonce generation
-      // We'll fix the randomness consistency in the callback
+      // Use a temporary randomness for nonce generation
+      // The actual randomness will be determined by the Google user ID in the callback
       const tempRandomness = generateRandomness();
       const nonce = generateNonce(ephemeralPublicKey, maxEpoch, tempRandomness);
 
       console.log('Generated nonce for Google OAuth');
 
-      // Store the ephemeral keypair and session data temporarily
+      // Store session data
       setState(prev => ({ 
         ...prev, 
         ephemeralKeyPair,
@@ -183,7 +208,7 @@ export const useZkLogin = () => {
         isLoading: false,
       }));
 
-      // Build Google OAuth URL with proper parameters
+      // Build Google OAuth URL with proper parameters for account selection
       const redirectUrl = getRedirectUrl();
       const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       
@@ -207,7 +232,7 @@ export const useZkLogin = () => {
         error: error instanceof Error ? error.message : 'Failed to start login' 
       }));
     }
-  }, []);
+  }, [saveEphemeralKeyPair]);
 
   const handleOAuthCallback = useCallback(async (idToken: string) => {
     try {
@@ -223,22 +248,28 @@ export const useZkLogin = () => {
 
       console.log('Google user ID:', googleUserId);
 
-      // Get or create consistent randomness for this Google user
+      // Get or create CONSISTENT randomness for this Google user
       const consistentRandomness = getOrCreateRandomness(googleUserId);
 
-      // Generate fresh ephemeral keypair for this session
-      const ephemeralKeyPair = Ed25519Keypair.generate();
+      // Restore the ephemeral keypair from session
+      let ephemeralKeyPair = restoreEphemeralKeyPair();
+      
+      // If no keypair found, generate a new one
+      if (!ephemeralKeyPair) {
+        console.log('No stored keypair found, generating new one');
+        ephemeralKeyPair = Ed25519Keypair.generate();
+        saveEphemeralKeyPair(ephemeralKeyPair);
+      }
+
       const currentEpoch = await getCurrentEpoch();
       const maxEpoch = currentEpoch + ZK_LOGIN_CONFIG.DEFAULT_MAX_EPOCH_GAP;
 
-      console.log('Generated new ephemeral keypair for session');
-
-      // Use consistent randomness for address derivation
+      // Use consistent randomness for address derivation - THIS IS THE KEY FIX
       const salt = BigInt(consistentRandomness);
       const userAddress = jwtToAddress(idToken, salt);
       
-      console.log('Derived consistent address:', userAddress);
-      console.log('Using randomness:', consistentRandomness);
+      console.log('Derived CONSISTENT address:', userAddress);
+      console.log('Using consistent randomness:', consistentRandomness);
 
       // Store JWT token
       localStorage.setItem(CURRENT_JWT_KEY, idToken);
@@ -256,13 +287,6 @@ export const useZkLogin = () => {
       
       setState(prev => ({ ...prev, ...newState }));
       
-      // Save user state
-      saveUserState(googleUserId, {
-        randomness: consistentRandomness,
-        ephemeralKeyPair,
-        maxEpoch,
-      });
-      
       console.log('ZK Login completed successfully with consistent address');
       
     } catch (error) {
@@ -274,7 +298,7 @@ export const useZkLogin = () => {
         error: error instanceof Error ? error.message : 'Failed to complete login' 
       }));
     }
-  }, [extractGoogleUserId, getOrCreateRandomness, saveUserState]);
+  }, [extractGoogleUserId, getOrCreateRandomness, restoreEphemeralKeyPair, saveEphemeralKeyPair]);
 
   const executeTransaction = useCallback(async (transaction: any) => {
     try {
@@ -327,16 +351,13 @@ export const useZkLogin = () => {
     // Get current Google user ID before clearing state
     const currentGoogleUserId = state.googleUserId;
     
-    // Clear JWT token first
+    // Clear JWT token and session keypair
     localStorage.removeItem(CURRENT_JWT_KEY);
-    console.log('Cleared JWT token');
+    localStorage.removeItem(SESSION_KEYPAIR_KEY);
+    console.log('Cleared JWT token and session keypair');
     
-    // Clear user-specific stored data if we have a Google user ID
-    if (currentGoogleUserId) {
-      const storageKey = getStorageKey(currentGoogleUserId);
-      localStorage.removeItem(storageKey);
-      console.log('Cleared stored data for Google user:', currentGoogleUserId);
-    }
+    // Note: We DON'T clear the user-specific randomness as that should persist
+    // This ensures the same wallet address is generated when logging back in
     
     // Reset all state to initial values
     setState({
@@ -354,10 +375,10 @@ export const useZkLogin = () => {
     // Reset logout flag after a short delay
     setTimeout(() => {
       isLoggingOut.current = false;
-      console.log('ZK Login logout completed - all data cleared');
+      console.log('ZK Login logout completed - session data cleared');
     }, 100);
     
-  }, [state.googleUserId, getStorageKey]);
+  }, [state.googleUserId]);
 
   return {
     ...state,

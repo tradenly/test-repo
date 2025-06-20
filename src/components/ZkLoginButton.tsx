@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useZkLogin } from "@/hooks/useZkLogin";
-import { Loader2, AlertCircle, LogOut } from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +41,7 @@ export const ZkLoginButton = ({
     logout();
   };
 
-  // If user is fully authenticated with ZK Login
+  // If user is authenticated with ZK Login
   if (userAddress && hasValidJWT) {
     return (
       <div className="space-y-2">
@@ -51,7 +51,7 @@ export const ZkLoginButton = ({
             className={className}
             variant="outline"
           >
-            🔐 ZK Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
+            🔐 Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
           </Button>
           {showLogout && (
             <AlertDialog>
@@ -64,7 +64,7 @@ export const ZkLoginButton = ({
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-white">Logout from ZK Login?</AlertDialogTitle>
                   <AlertDialogDescription className="text-gray-300">
-                    This will disconnect your Google authentication session. You'll need to re-authenticate with Google to perform transactions again. Your wallet address will remain the same when you log back in with the same Google account.
+                    This will disconnect your Google authentication session. Your wallet address will remain the same when you log back in with the same Google account.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -89,28 +89,7 @@ export const ZkLoginButton = ({
     );
   }
 
-  // If user has address but no valid JWT (session expired)
-  if (userAddress && !hasValidJWT) {
-    return (
-      <div className="space-y-2">
-        <Button 
-          onClick={startZkLogin}
-          disabled={isLoading}
-          className={className}
-          variant="destructive"
-        >
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          <AlertCircle className="mr-2 h-4 w-4" />
-          Re-authenticate with Google
-        </Button>
-        {showDetailedStatus && (
-          <p className="text-xs text-yellow-400">⚠️ Session expired - re-authentication needed</p>
-        )}
-      </div>
-    );
-  }
-
-  // Default state - not logged in
+  // Default state - not logged in or session expired
   return (
     <div className="space-y-2">
       <Button 

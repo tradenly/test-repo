@@ -14,7 +14,6 @@ import {
   Copy,
   ExternalLink,
   Loader2,
-  AlertTriangle,
   LogOut
 } from "lucide-react";
 import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
@@ -83,7 +82,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
     enabled: !!walletAddress && showAssets,
   });
 
-  // Enhanced send transaction mutation with better error handling
+  // Send transaction mutation
   const sendTransactionMutation = useMutation({
     mutationFn: async ({ amount, recipient }: { amount: string; recipient: string }) => {
       if (!walletAddress) {
@@ -250,22 +249,6 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Authentication Status for ZK Login users */}
-      {user.authType === 'zklogin' && !isReadyForTransactions() && (
-        <Card className="bg-yellow-900/20 border-yellow-600">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              <div className="flex-1">
-                <p className="text-yellow-200 font-medium">Authentication Required</p>
-                <p className="text-yellow-300 text-sm">Complete ZK Login to enable transactions</p>
-              </div>
-              <ZkLoginButton className="bg-yellow-600 hover:bg-yellow-500" showLogout={false} />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Balance Display */}
       <Card className="bg-gray-800/40 border-gray-700">
         <CardHeader>
@@ -274,7 +257,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
               <span className="text-2xl mr-2">💰</span>
               Wallet Balance
               {user.authType === 'zklogin' && isReadyForTransactions() && (
-                <span className="ml-2 text-xs bg-green-600 px-2 py-1 rounded">ZK Ready</span>
+                <span className="ml-2 text-xs bg-green-600 px-2 py-1 rounded">Ready</span>
               )}
             </div>
             {user.authType === 'zklogin' && isReadyForTransactions() && (
