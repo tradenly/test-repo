@@ -21,8 +21,10 @@ export const Navigation = () => {
   const location = useLocation();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    // Clear ZK Login state first
     await zkLogout();
+    // Then sign out from Supabase (this handles both auth methods)
+    await supabase.auth.signOut();
     navigate('/');
   };
 

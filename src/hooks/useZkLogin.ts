@@ -143,7 +143,7 @@ export const useZkLogin = () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      console.log('Handling OAuth callback with hybrid auth flow...');
+      console.log('Handling OAuth callback with unified auth flow...');
 
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
@@ -187,19 +187,27 @@ export const useZkLogin = () => {
 
       if (bridgeResponse.error) {
         console.error('Bridge function error:', bridgeResponse.error);
-        // Continue with ZK Login even if bridge fails
-        console.log('Continuing with ZK Login despite bridge failure');
-      } else {
-        console.log('Bridge function succeeded:', bridgeResponse.data);
+        throw new Error(`Bridge failed: ${bridgeResponse.error.message}`);
+      }
+
+      const bridgeData = bridgeResponse.data;
+      console.log('Bridge function succeeded:', bridgeData);
+
+      // Use the session data from bridge to authenticate with Supabase
+      if (bridgeData.session_data && bridgeData.session_data.access_token) {
+        console.log('Setting Supabase session from bridge data...');
         
-        // If bridge succeeded, try to refresh the session
-        const { data: session } = await supabase.auth.getSession();
-        console.log('Current Supabase session after bridge:', session);
-        
-        // Trigger auth state change manually
-        window.dispatchEvent(new CustomEvent('zklogin-success', { 
-          detail: { userAddress, bridgeData: bridgeResponse.data } 
-        }));
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: bridgeData.session_data.access_token,
+          refresh_token: bridgeData.session_data.refresh_token,
+        });
+
+        if (sessionError) {
+          console.error('Failed to set Supabase session:', sessionError);
+          // Continue with ZK Login even if session setting fails
+        } else {
+          console.log('Successfully set Supabase session');
+        }
       }
 
       const newState = {
@@ -225,6 +233,7 @@ export const useZkLogin = () => {
   }, [saveState]);
 
   const logout = useCallback(async () => {
+    // Clear ZK Login state
     localStorage.removeItem(STORAGE_KEY);
     setState({
       isInitialized: true,

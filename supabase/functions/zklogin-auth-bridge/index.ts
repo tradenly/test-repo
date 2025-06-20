@@ -97,14 +97,21 @@ serve(async (req) => {
       console.log('Created new user:', userId);
     }
 
-    // Create a custom JWT token for immediate session
-    const customClaims = {
-      aud: 'authenticated',
-      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24), // 24 hours
-      sub: userId,
+    // Generate a magic link for the user to create a proper session
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
       email: email,
-      role: 'authenticated'
-    };
+      options: {
+        redirectTo: `${req.headers.get('origin')}/dashboard`
+      }
+    });
+
+    if (linkError) {
+      console.error('Error generating auth link:', linkError);
+      throw linkError;
+    }
+
+    console.log('Generated auth link successfully');
 
     // Store ZK Login wallet in user_wallets table
     try {
@@ -137,7 +144,14 @@ serve(async (req) => {
         user_id: userId,
         email: email,
         zklogin_address: userAddress,
-        custom_claims: customClaims,
+        auth_url: linkData.properties?.action_link,
+        session_data: {
+          access_token: linkData.properties?.access_token,
+          refresh_token: linkData.properties?.refresh_token,
+          expires_in: linkData.properties?.expires_in,
+          token_type: linkData.properties?.token_type,
+          user: linkData.user
+        },
         message: 'ZK Login authentication successful'
       }),
       { 
