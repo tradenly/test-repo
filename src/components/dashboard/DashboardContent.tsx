@@ -3,6 +3,7 @@ import { DashboardSection } from "@/pages/Dashboard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DashboardOverview } from "./sections/DashboardOverview";
 import { ProfileSection } from "./sections/ProfileSection";
+import { FlappyHipposSection } from "./sections/FlappyHipposSection";
 import { WalletsSection } from "./sections/WalletsSection";
 import { StakingSection } from "./sections/StakingSection";
 import { SocialSection } from "./sections/SocialSection";
@@ -28,6 +29,12 @@ export const DashboardContent = ({ activeSection, user }: DashboardContentProps)
         return (
           <ErrorBoundary>
             <ProfileSection user={user} />
+          </ErrorBoundary>
+        );
+      case "flappy-hippos":
+        return (
+          <ErrorBoundary>
+            <FlappyHipposSection user={user} />
           </ErrorBoundary>
         );
       case "wallets":

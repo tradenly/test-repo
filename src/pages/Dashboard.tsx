@@ -9,6 +9,7 @@ import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 export type DashboardSection = 
   | "overview" 
   | "profile" 
+  | "flappy-hippos"
   | "wallets" 
   | "staking" 
   | "social" 

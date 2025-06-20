@@ -1,5 +1,6 @@
 
 import { WalletManagement } from "../wallets/WalletManagement";
+import { CreditManagementCard } from "../credits/CreditManagementCard";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 
 interface WalletsSectionProps {
@@ -17,6 +18,15 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
       </div>
       
       <WalletManagement user={user} />
+      
+      {/* Credit Management Section */}
+      <div className="pt-6 border-t border-gray-700">
+        <h2 className="text-2xl font-bold text-white mb-4">Credit Management</h2>
+        <p className="text-gray-400 mb-6">
+          Buy credits to play games, earn rewards, and cash out your winnings.
+        </p>
+        <CreditManagementCard user={user} />
+      </div>
     </div>
   );
 };
