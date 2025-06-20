@@ -13,7 +13,7 @@ interface EditWalletModalProps {
   wallet: Wallet | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (walletId: string, updates: { wallet_name: string; is_primary: boolean }) => Promise<void>;
+  onSave: (walletId: string, updates: { wallet_name: string; is_primary: boolean }) => void;
   isSaving: boolean;
 }
 
@@ -50,7 +50,7 @@ export const EditWalletModal = ({ wallet, isOpen, onClose, onSave, isSaving }: E
     
     if (!wallet || !validateForm()) return;
     
-    await onSave(wallet.id, formData);
+    onSave(wallet.id, formData);
     onClose();
   };
 

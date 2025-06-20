@@ -17,7 +17,7 @@ interface AddWalletFormProps {
     wallet_name: string;
     blockchain: BlockchainType;
     is_primary: boolean;
-  }) => Promise<void>;
+  }) => void;
   isAdding: boolean;
   walletCount: number;
 }
@@ -97,7 +97,7 @@ export const AddWalletForm = ({ onAdd, isAdding, walletCount }: AddWalletFormPro
     
     if (!validateForm()) return;
     
-    await onAdd(formData);
+    onAdd(formData);
     
     // Reset form
     setFormData({
