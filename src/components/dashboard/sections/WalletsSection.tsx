@@ -1,5 +1,5 @@
 
-import { WalletActions } from "./WalletActions";
+import { WalletManagement } from "../wallets/WalletManagement";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 
 interface WalletsSectionProps {
@@ -12,11 +12,11 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Wallet Management</h1>
         <p className="text-gray-400">
-          Wallet functionality coming soon. Currently showing basic account information.
+          Manage your crypto wallets across different blockchains. You can add up to 5 wallets and set one as your primary wallet for rewards and payouts.
         </p>
       </div>
       
-      <WalletActions user={user} />
+      <WalletManagement user={user} />
     </div>
   );
 };
