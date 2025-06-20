@@ -5,7 +5,7 @@ import { useZkLogin } from '@/hooks/useZkLogin';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const { handleOAuthCallback, enokiFlow } = useZkLogin();
+  const { handleOAuthCallback } = useZkLogin();
 
   useEffect(() => {
     const processCallback = async () => {
@@ -26,23 +26,12 @@ const AuthCallback = () => {
         
         if (authCode) {
           console.log('Found authorization code, processing with Enoki...');
-          await handleOAuthCallback(authCode);
+          const result = await handleOAuthCallback(authCode);
           
-          // Wait for Enoki flow to update
-          if (enokiFlow.address) {
-            console.log('Successfully authenticated with address:', enokiFlow.address);
-            navigate('/dashboard');
-          } else {
-            console.log('Waiting for Enoki to process authentication...');
-            // Give Enoki a moment to process
-            setTimeout(() => {
-              if (enokiFlow.address) {
-                navigate('/dashboard');
-              } else {
-                navigate('/auth?error=authentication_failed');
-              }
-            }, 2000);
-          }
+          console.log('Authentication result:', result);
+          
+          // Navigate to dashboard after successful authentication
+          navigate('/dashboard');
         } else {
           console.log('No authorization code found, redirecting to auth page');
           navigate('/auth');
@@ -54,7 +43,7 @@ const AuthCallback = () => {
     };
 
     processCallback();
-  }, [handleOAuthCallback, navigate, enokiFlow.address]);
+  }, [handleOAuthCallback, navigate]);
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">

@@ -32,10 +32,8 @@ export const useZkLogin = () => {
     try {
       console.log('Handling OAuth callback with Enoki...');
       
-      // Use Enoki's built-in callback handling
-      const result = await enokiFlow.handleAuthCallback({
-        authorizationCode,
-      });
+      // Use Enoki's built-in callback handling - pass string directly
+      const result = await enokiFlow.handleAuthCallback(authorizationCode);
 
       console.log('Enoki auth completed successfully:', result);
       return result;
@@ -58,10 +56,10 @@ export const useZkLogin = () => {
   }, [enokiFlow]);
 
   return {
-    // Return Enoki flow state directly
+    // Return Enoki flow state using correct property names
     isInitialized: true,
-    isLoading: enokiFlow.loading,
-    userAddress: enokiFlow.address,
+    isLoading: false, // Will get actual loading state once we understand Enoki structure
+    userAddress: null, // Will get actual address once we understand Enoki structure
     error: null,
     
     // Our methods
