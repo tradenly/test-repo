@@ -43,13 +43,6 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     }
   }, []);
 
-  const handleGameOver = useCallback((finalScore: number, pipesPassedCount: number) => {
-    const duration = Math.floor((Date.now() - gameStartTime) / 1000);
-    console.log("Game over - Score:", finalScore, "Duration:", duration);
-    setGameState('gameOver');
-    onGameEnd(finalScore, pipesPassedCount, duration);
-  }, [gameStartTime, onGameEnd]);
-
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
@@ -80,14 +73,34 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       private score = 0;
       private pipesPassedCount = 0;
       private eventListeners: (() => void)[] = [];
+      private hippoImage: HTMLImageElement | null = null;
+      private backgroundImage: HTMLImageElement | null = null;
+      private parallaxOffset = 0;
 
       constructor(context: CanvasRenderingContext2D, canvasElement: HTMLCanvasElement) {
         this.ctx = context;
         this.canvas = canvasElement;
+        this.loadImages();
         this.reset();
         this.bindEvents();
-        this.render(); // Initial render to show the game world
+        this.render();
         console.log("Game engine initialized successfully");
+      }
+
+      async loadImages() {
+        try {
+          // Load hippo image (using one of the available animal images)
+          this.hippoImage = new Image();
+          this.hippoImage.src = '/lovable-uploads/1b2b8e90-5d58-42db-b73f-5dd406333bf1.png';
+          
+          // Load background image
+          this.backgroundImage = new Image();
+          this.backgroundImage.src = '/lovable-uploads/1472396961693-142e6e269027.png';
+          
+          console.log("Images loaded successfully");
+        } catch (error) {
+          console.error("Error loading images:", error);
+        }
       }
 
       cleanup() {
@@ -97,7 +110,6 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           cancelAnimationFrame(this.animationId);
           this.animationId = null;
         }
-        // Remove all event listeners
         this.eventListeners.forEach(removeListener => removeListener());
         this.eventListeners = [];
       }
@@ -106,9 +118,9 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         console.log("Resetting game state...");
         this.hippo = {
           x: 100,
-          y: 200,
-          width: 48,
-          height: 48,
+          y: 300, // Fixed: Center of canvas (600/2 = 300) instead of 200
+          width: 60,
+          height: 40,
           velocity: 0,
           rotation: 0
         };
@@ -116,9 +128,10 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.gameRunning = false;
         this.score = 0;
         this.pipesPassedCount = 0;
+        this.parallaxOffset = 0;
         this.addPipe();
         if (!this.gameRunning) {
-          this.render(); // Render initial state
+          this.render();
         }
       }
 
@@ -126,7 +139,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         const handleInput = (e: Event) => {
           console.log("Input detected:", e.type);
           if (this.gameRunning) {
-            this.hippo.velocity = -8;
+            this.hippo.velocity = -12; // Increased flap strength
             this.hippo.rotation = -0.3;
             console.log("Hippo flapped! New velocity:", this.hippo.velocity);
           }
@@ -139,7 +152,6 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           }
         };
 
-        // Add event listeners and store cleanup functions
         this.canvas.addEventListener('click', handleInput);
         document.addEventListener('keydown', handleKeydown);
 
@@ -172,8 +184,11 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       update() {
+        // Update parallax background
+        this.parallaxOffset -= 1;
+
         // Update hippo physics
-        this.hippo.velocity += 0.5; // gravity
+        this.hippo.velocity += 0.6; // gravity
         this.hippo.y += this.hippo.velocity;
         
         // Gradually rotate hippo based on velocity
@@ -183,9 +198,8 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
         // Update pipes
         this.pipes.forEach(pipe => {
-          pipe.x -= 3;
+          pipe.x -= 4; // Slightly faster pipe movement
           
-          // Check if hippo passed pipe
           if (!pipe.scored && pipe.x + pipe.width < this.hippo.x) {
             pipe.scored = true;
             this.score += 1;
@@ -195,21 +209,19 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           }
         });
 
-        // Remove off-screen pipes and add new ones
         this.pipes = this.pipes.filter(pipe => pipe.x > -pipe.width);
         
         if (this.pipes.length === 0 || this.pipes[this.pipes.length - 1].x < 400) {
           this.addPipe();
         }
 
-        // Check collisions
         this.checkCollisions();
       }
 
       addPipe() {
-        const gapSize = 140;
-        const minGapY = 50;
-        const maxGapY = this.canvas.height - gapSize - 100;
+        const gapSize = 160; // Slightly larger gap
+        const minGapY = 80;
+        const maxGapY = this.canvas.height - gapSize - 120;
         const gapY = Math.random() * (maxGapY - minGapY) + minGapY;
 
         this.pipes.push({
@@ -224,7 +236,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
       checkCollisions() {
         // Ground collision
-        if (this.hippo.y + this.hippo.height > this.canvas.height - 50) {
+        if (this.hippo.y + this.hippo.height > this.canvas.height - 60) {
           console.log("Ground collision detected");
           this.gameOver();
           return;
@@ -257,58 +269,88 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           cancelAnimationFrame(this.animationId);
           this.animationId = null;
         }
-        handleGameOver(this.score, this.pipesPassedCount);
+        
+        const duration = Math.floor((Date.now() - gameStartTime) / 1000);
+        console.log("Game over - Score:", this.score, "Duration:", duration);
+        setGameState('gameOver');
+        onGameEnd(this.score, this.pipesPassedCount, duration);
       }
 
       render() {
         try {
-          // Clear canvas with sky blue background
-          this.ctx.fillStyle = '#87CEEB';
+          // Enhanced sky gradient background
+          const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+          gradient.addColorStop(0, '#87CEEB');
+          gradient.addColorStop(0.3, '#98D8E8');
+          gradient.addColorStop(0.7, '#B0E0E6');
+          gradient.addColorStop(1, '#F0F8FF');
+          this.ctx.fillStyle = gradient;
           this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-          // Draw clouds
-          this.drawClouds();
+          // Draw parallax background if loaded
+          if (this.backgroundImage && this.backgroundImage.complete) {
+            const bgWidth = this.canvas.width;
+            const bgHeight = this.canvas.height * 0.6; // Only cover top 60% of canvas
+            
+            // Draw two copies for seamless scrolling
+            this.ctx.globalAlpha = 0.3;
+            this.ctx.drawImage(this.backgroundImage, this.parallaxOffset, 0, bgWidth, bgHeight);
+            this.ctx.drawImage(this.backgroundImage, this.parallaxOffset + bgWidth, 0, bgWidth, bgHeight);
+            this.ctx.globalAlpha = 1;
+            
+            // Reset parallax when it completes a cycle
+            if (this.parallaxOffset <= -bgWidth) {
+              this.parallaxOffset = 0;
+            }
+          }
 
-          // Draw pipes
-          this.pipes.forEach(pipe => this.drawPipe(pipe));
+          // Enhanced clouds
+          this.drawEnhancedClouds();
 
-          // Draw ground
-          this.ctx.fillStyle = '#8B4513';
-          this.ctx.fillRect(0, this.canvas.height - 50, this.canvas.width, 50);
+          // Draw pipes with better styling
+          this.pipes.forEach(pipe => this.drawEnhancedPipe(pipe));
 
-          // Draw hippo
-          this.drawHippo();
+          // Enhanced ground with texture
+          this.drawEnhancedGround();
 
-          // Draw score
-          this.ctx.fillStyle = 'white';
-          this.ctx.font = 'bold 32px Arial';
-          this.ctx.textAlign = 'center';
-          this.ctx.fillText(this.score.toString(), this.canvas.width / 2, 50);
+          // Draw hippo with image or enhanced sprite
+          this.drawEnhancedHippo();
+
+          // Enhanced score display
+          this.drawEnhancedScore();
         } catch (error) {
           console.error("Error in render:", error);
         }
       }
 
-      drawClouds() {
+      drawEnhancedClouds() {
         this.ctx.fillStyle = 'white';
-        this.ctx.globalAlpha = 0.7;
+        this.ctx.globalAlpha = 0.8;
         
-        // Simple cloud shapes
-        for (let i = 0; i < 3; i++) {
-          const x = (i * 300) + 50;
-          const y = 80 + (i * 30);
+        for (let i = 0; i < 4; i++) {
+          const x = (i * 250) + 30 + (this.parallaxOffset * 0.3);
+          const y = 60 + (i * 20);
+          
+          // Multi-layered clouds
           this.ctx.beginPath();
-          this.ctx.arc(x, y, 25, 0, Math.PI * 2);
-          this.ctx.arc(x + 25, y, 35, 0, Math.PI * 2);
-          this.ctx.arc(x + 50, y, 25, 0, Math.PI * 2);
+          this.ctx.arc(x, y, 20, 0, Math.PI * 2);
+          this.ctx.arc(x + 20, y, 30, 0, Math.PI * 2);
+          this.ctx.arc(x + 40, y, 25, 0, Math.PI * 2);
+          this.ctx.arc(x + 60, y, 20, 0, Math.PI * 2);
           this.ctx.fill();
         }
         
         this.ctx.globalAlpha = 1;
       }
 
-      drawPipe(pipe: any) {
-        this.ctx.fillStyle = '#228B22';
+      drawEnhancedPipe(pipe: any) {
+        // Bamboo-style pipes with texture
+        const gradient = this.ctx.createLinearGradient(pipe.x, 0, pipe.x + pipe.width, 0);
+        gradient.addColorStop(0, '#228B22');
+        gradient.addColorStop(0.5, '#32CD32');
+        gradient.addColorStop(1, '#228B22');
+        
+        this.ctx.fillStyle = gradient;
         
         // Top pipe
         this.ctx.fillRect(pipe.x, 0, pipe.width, pipe.topHeight);
@@ -316,42 +358,119 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         // Bottom pipe
         this.ctx.fillRect(pipe.x, pipe.bottomY, pipe.width, pipe.bottomHeight);
         
-        // Pipe caps
+        // Enhanced pipe caps with shadows
         this.ctx.fillStyle = '#32CD32';
-        this.ctx.fillRect(pipe.x - 5, pipe.topHeight - 30, pipe.width + 10, 30);
-        this.ctx.fillRect(pipe.x - 5, pipe.bottomY, pipe.width + 10, 30);
+        this.ctx.fillRect(pipe.x - 5, pipe.topHeight - 35, pipe.width + 10, 35);
+        this.ctx.fillRect(pipe.x - 5, pipe.bottomY, pipe.width + 10, 35);
+        
+        // Add bamboo rings
+        this.ctx.strokeStyle = '#1F5F1F';
+        this.ctx.lineWidth = 2;
+        for (let i = 0; i < pipe.topHeight; i += 40) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(pipe.x, i);
+          this.ctx.lineTo(pipe.x + pipe.width, i);
+          this.ctx.stroke();
+        }
+        for (let i = pipe.bottomY; i < this.canvas.height; i += 40) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(pipe.x, i);
+          this.ctx.lineTo(pipe.x + pipe.width, i);
+          this.ctx.stroke();
+        }
       }
 
-      drawHippo() {
+      drawEnhancedGround() {
+        // Water/river ground
+        const groundGradient = this.ctx.createLinearGradient(0, this.canvas.height - 60, 0, this.canvas.height);
+        groundGradient.addColorStop(0, '#4682B4');
+        groundGradient.addColorStop(0.5, '#5F9EA0');
+        groundGradient.addColorStop(1, '#2F4F4F');
+        
+        this.ctx.fillStyle = groundGradient;
+        this.ctx.fillRect(0, this.canvas.height - 60, this.canvas.width, 60);
+        
+        // Add water ripples
+        this.ctx.strokeStyle = '#87CEEB';
+        this.ctx.lineWidth = 2;
+        this.ctx.globalAlpha = 0.5;
+        for (let i = 0; i < this.canvas.width; i += 50) {
+          this.ctx.beginPath();
+          this.ctx.arc(i + (this.parallaxOffset % 50), this.canvas.height - 30, 10, 0, Math.PI, false);
+          this.ctx.stroke();
+        }
+        this.ctx.globalAlpha = 1;
+      }
+
+      drawEnhancedHippo() {
         this.ctx.save();
         this.ctx.translate(this.hippo.x + this.hippo.width/2, this.hippo.y + this.hippo.height/2);
         this.ctx.rotate(this.hippo.rotation);
         
-        // Hippo body
-        this.ctx.fillStyle = '#8B4B8B';
-        this.ctx.fillRect(-this.hippo.width/2, -this.hippo.height/2, this.hippo.width, this.hippo.height);
-        
-        // Hippo eyes
-        this.ctx.fillStyle = 'white';
-        this.ctx.fillRect(-15, -15, 12, 8);
-        this.ctx.fillRect(3, -15, 12, 8);
-        
-        // Pupils
-        this.ctx.fillStyle = 'black';
-        this.ctx.fillRect(-12, -13, 4, 4);
-        this.ctx.fillRect(6, -13, 4, 4);
-        
-        // Nostrils
-        this.ctx.fillStyle = '#654365';
-        this.ctx.fillRect(-8, -5, 3, 2);
-        this.ctx.fillRect(5, -5, 3, 2);
+        if (this.hippoImage && this.hippoImage.complete) {
+          // Draw the hippo image
+          this.ctx.drawImage(
+            this.hippoImage,
+            -this.hippo.width/2,
+            -this.hippo.height/2,
+            this.hippo.width,
+            this.hippo.height
+          );
+        } else {
+          // Enhanced fallback hippo sprite
+          // Hippo body with gradient
+          const hippoGradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, this.hippo.width/2);
+          hippoGradient.addColorStop(0, '#A0522D');
+          hippoGradient.addColorStop(1, '#8B4513');
+          this.ctx.fillStyle = hippoGradient;
+          this.ctx.fillRect(-this.hippo.width/2, -this.hippo.height/2, this.hippo.width, this.hippo.height);
+          
+          // Enhanced eyes
+          this.ctx.fillStyle = 'white';
+          this.ctx.beginPath();
+          this.ctx.arc(-8, -12, 6, 0, Math.PI * 2);
+          this.ctx.arc(8, -12, 6, 0, Math.PI * 2);
+          this.ctx.fill();
+          
+          // Pupils
+          this.ctx.fillStyle = 'black';
+          this.ctx.beginPath();
+          this.ctx.arc(-8, -12, 3, 0, Math.PI * 2);
+          this.ctx.arc(8, -12, 3, 0, Math.PI * 2);
+          this.ctx.fill();
+          
+          // Snout
+          this.ctx.fillStyle = '#8B4513';
+          this.ctx.fillRect(-10, -5, 20, 8);
+          
+          // Nostrils
+          this.ctx.fillStyle = '#654321';
+          this.ctx.beginPath();
+          this.ctx.arc(-4, -2, 2, 0, Math.PI * 2);
+          this.ctx.arc(4, -2, 2, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
         
         this.ctx.restore();
+      }
+
+      drawEnhancedScore() {
+        // Score background
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.fillRect(this.canvas.width/2 - 50, 10, 100, 50);
+        
+        // Score text with outline
+        this.ctx.fillStyle = 'white';
+        this.ctx.strokeStyle = 'black';
+        this.ctx.lineWidth = 3;
+        this.ctx.font = 'bold 32px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.strokeText(this.score.toString(), this.canvas.width / 2, 45);
+        this.ctx.fillText(this.score.toString(), this.canvas.width / 2, 45);
       }
     }
 
     try {
-      // Clean up existing game engine if it exists
       if (gameRef.current) {
         gameRef.current.cleanup();
       }
@@ -369,13 +488,13 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         gameRef.current.cleanup();
       }
     };
-  }, []); // Remove handleGameOver from dependencies to prevent re-initialization
+  }, []);
 
   return (
     <div className="flex flex-col items-center space-y-4">
       <canvas 
         ref={canvasRef}
-        className="border-2 border-gray-300 rounded-lg"
+        className="border-2 border-gray-300 rounded-lg shadow-lg"
         style={{ maxWidth: '100%', height: 'auto' }}
       />
       
@@ -383,7 +502,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         <Card className="bg-gray-800/90 border-gray-700 p-6 text-center">
           <h3 className="text-xl font-bold text-white mb-4">🦛 Flappy Hippos</h3>
           <p className="text-gray-300 mb-4">
-            Click or press Space to flap! Avoid the pipes and earn credits!
+            Click or press Space to flap! Navigate through the bamboo pipes and earn credits!
           </p>
           <div className="flex items-center justify-center gap-2 mb-4">
             <Coins className="h-4 w-4 text-yellow-400" />
