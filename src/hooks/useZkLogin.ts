@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
 import { jwtToAddress } from '@mysten/zklogin';
-import { ZK_LOGIN_CONFIG, getRedirectUrl } from '@/config/zkLogin';
+import { ZK_LOGIN_CONFIG, getRedirectUrl, getCurrentEpoch } from '@/config/zkLogin';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ZkLoginState {
   isInitialized: boolean;
@@ -89,10 +90,11 @@ export const useZkLogin = () => {
       const randomness = generateRandomness();
       const ephemeralKeyPair = Ed25519Keypair.generate();
       
-      // Step 2: Get current epoch and calculate max epoch
-      // In production, you'd fetch this from SUI network
-      const currentEpoch = Math.floor(Date.now() / 1000 / 86400); // Simplified
+      // Step 2: Get current epoch from SUI network and calculate max epoch
+      const currentEpoch = await getCurrentEpoch();
       const maxEpoch = currentEpoch + ZK_LOGIN_CONFIG.DEFAULT_MAX_EPOCH_GAP;
+      
+      console.log(`Current epoch: ${currentEpoch}, Max epoch: ${maxEpoch}`);
       
       // Step 3: Generate nonce
       const ephemeralPublicKey = ephemeralKeyPair.getPublicKey();
@@ -142,10 +144,54 @@ export const useZkLogin = () => {
         throw new Error('No stored ZK Login state found');
       }
 
-      const { randomness, maxEpoch } = JSON.parse(stored);
+      const { randomness, maxEpoch, ephemeralKeyPair: storedEphemeralKey } = JSON.parse(stored);
       
-      // Generate SUI address from JWT (following SUI SDK docs)
-      const userAddress = jwtToAddress(idToken, randomness);
+      if (!randomness || !maxEpoch || !storedEphemeralKey) {
+        throw new Error('Incomplete ZK Login state found');
+      }
+
+      console.log('Starting ZK Login proof generation...');
+
+      // Step 1: Get salt from Enoki via edge function
+      console.log('Requesting salt from Enoki...');
+      const saltResponse = await supabase.functions.invoke('zklogin-proof/salt', {
+        body: { jwt: idToken }
+      });
+
+      if (saltResponse.error) {
+        throw new Error(`Salt request failed: ${saltResponse.error.message}`);
+      }
+
+      const { salt } = saltResponse.data;
+      console.log('Salt received from Enoki');
+
+      // Step 2: Reconstruct ephemeral keypair
+      const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(
+        new Uint8Array(storedEphemeralKey.secretKey)
+      );
+      const ephemeralPublicKey = ephemeralKeyPair.getPublicKey();
+
+      // Step 3: Generate ZK proof via Enoki edge function
+      console.log('Requesting ZK proof from Enoki...');
+      const proofResponse = await supabase.functions.invoke('zklogin-proof/proof', {
+        body: {
+          jwt: idToken,
+          ephemeralPublicKey: ephemeralPublicKey.toSuiBytes(),
+          maxEpoch,
+          jwtRandomness: randomness,
+          salt,
+          keyClaimName: 'sub'
+        }
+      });
+
+      if (proofResponse.error) {
+        throw new Error(`Proof generation failed: ${proofResponse.error.message}`);
+      }
+
+      console.log('ZK proof received from Enoki');
+
+      // Step 4: Generate SUI address from JWT (following SUI SDK docs)
+      const userAddress = jwtToAddress(idToken, salt);
       
       const newState = {
         userAddress,
@@ -154,6 +200,8 @@ export const useZkLogin = () => {
       
       setState(prev => ({ ...prev, ...newState }));
       saveState({ ...JSON.parse(stored), ...newState });
+      
+      console.log('ZK Login completed successfully, user address:', userAddress);
       
     } catch (error) {
       console.error('Failed to handle OAuth callback:', error);
