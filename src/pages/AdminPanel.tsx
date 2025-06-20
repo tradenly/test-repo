@@ -1,0 +1,50 @@
+
+import { useState } from "react";
+import { Navigate } from "react-router-dom";
+import { Navigation } from "@/components/Navigation";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminContent } from "@/components/admin/AdminContent";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
+
+export type AdminSection = 
+  | "overview" 
+  | "users" 
+  | "credits"
+  | "activity" 
+  | "payouts" 
+  | "analytics";
+
+const AdminPanel = () => {
+  const { isAdmin, isLoading, user } = useAdminAuth();
+  const [activeSection, setActiveSection] = useState<AdminSection>("overview");
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  // Redirect if not admin
+  if (!user || !isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return (
+    <div className="min-h-screen bg-black">
+      <Navigation />
+      <div className="pt-20 flex">
+        <AdminSidebar 
+          activeSection={activeSection} 
+          onSectionChange={setActiveSection} 
+        />
+        <main className="flex-1 p-8">
+          <AdminContent activeSection={activeSection} />
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default AdminPanel;

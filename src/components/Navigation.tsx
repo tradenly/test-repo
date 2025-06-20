@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,12 +11,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { User as UserIcon, LogOut, Coins } from "lucide-react";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 import { useCredits } from "@/hooks/useCredits";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 export const Navigation = () => {
   const { user, logout } = useUnifiedAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { data: credits } = useCredits(user?.id || "");
+  const { isAdmin } = useAdminAuth();
 
   const handleSignOut = async () => {
     await logout();
@@ -79,6 +80,15 @@ export const Navigation = () => {
                     >
                       <UserIcon className="h-4 w-4 mr-2" />
                       Dashboard
+                    </DropdownMenuItem>
+                  )}
+                  {isAdmin && (
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/admin')}
+                      className="text-yellow-300 hover:bg-gray-800 hover:text-yellow-100 cursor-pointer"
+                    >
+                      <UserIcon className="h-4 w-4 mr-2" />
+                      Admin Panel
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem 
