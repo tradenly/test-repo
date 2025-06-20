@@ -73,34 +73,15 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       private score = 0;
       private pipesPassedCount = 0;
       private eventListeners: (() => void)[] = [];
-      private hippoImage: HTMLImageElement | null = null;
-      private backgroundImage: HTMLImageElement | null = null;
       private parallaxOffset = 0;
 
       constructor(context: CanvasRenderingContext2D, canvasElement: HTMLCanvasElement) {
         this.ctx = context;
         this.canvas = canvasElement;
-        this.loadImages();
         this.reset();
         this.bindEvents();
         this.render();
         console.log("Game engine initialized successfully");
-      }
-
-      async loadImages() {
-        try {
-          // Load hippo image (using one of the available animal images)
-          this.hippoImage = new Image();
-          this.hippoImage.src = '/lovable-uploads/1b2b8e90-5d58-42db-b73f-5dd406333bf1.png';
-          
-          // Load background image
-          this.backgroundImage = new Image();
-          this.backgroundImage.src = '/lovable-uploads/1472396961693-142e6e269027.png';
-          
-          console.log("Images loaded successfully");
-        } catch (error) {
-          console.error("Error loading images:", error);
-        }
       }
 
       cleanup() {
@@ -118,7 +99,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         console.log("Resetting game state...");
         this.hippo = {
           x: 100,
-          y: 300, // Fixed: Center of canvas (600/2 = 300) instead of 200
+          y: 300, // Center of canvas (600/2 = 300)
           width: 60,
           height: 40,
           velocity: 0,
@@ -287,23 +268,6 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           this.ctx.fillStyle = gradient;
           this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-          // Draw parallax background if loaded
-          if (this.backgroundImage && this.backgroundImage.complete) {
-            const bgWidth = this.canvas.width;
-            const bgHeight = this.canvas.height * 0.6; // Only cover top 60% of canvas
-            
-            // Draw two copies for seamless scrolling
-            this.ctx.globalAlpha = 0.3;
-            this.ctx.drawImage(this.backgroundImage, this.parallaxOffset, 0, bgWidth, bgHeight);
-            this.ctx.drawImage(this.backgroundImage, this.parallaxOffset + bgWidth, 0, bgWidth, bgHeight);
-            this.ctx.globalAlpha = 1;
-            
-            // Reset parallax when it completes a cycle
-            if (this.parallaxOffset <= -bgWidth) {
-              this.parallaxOffset = 0;
-            }
-          }
-
           // Enhanced clouds
           this.drawEnhancedClouds();
 
@@ -313,7 +277,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           // Enhanced ground with texture
           this.drawEnhancedGround();
 
-          // Draw hippo with image or enhanced sprite
+          // Draw hippo with enhanced sprite (no broken images)
           this.drawEnhancedHippo();
 
           // Enhanced score display
@@ -407,49 +371,58 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx.translate(this.hippo.x + this.hippo.width/2, this.hippo.y + this.hippo.height/2);
         this.ctx.rotate(this.hippo.rotation);
         
-        if (this.hippoImage && this.hippoImage.complete) {
-          // Draw the hippo image
-          this.ctx.drawImage(
-            this.hippoImage,
-            -this.hippo.width/2,
-            -this.hippo.height/2,
-            this.hippo.width,
-            this.hippo.height
-          );
-        } else {
-          // Enhanced fallback hippo sprite
-          // Hippo body with gradient
-          const hippoGradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, this.hippo.width/2);
-          hippoGradient.addColorStop(0, '#A0522D');
-          hippoGradient.addColorStop(1, '#8B4513');
-          this.ctx.fillStyle = hippoGradient;
-          this.ctx.fillRect(-this.hippo.width/2, -this.hippo.height/2, this.hippo.width, this.hippo.height);
-          
-          // Enhanced eyes
-          this.ctx.fillStyle = 'white';
-          this.ctx.beginPath();
-          this.ctx.arc(-8, -12, 6, 0, Math.PI * 2);
-          this.ctx.arc(8, -12, 6, 0, Math.PI * 2);
-          this.ctx.fill();
-          
-          // Pupils
-          this.ctx.fillStyle = 'black';
-          this.ctx.beginPath();
-          this.ctx.arc(-8, -12, 3, 0, Math.PI * 2);
-          this.ctx.arc(8, -12, 3, 0, Math.PI * 2);
-          this.ctx.fill();
-          
-          // Snout
-          this.ctx.fillStyle = '#8B4513';
-          this.ctx.fillRect(-10, -5, 20, 8);
-          
-          // Nostrils
-          this.ctx.fillStyle = '#654321';
-          this.ctx.beginPath();
-          this.ctx.arc(-4, -2, 2, 0, Math.PI * 2);
-          this.ctx.arc(4, -2, 2, 0, Math.PI * 2);
-          this.ctx.fill();
-        }
+        // Enhanced hippo sprite - no external images, all drawn
+        // Main hippo body with gradient
+        const hippoGradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, this.hippo.width/2);
+        hippoGradient.addColorStop(0, '#A0522D');
+        hippoGradient.addColorStop(1, '#8B4513');
+        this.ctx.fillStyle = hippoGradient;
+        
+        // Main body (rounded rectangle)
+        this.ctx.beginPath();
+        this.ctx.roundRect(-this.hippo.width/2, -this.hippo.height/2, this.hippo.width, this.hippo.height, 8);
+        this.ctx.fill();
+        
+        // Enhanced eyes with white sclera
+        this.ctx.fillStyle = 'white';
+        this.ctx.beginPath();
+        this.ctx.arc(-8, -12, 8, 0, Math.PI * 2);
+        this.ctx.arc(8, -12, 8, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Pupils
+        this.ctx.fillStyle = 'black';
+        this.ctx.beginPath();
+        this.ctx.arc(-8, -12, 4, 0, Math.PI * 2);
+        this.ctx.arc(8, -12, 4, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Eye highlights
+        this.ctx.fillStyle = 'white';
+        this.ctx.beginPath();
+        this.ctx.arc(-6, -14, 2, 0, Math.PI * 2);
+        this.ctx.arc(10, -14, 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Snout
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.beginPath();
+        this.ctx.roundRect(-12, -5, 24, 10, 5);
+        this.ctx.fill();
+        
+        // Nostrils
+        this.ctx.fillStyle = '#654321';
+        this.ctx.beginPath();
+        this.ctx.arc(-4, -2, 2, 0, Math.PI * 2);
+        this.ctx.arc(4, -2, 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Ears
+        this.ctx.fillStyle = '#A0522D';
+        this.ctx.beginPath();
+        this.ctx.arc(-20, -20, 8, 0, Math.PI * 2);
+        this.ctx.arc(20, -20, 8, 0, Math.PI * 2);
+        this.ctx.fill();
         
         this.ctx.restore();
       }
