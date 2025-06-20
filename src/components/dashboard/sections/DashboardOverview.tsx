@@ -10,18 +10,22 @@ interface DashboardOverviewProps {
 }
 
 export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
-  // Use existing tables from the current database schema
-  const { data: bets } = useQuery({
-    queryKey: ["userBets", user.id],
+  const { data: stakes } = useQuery({
+    queryKey: ["userStakes", user.id],
     queryFn: async () => {
+      // Only fetch stakes if user has Supabase auth
       if (user.authType !== 'supabase') {
         return [];
       }
       
       const { data, error } = await supabase
-        .from("bets")
-        .select("*")
-        .eq("user_id", user.id);
+        .from("user_stakes")
+        .select(`
+          *,
+          staking_pools(name, apy_percentage)
+        `)
+        .eq("user_id", user.id)
+        .eq("status", "active");
       
       if (error) throw error;
       return data || [];
@@ -32,12 +36,33 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
   const { data: rewards } = useQuery({
     queryKey: ["userRewards", user.id],
     queryFn: async () => {
+      // Only fetch rewards if user has Supabase auth
       if (user.authType !== 'supabase') {
         return [];
       }
       
       const { data, error } = await supabase
-        .from("voting_rewards")
+        .from("staking_rewards")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("claimed", false);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: user.authType === 'supabase',
+  });
+
+  const { data: wallets } = useQuery({
+    queryKey: ["userWallets", user.id],
+    queryFn: async () => {
+      // Only fetch wallets if user has Supabase auth
+      if (user.authType !== 'supabase') {
+        return [];
+      }
+      
+      const { data, error } = await supabase
+        .from("user_wallets")
         .select("*")
         .eq("user_id", user.id);
       
@@ -47,27 +72,8 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
     enabled: user.authType === 'supabase',
   });
 
-  const { data: profile } = useQuery({
-    queryKey: ["userProfile", user.id],
-    queryFn: async () => {
-      if (user.authType !== 'supabase') {
-        return null;
-      }
-      
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: user.authType === 'supabase',
-  });
-
-  const totalBets = bets?.length || 0;
-  const totalRewards = rewards?.reduce((sum, reward) => sum + (parseFloat(reward.reward_amount?.toString() || '0')), 0) || 0;
+  const totalStaked = stakes?.reduce((sum, stake) => sum + parseFloat(stake.amount.toString()), 0) || 0;
+  const totalRewards = rewards?.reduce((sum, reward) => sum + parseFloat(reward.reward_amount.toString()), 0) || 0;
 
   return (
     <div className="space-y-8">
@@ -84,16 +90,16 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
         <Card className="bg-gray-800/40 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-300">
-              Total Bets
+              Total Staked
             </CardTitle>
             <PiggyBank className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {totalBets}
+              {totalStaked.toLocaleString()} POOPEE
             </div>
             <p className="text-xs text-gray-400">
-              Active betting activity
+              {stakes?.length || 0} active stakes
             </p>
           </CardContent>
         </Card>
@@ -101,16 +107,16 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
         <Card className="bg-gray-800/40 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-300">
-              Rewards Earned
+              Unclaimed Rewards
             </CardTitle>
             <Gift className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {totalRewards.toFixed(2)}
+              {totalRewards.toFixed(2)} POOPEE
             </div>
             <p className="text-xs text-gray-400">
-              {rewards?.length || 0} rewards received
+              {rewards?.length || 0} pending rewards
             </p>
           </CardContent>
         </Card>
@@ -118,16 +124,16 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
         <Card className="bg-gray-800/40 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-300">
-              Profile Status
+              Connected Wallets
             </CardTitle>
             <Wallet className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {profile ? "Active" : "Setup"}
+              {wallets?.length || 0}
             </div>
             <p className="text-xs text-gray-400">
-              Account status
+              Across multiple chains
             </p>
           </CardContent>
         </Card>
@@ -135,16 +141,16 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
         <Card className="bg-gray-800/40 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-300">
-              Platform Value
+              Portfolio Value
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              Coming Soon
+              ${(totalStaked * 0.001).toFixed(2)}
             </div>
             <p className="text-xs text-gray-400">
-              Portfolio tracking
+              Estimated USD value
             </p>
           </CardContent>
         </Card>
@@ -158,29 +164,29 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
           <CardContent>
             <div className="space-y-4">
               {user.authType === 'supabase' ? (
-                bets?.slice(0, 3).map((bet) => (
-                  <div key={bet.id} className="flex items-center justify-between">
+                stakes?.slice(0, 3).map((stake) => (
+                  <div key={stake.id} className="flex items-center justify-between">
                     <div>
                       <p className="text-white font-medium">
-                        Bet placed
+                        Staked {parseFloat(stake.amount.toString()).toLocaleString()} POOPEE
                       </p>
                       <p className="text-sm text-gray-400">
-                        Amount: {bet.amount?.toString() || 'N/A'}
+                        {stake.staking_pools?.name}
                       </p>
                     </div>
                     <div className="text-sm text-gray-400">
-                      {new Date(bet.created_at).toLocaleDateString()}
+                      {new Date(stake.created_at).toLocaleDateString()}
                     </div>
                   </div>
                 ))
               ) : (
                 <p className="text-gray-400 text-center py-4">
-                  Connect your wallet to see activity
+                  Connect your wallet to see staking activity
                 </p>
               )} 
-              {user.authType === 'supabase' && (!bets || bets.length === 0) && (
+              {user.authType === 'supabase' && (!stakes || stakes.length === 0) && (
                 <p className="text-gray-400 text-center py-4">
-                  No betting activity yet
+                  No staking activity yet
                 </p>
               )}
             </div>
@@ -194,21 +200,21 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
           <CardContent>
             <div className="space-y-3">
               <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
-                <h3 className="font-medium text-white mb-2">🎯 Place Bets</h3>
+                <h3 className="font-medium text-white mb-2">🚀 Start Staking</h3>
                 <p className="text-sm text-gray-400">
-                  Start betting on prediction markets
+                  Earn up to 25% APY on your POOPEE tokens
                 </p>
               </div>
               <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
                 <h3 className="font-medium text-white mb-2">🔗 Connect Wallet</h3>
                 <p className="text-sm text-gray-400">
-                  Add your SUI wallet address
+                  Add your Cardano or SUI wallet addresses
                 </p>
               </div>
               <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
-                <h3 className="font-medium text-white mb-2">🎁 View Rewards</h3>
+                <h3 className="font-medium text-white mb-2">🎁 Claim Rewards</h3>
                 <p className="text-sm text-gray-400">
-                  {totalRewards > 0 ? `${totalRewards.toFixed(2)} rewards available` : "No rewards yet"}
+                  {totalRewards > 0 ? `${totalRewards.toFixed(2)} POOPEE waiting` : "No rewards yet"}
                 </p>
               </div>
             </div>
