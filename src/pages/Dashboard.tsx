@@ -1,10 +1,11 @@
 
+import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
 import { Navigation } from "@/components/Navigation";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardContent } from "@/components/dashboard/DashboardContent";
-import { useHybridAuth } from "@/hooks/useHybridAuth";
-import { useState } from "react";
 
 export type DashboardSection = 
   | "overview" 
@@ -16,28 +17,40 @@ export type DashboardSection =
   | "rewards";
 
 const Dashboard = () => {
-  const { user, isLoading, isAuthenticated } = useHybridAuth();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
 
-  console.log('Dashboard render:', { isLoading, isAuthenticated, hasUser: !!user });
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
-  if (isLoading) {
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">💩 🦛</div>
-          <div className="text-white text-xl">Loading...</div>
-        </div>
+        <div className="text-white text-xl">Loading...</div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    console.log('Not authenticated, redirecting to auth');
+  // Redirect to auth if not logged in
+  if (!user) {
     return <Navigate to="/auth" replace />;
   }
-
-  console.log('Dashboard access granted');
 
   return (
     <div className="min-h-screen bg-black">

@@ -1,15 +1,13 @@
+
 import { useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, Copy } from "lucide-react";
-import { useHybridAuth } from "@/hooks/useHybridAuth";
 
 interface ProfileSectionProps {
   user: User;
@@ -24,30 +22,16 @@ interface ProfileForm {
 export const ProfileSection = ({ user }: ProfileSectionProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { zkLoginAddress } = useHybridAuth();
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   const [formData, setFormData] = useState<ProfileForm>({
     username: "",
     full_name: "",
-    email: user?.email || "",
+    email: user.email || "",
   });
 
-  const isZkLoginUser = !!zkLoginAddress;
-  const zkLoginMetadata = user?.user_metadata;
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied to clipboard",
-      description: "Address copied successfully",
-    });
-  };
-
   const { data: profile, isLoading } = useQuery({
-    queryKey: ["profile", user?.id],
+    queryKey: ["profile", user.id],
     queryFn: async () => {
-      if (!user?.id) return null;
-      
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
@@ -69,13 +53,10 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
       
       return data;
     },
-    enabled: !!user?.id,
   });
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Omit<ProfileForm, "email">) => {
-      if (!user?.id) throw new Error("No user ID");
-      
       const { error } = await supabase
         .from("profiles")
         .upsert({
@@ -88,7 +69,7 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
       toast({
         title: "Profile updated",
         description: "Your profile has been successfully updated.",
@@ -137,7 +118,7 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
 
   const handleEmailUpdate = () => {
     const newEmail = formData.email;
-    if (newEmail && newEmail !== user?.email) {
+    if (newEmail && newEmail !== user.email) {
       setIsUpdatingEmail(true);
       updateEmailMutation.mutate(newEmail);
     }
@@ -161,56 +142,6 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
         <p className="text-gray-400">Manage your account information</p>
       </div>
 
-      {/* ZK Login Info Card */}
-      {isZkLoginUser && (
-        <Card className="bg-gray-800/40 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <Wallet className="mr-2 h-5 w-5" />
-              ZK Login Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Badge variant="secondary" className="bg-blue-600 text-white">
-                SUI Wallet Connected
-              </Badge>
-            </div>
-            
-            <div>
-              <Label className="text-gray-300">SUI Address</Label>
-              <div className="flex items-center space-x-2 mt-1">
-                <Input
-                  value={zkLoginAddress}
-                  readOnly
-                  className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(zkLoginAddress)}
-                  className="border-gray-600"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {zkLoginMetadata?.zklogin_max_epoch && (
-              <div>
-                <Label className="text-gray-300">Max Epoch</Label>
-                <Input
-                  value={zkLoginMetadata.zklogin_max_epoch}
-                  readOnly
-                  className="bg-gray-700 border-gray-600 text-white"
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Personal Information Card */}
       <Card className="bg-gray-800/40 border-gray-700">
         <CardHeader>
           <CardTitle className="text-white">Personal Information</CardTitle>
@@ -248,44 +179,41 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
         </CardContent>
       </Card>
 
-      {/* Email Settings Card */}
-      {!isZkLoginUser && (
-        <Card className="bg-gray-800/40 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white">Email Settings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label className="text-gray-300">Current Email</Label>
-              <p className="text-white mt-1">{user?.email}</p>
-            </div>
-            
-            <div>
-              <Label className="text-gray-300">New Email</Label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white"
-                placeholder="Enter new email address"
-              />
-            </div>
+      <Card className="bg-gray-800/40 border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-white">Email Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="text-gray-300">Current Email</Label>
+            <p className="text-white mt-1">{user.email}</p>
+          </div>
+          
+          <div>
+            <Label className="text-gray-300">New Email</Label>
+            <Input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="bg-gray-700 border-gray-600 text-white"
+              placeholder="Enter new email address"
+            />
+          </div>
 
-            <Button
-              onClick={handleEmailUpdate}
-              disabled={isUpdatingEmail || updateEmailMutation.isPending}
-              variant="outline"
-              className="border-gray-600 text-gray-300"
-            >
-              {isUpdatingEmail || updateEmailMutation.isPending ? "Updating..." : "Update Email"}
-            </Button>
-            
-            <p className="text-sm text-gray-400">
-              You'll need to confirm the new email address before the change takes effect.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+          <Button
+            onClick={handleEmailUpdate}
+            disabled={isUpdatingEmail || updateEmailMutation.isPending}
+            variant="outline"
+            className="border-gray-600 text-gray-300"
+          >
+            {isUpdatingEmail || updateEmailMutation.isPending ? "Updating..." : "Update Email"}
+          </Button>
+          
+          <p className="text-sm text-gray-400">
+            You'll need to confirm the new email address before the change takes effect.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 };
