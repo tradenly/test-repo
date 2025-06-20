@@ -1,18 +1,23 @@
 
-import { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PiggyBank, Wallet, Gift, TrendingUp } from "lucide-react";
+import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 
 interface DashboardOverviewProps {
-  user: User;
+  user: UnifiedUser;
 }
 
 export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
   const { data: stakes } = useQuery({
     queryKey: ["userStakes", user.id],
     queryFn: async () => {
+      // Only fetch stakes if user has Supabase auth
+      if (user.authType !== 'supabase') {
+        return [];
+      }
+      
       const { data, error } = await supabase
         .from("user_stakes")
         .select(`
@@ -23,13 +28,19 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
         .eq("status", "active");
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
+    enabled: user.authType === 'supabase',
   });
 
   const { data: rewards } = useQuery({
     queryKey: ["userRewards", user.id],
     queryFn: async () => {
+      // Only fetch rewards if user has Supabase auth
+      if (user.authType !== 'supabase') {
+        return [];
+      }
+      
       const { data, error } = await supabase
         .from("staking_rewards")
         .select("*")
@@ -37,21 +48,28 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
         .eq("claimed", false);
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
+    enabled: user.authType === 'supabase',
   });
 
   const { data: wallets } = useQuery({
     queryKey: ["userWallets", user.id],
     queryFn: async () => {
+      // Only fetch wallets if user has Supabase auth
+      if (user.authType !== 'supabase') {
+        return [];
+      }
+      
       const { data, error } = await supabase
         .from("user_wallets")
         .select("*")
         .eq("user_id", user.id);
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
+    enabled: user.authType === 'supabase',
   });
 
   const totalStaked = stakes?.reduce((sum, stake) => sum + parseFloat(stake.amount.toString()), 0) || 0;
@@ -145,21 +163,28 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {stakes?.slice(0, 3).map((stake) => (
-                <div key={stake.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">
-                      Staked {parseFloat(stake.amount.toString()).toLocaleString()} POOPEE
-                    </p>
-                    <p className="text-sm text-gray-400">
-                      {stake.staking_pools?.name}
-                    </p>
+              {user.authType === 'supabase' ? (
+                stakes?.slice(0, 3).map((stake) => (
+                  <div key={stake.id} className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white font-medium">
+                        Staked {parseFloat(stake.amount.toString()).toLocaleString()} POOPEE
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        {stake.staking_pools?.name}
+                      </p>
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {new Date(stake.created_at).toLocaleDateString()}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-400">
-                    {new Date(stake.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-              )) || (
+                ))
+              ) : (
+                <p className="text-gray-400 text-center py-4">
+                  Connect your wallet to see staking activity
+                </p>
+              )} 
+              {user.authType === 'supabase' && (!stakes || stakes.length === 0) && (
                 <p className="text-gray-400 text-center py-4">
                   No staking activity yet
                 </p>
