@@ -1,5 +1,4 @@
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,18 +9,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { useNavigate, useLocation } from "react-router-dom";
 import { User as UserIcon, LogOut, Wallet } from "lucide-react";
 import { useHybridAuth } from "@/hooks/useHybridAuth";
+import { useZkLogin } from "@/hooks/useZkLogin";
 
 export const Navigation = () => {
   const { user, zkLoginAddress, isAuthenticated } = useHybridAuth();
+  const { logout: zkLogout } = useZkLogin();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    await zkLogout();
     navigate('/');
   };
 

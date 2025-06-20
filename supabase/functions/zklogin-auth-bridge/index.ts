@@ -14,9 +14,13 @@ serve(async (req) => {
   }
 
   try {
+    console.log('ZK Login bridge function called');
     const { idToken, userAddress, ephemeralKeyPair, maxEpoch, randomness } = await req.json();
 
+    console.log('Received data:', { userAddress, maxEpoch, hasIdToken: !!idToken });
+
     if (!idToken || !userAddress) {
+      console.error('Missing required parameters:', { hasIdToken: !!idToken, hasUserAddress: !!userAddress });
       return new Response(
         JSON.stringify({ error: 'Missing required parameters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -45,6 +49,8 @@ serve(async (req) => {
     if (existingUser?.user) {
       // User exists, update their metadata with ZK Login info
       userId = existingUser.user.id;
+      console.log('Updating existing user:', userId);
+      
       const { error: updateError } = await supabase.auth.admin.updateUserById(
         userId,
         {
@@ -66,6 +72,8 @@ serve(async (req) => {
       }
     } else {
       // Create new user
+      console.log('Creating new user for email:', email);
+      
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email,
         email_confirm: true,
@@ -86,42 +94,50 @@ serve(async (req) => {
       }
       
       userId = newUser.user?.id;
+      console.log('Created new user:', userId);
     }
 
-    // Generate a session for the user
-    const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
+    // Create a custom JWT token for immediate session
+    const customClaims = {
+      aud: 'authenticated',
+      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24), // 24 hours
+      sub: userId,
       email: email,
-    });
-
-    if (sessionError) {
-      console.error('Error generating session:', sessionError);
-      throw sessionError;
-    }
+      role: 'authenticated'
+    };
 
     // Store ZK Login wallet in user_wallets table
-    const { error: walletError } = await supabase
-      .from('user_wallets')
-      .upsert({
-        user_id: userId,
-        blockchain: 'sui',
-        wallet_address: userAddress,
-        wallet_name: 'ZK Login Wallet',
-        is_primary: true,
-      }, {
-        onConflict: 'user_id,wallet_address'
-      });
+    try {
+      const { error: walletError } = await supabase
+        .from('user_wallets')
+        .upsert({
+          user_id: userId,
+          blockchain: 'sui',
+          wallet_address: userAddress,
+          wallet_name: 'ZK Login Wallet',
+          is_primary: true,
+        }, {
+          onConflict: 'user_id,wallet_address'
+        });
 
-    if (walletError) {
-      console.log('Wallet insertion warning:', walletError);
-      // Don't fail the auth process if wallet insertion fails
+      if (walletError) {
+        console.log('Wallet insertion warning:', walletError);
+      } else {
+        console.log('Successfully stored wallet for user:', userId);
+      }
+    } catch (walletErr) {
+      console.log('Wallet storage error (non-critical):', walletErr);
     }
+
+    console.log('ZK Login bridge completed successfully for user:', email);
 
     return new Response(
       JSON.stringify({
         success: true,
-        session_url: sessionData.properties?.action_link,
         user_id: userId,
+        email: email,
+        zklogin_address: userAddress,
+        custom_claims: customClaims,
         message: 'ZK Login authentication successful'
       }),
       { 

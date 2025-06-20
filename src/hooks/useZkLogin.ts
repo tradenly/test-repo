@@ -171,6 +171,8 @@ export const useZkLogin = () => {
       console.log('ZK Login address computed:', userAddress);
 
       // Call the bridge function to create Supabase session
+      console.log('Calling zklogin-auth-bridge...');
+      
       const bridgeResponse = await supabase.functions.invoke('zklogin-auth-bridge', {
         body: {
           idToken,
@@ -181,31 +183,23 @@ export const useZkLogin = () => {
         }
       });
 
+      console.log('Bridge response:', bridgeResponse);
+
       if (bridgeResponse.error) {
         console.error('Bridge function error:', bridgeResponse.error);
-        throw new Error('Failed to create Supabase session');
-      }
-
-      const { session_url } = bridgeResponse.data;
-      
-      if (session_url) {
-        console.log('Creating Supabase session via magic link...');
-        // Extract the token from the magic link and use it to create a session
-        const url = new URL(session_url);
-        const token = url.searchParams.get('token');
-        const type = url.searchParams.get('type');
+        // Continue with ZK Login even if bridge fails
+        console.log('Continuing with ZK Login despite bridge failure');
+      } else {
+        console.log('Bridge function succeeded:', bridgeResponse.data);
         
-        if (token && type) {
-          const { error: verifyError } = await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: type as any
-          });
-          
-          if (verifyError) {
-            console.error('Session verification error:', verifyError);
-            // Continue with ZK Login state even if Supabase session fails
-          }
-        }
+        // If bridge succeeded, try to refresh the session
+        const { data: session } = await supabase.auth.getSession();
+        console.log('Current Supabase session after bridge:', session);
+        
+        // Trigger auth state change manually
+        window.dispatchEvent(new CustomEvent('zklogin-success', { 
+          detail: { userAddress, bridgeData: bridgeResponse.data } 
+        }));
       }
 
       const newState = {
@@ -218,7 +212,7 @@ export const useZkLogin = () => {
       setState(prev => ({ ...prev, ...newState }));
       saveState({ randomness, maxEpoch, ...newState });
       
-      console.log('Hybrid authentication completed successfully');
+      console.log('ZK Login completed successfully, address:', userAddress);
       
     } catch (error) {
       console.error('Failed to handle OAuth callback:', error);

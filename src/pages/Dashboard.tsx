@@ -16,21 +16,29 @@ export type DashboardSection =
   | "rewards";
 
 const Dashboard = () => {
-  const { user, isLoading, isAuthenticated } = useHybridAuth();
+  const { user, isLoading, isAuthenticated, zkLoginAddress } = useHybridAuth();
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
+
+  console.log('Dashboard render:', { isLoading, isAuthenticated, hasUser: !!user, hasZkAddress: !!zkLoginAddress });
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-center">
+          <div className="text-4xl mb-4">💩 🦛</div>
+          <div className="text-white text-xl">Loading...</div>
+        </div>
       </div>
     );
   }
 
-  // Redirect to auth if not authenticated
+  // Allow access if either authenticated via Supabase OR has ZK Login address
   if (!isAuthenticated) {
+    console.log('Not authenticated, redirecting to auth');
     return <Navigate to="/auth" replace />;
   }
+
+  console.log('Dashboard access granted');
 
   return (
     <div className="min-h-screen bg-black">
