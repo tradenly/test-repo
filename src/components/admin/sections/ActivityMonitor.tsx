@@ -8,29 +8,49 @@ export const ActivityMonitor = () => {
   const { data: recentActivity, isLoading } = useQuery({
     queryKey: ['adminActivity'],
     queryFn: async () => {
-      // Get recent credit transactions
+      // Get recent credit transactions with user profiles
       const { data: transactions } = await supabase
         .from('credit_transactions')
-        .select(`
-          *,
-          profiles (username, full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(20);
+
+      // Get profiles for the transaction users
+      const transactionUserIds = transactions?.map(t => t.user_id) || [];
+      const { data: transactionProfiles } = await supabase
+        .from('profiles')
+        .select('id, username, full_name')
+        .in('id', transactionUserIds);
 
       // Get recent game sessions
       const { data: sessions } = await supabase
         .from('game_sessions')
-        .select(`
-          *,
-          profiles (username, full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(20);
 
+      // Get profiles for the session users
+      const sessionUserIds = sessions?.map(s => s.user_id) || [];
+      const { data: sessionProfiles } = await supabase
+        .from('profiles')
+        .select('id, username, full_name')
+        .in('id', sessionUserIds);
+
+      // Merge transactions with profiles
+      const transactionsWithProfiles = transactions?.map(transaction => ({
+        ...transaction,
+        profile: transactionProfiles?.find(p => p.id === transaction.user_id)
+      })) || [];
+
+      // Merge sessions with profiles
+      const sessionsWithProfiles = sessions?.map(session => ({
+        ...session,
+        profile: sessionProfiles?.find(p => p.id === session.user_id)
+      })) || [];
+
       return {
-        transactions: transactions || [],
-        sessions: sessions || [],
+        transactions: transactionsWithProfiles,
+        sessions: sessionsWithProfiles,
       };
     },
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -66,7 +86,7 @@ export const ActivityMonitor = () => {
                 <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
                   <div>
                     <p className="text-white text-sm">
-                      {transaction.profiles?.username || 'Unknown User'}
+                      {transaction.profile?.username || 'Unknown User'}
                     </p>
                     <p className="text-gray-400 text-xs">
                       {transaction.description || transaction.transaction_type}
@@ -99,7 +119,7 @@ export const ActivityMonitor = () => {
                 <div key={session.id} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
                   <div>
                     <p className="text-white text-sm">
-                      {session.profiles?.username || 'Unknown User'}
+                      {session.profile?.username || 'Unknown User'}
                     </p>
                     <p className="text-gray-400 text-xs">
                       Score: {session.score} | Duration: {session.duration_seconds}s

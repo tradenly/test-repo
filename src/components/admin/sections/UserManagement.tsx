@@ -16,25 +16,41 @@ export const UserManagement = () => {
   const { data: users, isLoading } = useQuery({
     queryKey: ['adminUsers', searchTerm],
     queryFn: async () => {
-      let query = supabase
+      // Get profiles first
+      let profileQuery = supabase
         .from('profiles')
-        .select(`
-          id,
-          username,
-          full_name,
-          created_at,
-          user_roles (role),
-          user_credits (balance)
-        `);
+        .select('id, username, full_name, created_at');
 
       if (searchTerm) {
-        query = query.or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
+        profileQuery = profileQuery.or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data: profiles, error: profileError } = await profileQuery.order('created_at', { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (profileError) throw profileError;
+
+      if (!profiles || profiles.length === 0) return [];
+
+      const userIds = profiles.map(p => p.id);
+
+      // Get user roles
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('user_id', userIds);
+
+      // Get user credits
+      const { data: userCredits } = await supabase
+        .from('user_credits')
+        .select('user_id, balance')
+        .in('user_id', userIds);
+
+      // Merge data
+      return profiles.map(profile => ({
+        ...profile,
+        user_roles: userRoles?.filter(role => role.user_id === profile.id) || [],
+        user_credits: userCredits?.filter(credit => credit.user_id === profile.id) || [],
+      }));
     },
   });
 
@@ -137,7 +153,7 @@ export const UserManagement = () => {
                         )}
                       </div>
                       <p className="text-gray-400 text-sm">@{user.username}</p>
-                      <p className="text-gray-400 text-sm">Credits: {credits.toFixed(2)}</p>
+                      <p className="text-gray-400 text-sm">Credits: {Number(credits).toFixed(2)}</p>
                       <p className="text-gray-400 text-xs">
                         Joined: {new Date(user.created_at).toLocaleDateString()}
                       </p>

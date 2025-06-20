@@ -20,22 +20,33 @@ export const CreditManagement = () => {
   const { data: users, isLoading } = useQuery({
     queryKey: ['adminCreditUsers', searchTerm],
     queryFn: async () => {
-      let query = supabase
+      // Get profiles first
+      let profileQuery = supabase
         .from('profiles')
-        .select(`
-          id,
-          username,
-          full_name,
-          user_credits (balance)
-        `);
+        .select('id, username, full_name');
 
       if (searchTerm) {
-        query = query.or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
+        profileQuery = profileQuery.or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
       }
 
-      const { data, error } = await query;
+      const { data: profiles, error } = await profileQuery;
       if (error) throw error;
-      return data;
+
+      if (!profiles || profiles.length === 0) return [];
+
+      const userIds = profiles.map(p => p.id);
+
+      // Get user credits
+      const { data: userCredits } = await supabase
+        .from('user_credits')
+        .select('user_id, balance')
+        .in('user_id', userIds);
+
+      // Merge data
+      return profiles.map(profile => ({
+        ...profile,
+        user_credits: userCredits?.filter(credit => credit.user_id === profile.id) || [],
+      }));
     },
   });
 
@@ -162,11 +173,14 @@ export const CreditManagement = () => {
                 className="w-full mt-1 p-2 bg-gray-700 border-gray-600 rounded-md text-white"
               >
                 <option value="">Select a user...</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.full_name || user.username} - {user.user_credits?.[0]?.balance?.toFixed(2) || '0.00'} credits
-                  </option>
-                ))}
+                {users.map((user) => {
+                  const userBalance = user.user_credits?.[0]?.balance || 0;
+                  return (
+                    <option key={user.id} value={user.id}>
+                      {user.full_name || user.username} - {Number(userBalance).toFixed(2)} credits
+                    </option>
+                  );
+                })}
               </select>
             </div>
           )}
