@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ExternalLink, Clock, Send, Receive } from 'lucide-react';
+import { Loader2, ExternalLink, Clock, Send } from 'lucide-react';
 import { suiTransactionService } from '@/services/suiTransactionService';
 
 interface TransactionHistoryProps {

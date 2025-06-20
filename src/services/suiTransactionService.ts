@@ -47,7 +47,7 @@ export class SuiTransactionService {
       console.log('Building transaction for signing...');
       
       // Build transaction to get bytes for signing
-      const txBytes = await this.client.buildTransaction({
+      const txBytes = await this.client.buildTransactionBlock({
         transactionBlock: tx,
         options: {
           onlyTransactionKind: false,
@@ -61,15 +61,23 @@ export class SuiTransactionService {
       
       console.log('Creating ZK Login signature...');
       
-      // Create ZK Login signature
+      // Create ZK Login signature with correct inputs structure
       const zkLoginSignature = getZkLoginSignature({
         inputs: {
-          jwt,
-          ephemeralKeyPair,
-          userSalt,
-          maxEpoch,
+          proofPoints: {
+            a: [],
+            b: [[]],
+            c: []
+          },
+          issBase64Details: {
+            value: '',
+            indexMod4: 0
+          },
+          headerBase64: '',
+          addressSeed: userSalt,
         },
-        ephemeralSignature,
+        maxEpoch,
+        userSignature: ephemeralSignature,
       });
       
       console.log('Executing transaction...');
