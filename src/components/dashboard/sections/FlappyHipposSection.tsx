@@ -30,7 +30,7 @@ export const FlappyHipposSection = ({ user }: FlappyHipposSectionProps) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {creditsLoading ? "..." : (credits?.balance || "0.00")}
+              {creditsLoading ? "..." : (credits?.balance?.toFixed(2) || "0.00")}
             </div>
             <p className="text-xs text-gray-400">Available to play</p>
           </CardContent>

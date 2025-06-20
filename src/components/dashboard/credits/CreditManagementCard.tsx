@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Coins, CreditCard, TrendingUp, History } from "lucide-react";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
-import { useCredits, useCreditTransactions } from "@/hooks/useCredits";
+import { useCredits, useCreditTransactions, type CreditTransaction } from "@/hooks/useCredits";
 import { useToast } from "@/hooks/use-toast";
 
 interface CreditManagementCardProps {
@@ -102,7 +102,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
           {/* Current Balance */}
           <div className="bg-gray-900/40 rounded-lg p-4 text-center">
             <div className="text-3xl font-bold text-white mb-2">
-              {creditsLoading ? "..." : (credits?.balance || "0.00")}
+              {creditsLoading ? "..." : (credits?.balance?.toFixed(2) || "0.00")}
             </div>
             <div className="text-gray-400">Current Balance</div>
           </div>
@@ -202,7 +202,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                 <div className="text-gray-400">Loading transactions...</div>
               ) : transactions && transactions.length > 0 ? (
                 <div className="space-y-3">
-                  {transactions.slice(0, 10).map((transaction) => (
+                  {transactions.slice(0, 10).map((transaction: CreditTransaction) => (
                     <div key={transaction.id} className="flex items-center justify-between border-b border-gray-700 pb-2">
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{getTransactionTypeIcon(transaction.transaction_type)}</span>

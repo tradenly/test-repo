@@ -50,7 +50,7 @@ export const Navigation = () => {
               <div className="flex items-center gap-2 bg-gray-800/60 rounded-lg px-3 py-2">
                 <Coins className="h-4 w-4 text-yellow-400" />
                 <span className="text-white font-medium">
-                  {credits?.balance || "0.00"}
+                  {credits?.balance?.toFixed(2) || "0.00"}
                 </span>
                 <span className="text-gray-400 text-sm">Credits</span>
               </div>
