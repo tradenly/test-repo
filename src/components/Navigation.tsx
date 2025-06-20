@@ -28,9 +28,6 @@ export const Navigation = () => {
     if (user?.email) {
       return user.email;
     }
-    if (user?.walletAddress) {
-      return `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`;
-    }
     return 'User';
   };
 
@@ -61,9 +58,6 @@ export const Navigation = () => {
               >
                 <DropdownMenuLabel className="text-gray-300">
                   {getUserDisplayName()}
-                  {user.authType === 'zklogin' && (
-                    <div className="text-xs text-blue-400">ZK Login</div>
-                  )}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-gray-700" />
                 {!isOnDashboard && (

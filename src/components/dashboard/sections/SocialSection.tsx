@@ -37,10 +37,6 @@ export const SocialSection = ({ user }: SocialSectionProps) => {
   const { data: socialAccounts, isLoading } = useQuery({
     queryKey: ["userSocialAccounts", user.id],
     queryFn: async () => {
-      if (user.authType !== 'supabase') {
-        return [];
-      }
-      
       const { data, error } = await supabase
         .from("user_social_accounts")
         .select("*")
@@ -50,15 +46,10 @@ export const SocialSection = ({ user }: SocialSectionProps) => {
       if (error) throw error;
       return data;
     },
-    enabled: user.authType === 'supabase',
   });
 
   const addSocialMutation = useMutation({
     mutationFn: async (socialData: AddSocialForm) => {
-      if (user.authType !== 'supabase') {
-        throw new Error('Social account storage currently requires email authentication');
-      }
-      
       const { error } = await supabase
         .from("user_social_accounts")
         .insert({
@@ -130,15 +121,6 @@ export const SocialSection = ({ user }: SocialSectionProps) => {
       return;
     }
     
-    if (user.authType !== 'supabase') {
-      toast({
-        title: "Feature Limitation",
-        description: "Social account data persistence requires email authentication. ZK Login integration coming soon!",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     addSocialMutation.mutate(formData);
   };
 
@@ -165,11 +147,6 @@ export const SocialSection = ({ user }: SocialSectionProps) => {
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Social Accounts</h1>
           <p className="text-gray-400">Link your social media accounts</p>
-          {user.authType === 'zklogin' && (
-            <p className="text-amber-400 text-sm mt-1">
-              Note: Full social account management with data persistence requires email authentication
-            </p>
-          )}
         </div>
         <Button
           onClick={() => setShowAddForm(!showAddForm)}
@@ -250,19 +227,13 @@ export const SocialSection = ({ user }: SocialSectionProps) => {
                   Cancel
                 </Button>
               </div>
-              
-              {user.authType === 'zklogin' && (
-                <p className="text-sm text-gray-400">
-                  Social account data will be simulated for ZK Login users until full integration is complete
-                </p>
-              )}
             </form>
           </CardContent>
         </Card>
       )}
 
       <div className="grid gap-6">
-        {isLoading && user.authType === 'supabase' ? (
+        {isLoading ? (
           <Card className="bg-gray-800/40 border-gray-700">
             <CardContent className="p-6">
               <p className="text-gray-400 text-center">Loading social accounts...</p>
@@ -313,10 +284,7 @@ export const SocialSection = ({ user }: SocialSectionProps) => {
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-white font-medium mb-2">No social accounts linked</h3>
               <p className="text-gray-400 mb-4">
-                {user.authType === 'supabase' 
-                  ? "Connect your social media accounts to enhance your profile"
-                  : "Social account interface is ready! Full data persistence available with email authentication."
-                }
+                Connect your social media accounts to enhance your profile
               </p>
               <Button
                 onClick={() => setShowAddForm(true)}

@@ -46,10 +46,6 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
   const { data: userStakes, isLoading: stakesLoading, error: stakesError } = useQuery({
     queryKey: ["userStakes", user.id],
     queryFn: async () => {
-      if (user.authType !== 'supabase') {
-        return [];
-      }
-      
       try {
         const { data, error } = await supabase
           .from("user_stakes")
@@ -70,15 +66,10 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
         throw error;
       }
     },
-    enabled: user.authType === 'supabase',
   });
 
   const createStakeMutation = useMutation({
     mutationFn: async ({ poolId, amount }: { poolId: string; amount: string }) => {
-      if (user.authType !== 'supabase') {
-        throw new Error('Staking currently requires email authentication for data persistence');
-      }
-      
       const { error } = await supabase
         .from("user_stakes")
         .insert({
@@ -119,15 +110,6 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
       return;
     }
     
-    if (user.authType !== 'supabase') {
-      toast({
-        title: "Feature Limitation",
-        description: "Staking data persistence requires email authentication. ZK Login staking coming soon!",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     createStakeMutation.mutate({ poolId: selectedPool, amount: stakeAmount });
   };
 
@@ -161,11 +143,6 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Staking</h1>
         <p className="text-gray-400">Stake your POOPEE tokens and NFTs to earn rewards</p>
-        {user.authType === 'zklogin' && (
-          <p className="text-amber-400 text-sm mt-1">
-            Note: Full staking functionality with data persistence requires email authentication
-          </p>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -217,12 +194,6 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
             >
               {createStakeMutation.isPending ? "Creating Stake..." : "Stake Tokens"}
             </Button>
-            
-            {user.authType === 'zklogin' && (
-              <p className="text-sm text-gray-400">
-                Stake data will be simulated for ZK Login users until full integration is complete
-              </p>
-            )}
           </CardContent>
         </Card>
 
@@ -293,12 +264,7 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
           ) : (
             <div className="text-center py-8">
               <PiggyBank className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-400">
-                {user.authType === 'supabase' 
-                  ? "No active stakes yet. Create your first stake above!"
-                  : "Staking interface is ready! Full data persistence available with email authentication."
-                }
-              </p>
+              <p className="text-gray-400">No active stakes yet. Create your first stake above!</p>
             </div>
           )}
         </CardContent>

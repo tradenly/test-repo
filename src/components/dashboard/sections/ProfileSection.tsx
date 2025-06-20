@@ -29,14 +29,10 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
     email: user.email || "",
   });
 
-  // Fetch profile data for Supabase users
+  // Fetch profile data
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", user.id],
     queryFn: async () => {
-      if (user.authType !== 'supabase') {
-        return null;
-      }
-      
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
@@ -58,15 +54,10 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
       
       return data;
     },
-    enabled: user.authType === 'supabase',
   });
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Omit<ProfileForm, "email">) => {
-      if (user.authType !== 'supabase') {
-        throw new Error('Profile updates only available for email users');
-      }
-      
       const { error } = await supabase
         .from("profiles")
         .upsert({
@@ -97,8 +88,8 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
 
   const updateEmailMutation = useMutation({
     mutationFn: async (email: string) => {
-      if (user.authType !== 'supabase' || !user.supabaseUser) {
-        throw new Error('Email updates only available for email users');
+      if (!user.supabaseUser) {
+        throw new Error('Email updates require Supabase authentication');
       }
       
       const { error } = await supabase.auth.updateUser({ email });
@@ -138,7 +129,7 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
     }
   };
 
-  if (isLoading && user.authType === 'supabase') {
+  if (isLoading) {
     return (
       <div className="space-y-8">
         <div>
@@ -164,28 +155,17 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
         <CardContent className="space-y-4">
           <div>
             <Label className="text-gray-300">Authentication Type</Label>
-            <p className="text-white mt-1 capitalize">
-              {user.authType === 'zklogin' ? 'ZK Login (Wallet)' : 'Email/Password'}
-            </p>
+            <p className="text-white mt-1">Email/Password</p>
           </div>
           
-          {user.email && (
-            <div>
-              <Label className="text-gray-300">Email</Label>
-              <p className="text-white mt-1">{user.email}</p>
-            </div>
-          )}
-          
-          {user.walletAddress && (
-            <div>
-              <Label className="text-gray-300">Wallet Address</Label>
-              <p className="text-white mt-1 font-mono text-sm break-all">{user.walletAddress}</p>
-            </div>
-          )}
+          <div>
+            <Label className="text-gray-300">Email</Label>
+            <p className="text-white mt-1">{user.email}</p>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Personal Information - Available for both user types */}
+      {/* Personal Information */}
       <Card className="bg-gray-800/40 border-gray-700">
         <CardHeader>
           <CardTitle className="text-white">Personal Information</CardTitle>
@@ -214,59 +194,51 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
 
             <Button
               type="submit"
-              disabled={updateProfileMutation.isPending || user.authType !== 'supabase'}
+              disabled={updateProfileMutation.isPending}
               className="bg-gray-700 hover:bg-gray-600"
             >
               {updateProfileMutation.isPending ? "Updating..." : "Update Profile"}
             </Button>
-            
-            {user.authType === 'zklogin' && (
-              <p className="text-sm text-gray-400">
-                Profile updates for ZK Login users will be available in future updates.
-              </p>
-            )}
           </form>
         </CardContent>
       </Card>
 
-      {/* Email Settings - Only for Supabase users */}
-      {user.authType === 'supabase' && (
-        <Card className="bg-gray-800/40 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white">Email Settings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label className="text-gray-300">Current Email</Label>
-              <p className="text-white mt-1">{user.email}</p>
-            </div>
-            
-            <div>
-              <Label className="text-gray-300">New Email</Label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white"
-                placeholder="Enter new email address"
-              />
-            </div>
+      {/* Email Settings */}
+      <Card className="bg-gray-800/40 border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-white">Email Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="text-gray-300">Current Email</Label>
+            <p className="text-white mt-1">{user.email}</p>
+          </div>
+          
+          <div>
+            <Label className="text-gray-300">New Email</Label>
+            <Input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="bg-gray-700 border-gray-600 text-white"
+              placeholder="Enter new email address"
+            />
+          </div>
 
-            <Button
-              onClick={handleEmailUpdate}
-              disabled={isUpdatingEmail || updateEmailMutation.isPending}
-              variant="outline"
-              className="border-gray-600 text-gray-300"
-            >
-              {isUpdatingEmail || updateEmailMutation.isPending ? "Updating..." : "Update Email"}
-            </Button>
-            
-            <p className="text-sm text-gray-400">
-              You'll need to confirm the new email address before the change takes effect.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+          <Button
+            onClick={handleEmailUpdate}
+            disabled={isUpdatingEmail || updateEmailMutation.isPending}
+            variant="outline"
+            className="border-gray-600 text-gray-300"
+          >
+            {isUpdatingEmail || updateEmailMutation.isPending ? "Updating..." : "Update Email"}
+          </Button>
+          
+          <p className="text-sm text-gray-400">
+            You'll need to confirm the new email address before the change takes effect.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 };
