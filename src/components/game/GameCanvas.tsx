@@ -72,19 +72,34 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     // Game engine class
     class GameEngine {
       private ctx: CanvasRenderingContext2D;
+      private canvas: HTMLCanvasElement;
       private hippo: any;
       private pipes: any[] = [];
       private gameRunning = false;
       private animationId: number | null = null;
       private score = 0;
       private pipesPassedCount = 0;
+      private eventListeners: (() => void)[] = [];
 
-      constructor(context: CanvasRenderingContext2D) {
+      constructor(context: CanvasRenderingContext2D, canvasElement: HTMLCanvasElement) {
         this.ctx = context;
+        this.canvas = canvasElement;
         this.reset();
         this.bindEvents();
         this.render(); // Initial render to show the game world
         console.log("Game engine initialized successfully");
+      }
+
+      cleanup() {
+        console.log("Cleaning up game engine...");
+        this.gameRunning = false;
+        if (this.animationId) {
+          cancelAnimationFrame(this.animationId);
+          this.animationId = null;
+        }
+        // Remove all event listeners
+        this.eventListeners.forEach(removeListener => removeListener());
+        this.eventListeners = [];
       }
 
       reset() {
@@ -108,20 +123,30 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       bindEvents() {
-        const handleInput = () => {
+        const handleInput = (e: Event) => {
+          console.log("Input detected:", e.type);
           if (this.gameRunning) {
             this.hippo.velocity = -8;
             this.hippo.rotation = -0.3;
+            console.log("Hippo flapped! New velocity:", this.hippo.velocity);
           }
         };
 
-        canvas.addEventListener('click', handleInput);
-        document.addEventListener('keydown', (e) => {
+        const handleKeydown = (e: KeyboardEvent) => {
           if (e.code === 'Space') {
             e.preventDefault();
-            handleInput();
+            handleInput(e);
           }
-        });
+        };
+
+        // Add event listeners and store cleanup functions
+        this.canvas.addEventListener('click', handleInput);
+        document.addEventListener('keydown', handleKeydown);
+
+        this.eventListeners.push(
+          () => this.canvas.removeEventListener('click', handleInput),
+          () => document.removeEventListener('keydown', handleKeydown)
+        );
       }
 
       start() {
@@ -131,7 +156,10 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       gameLoop() {
-        if (!this.gameRunning) return;
+        if (!this.gameRunning) {
+          console.log("Game loop stopped - gameRunning is false");
+          return;
+        }
 
         try {
           this.update();
@@ -163,6 +191,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
             this.score += 1;
             this.pipesPassedCount += 1;
             setScore(this.score);
+            console.log("Score increased:", this.score);
           }
         });
 
@@ -180,14 +209,14 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       addPipe() {
         const gapSize = 140;
         const minGapY = 50;
-        const maxGapY = canvas.height - gapSize - 100;
+        const maxGapY = this.canvas.height - gapSize - 100;
         const gapY = Math.random() * (maxGapY - minGapY) + minGapY;
 
         this.pipes.push({
-          x: canvas.width,
+          x: this.canvas.width,
           topHeight: gapY,
           bottomY: gapY + gapSize,
-          bottomHeight: canvas.height - (gapY + gapSize),
+          bottomHeight: this.canvas.height - (gapY + gapSize),
           width: 60,
           scored: false
         });
@@ -195,13 +224,15 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
       checkCollisions() {
         // Ground collision
-        if (this.hippo.y + this.hippo.height > canvas.height - 50) {
+        if (this.hippo.y + this.hippo.height > this.canvas.height - 50) {
+          console.log("Ground collision detected");
           this.gameOver();
           return;
         }
 
         // Ceiling collision
         if (this.hippo.y < 0) {
+          console.log("Ceiling collision detected");
           this.gameOver();
           return;
         }
@@ -212,6 +243,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
               this.hippo.x < pipe.x + pipe.width) {
             if (this.hippo.y < pipe.topHeight || 
                 this.hippo.y + this.hippo.height > pipe.bottomY) {
+              console.log("Pipe collision detected");
               this.gameOver();
             }
           }
@@ -223,6 +255,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.gameRunning = false;
         if (this.animationId) {
           cancelAnimationFrame(this.animationId);
+          this.animationId = null;
         }
         handleGameOver(this.score, this.pipesPassedCount);
       }
@@ -231,7 +264,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         try {
           // Clear canvas with sky blue background
           this.ctx.fillStyle = '#87CEEB';
-          this.ctx.fillRect(0, 0, canvas.width, canvas.height);
+          this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
           // Draw clouds
           this.drawClouds();
@@ -241,7 +274,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
           // Draw ground
           this.ctx.fillStyle = '#8B4513';
-          this.ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+          this.ctx.fillRect(0, this.canvas.height - 50, this.canvas.width, 50);
 
           // Draw hippo
           this.drawHippo();
@@ -250,7 +283,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           this.ctx.fillStyle = 'white';
           this.ctx.font = 'bold 32px Arial';
           this.ctx.textAlign = 'center';
-          this.ctx.fillText(this.score.toString(), canvas.width / 2, 50);
+          this.ctx.fillText(this.score.toString(), this.canvas.width / 2, 50);
         } catch (error) {
           console.error("Error in render:", error);
         }
@@ -318,7 +351,12 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     }
 
     try {
-      gameRef.current = new GameEngine(ctx);
+      // Clean up existing game engine if it exists
+      if (gameRef.current) {
+        gameRef.current.cleanup();
+      }
+      
+      gameRef.current = new GameEngine(ctx, canvas);
       setIsInitialized(true);
       console.log("Game engine created and initialized");
     } catch (error) {
@@ -326,18 +364,19 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     }
 
     return () => {
-      if (gameRef.current?.animationId) {
-        cancelAnimationFrame(gameRef.current.animationId);
+      console.log("Component unmounting, cleaning up...");
+      if (gameRef.current) {
+        gameRef.current.cleanup();
       }
     };
-  }, [handleGameOver]);
+  }, []); // Remove handleGameOver from dependencies to prevent re-initialization
 
   return (
     <div className="flex flex-col items-center space-y-4">
       <canvas 
         ref={canvasRef}
         className="border-2 border-gray-300 rounded-lg"
-        style={{ maxWidth: '100%', height: 'auto', backgroundColor: '#87CEEB' }}
+        style={{ maxWidth: '100%', height: 'auto' }}
       />
       
       {gameState === 'menu' && (
