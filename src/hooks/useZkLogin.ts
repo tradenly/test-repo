@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
 import { jwtToAddress } from '@mysten/zklogin';
-import { EnokiFlow } from '@mysten/enoki/react';
+import { useEnokiFlow } from '@mysten/enoki/react';
 import { ZK_LOGIN_CONFIG, getRedirectUrl, getCurrentEpoch } from '@/config/zkLogin';
 
 interface ZkLoginState {
@@ -29,8 +29,8 @@ export const useZkLogin = () => {
     error: null,
   });
 
-  // Initialize Enoki Flow
-  const enokiFlow = new EnokiFlow({
+  // Initialize Enoki Flow using the hook
+  const enokiFlow = useEnokiFlow({
     apiKey: ZK_LOGIN_CONFIG.ENOKI_API_KEY,
   });
 
