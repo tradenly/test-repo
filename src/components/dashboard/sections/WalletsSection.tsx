@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
     wallet_name: "",
   });
 
-  // Only fetch wallets for Supabase users
+  // Fetch wallets - works for both auth types but only stores for Supabase users
   const { data: wallets, isLoading } = useQuery({
     queryKey: ["userWallets", user.id],
     queryFn: async () => {
@@ -56,7 +57,7 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
   const addWalletMutation = useMutation({
     mutationFn: async (walletData: AddWalletForm) => {
       if (user.authType !== 'supabase') {
-        throw new Error('Wallet management only available for email users');
+        throw new Error('Wallet storage only available for email users');
       }
       
       const { error } = await supabase
@@ -147,43 +148,6 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
     }
   };
 
-  // Show current wallet for ZK Login users
-  if (user.authType === 'zklogin') {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Wallet Management</h1>
-          <p className="text-gray-400">Your connected wallet information</p>
-        </div>
-
-        <Card className="bg-gray-800/40 border-gray-700">
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="text-2xl">🌊</div>
-              <div>
-                <h3 className="text-white font-medium">Connected SUI Wallet</h3>
-                <p className="text-gray-400 text-sm">ZK Login Wallet</p>
-                <p className="text-gray-500 text-xs font-mono">
-                  {user.walletAddress?.slice(0, 20)}...{user.walletAddress?.slice(-10)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800/40 border-gray-700">
-          <CardContent className="p-12 text-center">
-            <Wallet className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-white font-medium mb-2">Additional Wallet Management</h3>
-            <p className="text-gray-400">
-              Sign up with email to manage multiple wallet addresses across different blockchains.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -199,6 +163,27 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
           Add Wallet
         </Button>
       </div>
+
+      {/* Current ZK Login Wallet Display */}
+      {user.authType === 'zklogin' && user.walletAddress && (
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white">Connected Wallet</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="text-2xl">🌊</div>
+              <div>
+                <h3 className="text-white font-medium">Primary SUI Wallet</h3>
+                <p className="text-gray-400 text-sm">ZK Login Connected</p>
+                <p className="text-gray-500 text-xs font-mono">
+                  {user.walletAddress.slice(0, 20)}...{user.walletAddress.slice(-10)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {showAddForm && (
         <Card className="bg-gray-800/40 border-gray-700">
@@ -255,7 +240,7 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
               <div className="flex gap-2">
                 <Button
                   type="submit"
-                  disabled={addWalletMutation.isPending}
+                  disabled={addWalletMutation.isPending || user.authType !== 'supabase'}
                   className="bg-gray-700 hover:bg-gray-600"
                 >
                   {addWalletMutation.isPending ? "Adding..." : "Add Wallet"}
@@ -269,13 +254,19 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
                   Cancel
                 </Button>
               </div>
+              
+              {user.authType === 'zklogin' && (
+                <p className="text-sm text-gray-400">
+                  Additional wallet storage for ZK Login users will be available in future updates.
+                </p>
+              )}
             </form>
           </CardContent>
         </Card>
       )}
 
       <div className="grid gap-6">
-        {isLoading ? (
+        {isLoading && user.authType === 'supabase' ? (
           <Card className="bg-gray-800/40 border-gray-700">
             <CardContent className="p-6">
               <p className="text-gray-400 text-center">Loading wallets...</p>
@@ -319,17 +310,24 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
           <Card className="bg-gray-800/40 border-gray-700">
             <CardContent className="p-12 text-center">
               <Wallet className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-white font-medium mb-2">No wallets added</h3>
+              <h3 className="text-white font-medium mb-2">
+                {user.authType === 'supabase' ? 'No additional wallets added' : 'Wallet Management Available'}
+              </h3>
               <p className="text-gray-400 mb-4">
-                Add your first wallet to start managing your crypto assets
+                {user.authType === 'supabase' 
+                  ? 'Add your cryptocurrency wallet addresses to track and manage your assets'
+                  : 'Your connected ZK Login wallet is displayed above. Additional wallet storage coming soon.'
+                }
               </p>
-              <Button
-                onClick={() => setShowAddForm(true)}
-                className="bg-gray-700 hover:bg-gray-600"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Your First Wallet
-              </Button>
+              {user.authType === 'supabase' && (
+                <Button
+                  onClick={() => setShowAddForm(true)}
+                  className="bg-gray-700 hover:bg-gray-600"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Your First Wallet
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}

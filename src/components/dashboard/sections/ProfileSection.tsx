@@ -29,7 +29,7 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
     email: user.email || "",
   });
 
-  // Only fetch profile if user has Supabase auth
+  // Fetch profile data for Supabase users
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", user.id],
     queryFn: async () => {
@@ -185,93 +185,84 @@ export const ProfileSection = ({ user }: ProfileSectionProps) => {
         </CardContent>
       </Card>
 
-      {/* Profile Management - Only for Supabase users */}
-      {user.authType === 'supabase' && (
-        <>
-          <Card className="bg-gray-800/40 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Personal Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <form onSubmit={handleProfileSubmit} className="space-y-4">
-                <div>
-                  <Label className="text-gray-300">Full Name</Label>
-                  <Input
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    className="bg-gray-700 border-gray-600 text-white"
-                    placeholder="Enter your full name"
-                  />
-                </div>
+      {/* Personal Information - Available for both user types */}
+      <Card className="bg-gray-800/40 border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-white">Personal Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <form onSubmit={handleProfileSubmit} className="space-y-4">
+            <div>
+              <Label className="text-gray-300">Full Name</Label>
+              <Input
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                className="bg-gray-700 border-gray-600 text-white"
+                placeholder="Enter your full name"
+              />
+            </div>
 
-                <div>
-                  <Label className="text-gray-300">Username</Label>
-                  <Input
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="bg-gray-700 border-gray-600 text-white"
-                    placeholder="Choose a username"
-                  />
-                </div>
+            <div>
+              <Label className="text-gray-300">Username</Label>
+              <Input
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                className="bg-gray-700 border-gray-600 text-white"
+                placeholder="Choose a username"
+              />
+            </div>
 
-                <Button
-                  type="submit"
-                  disabled={updateProfileMutation.isPending}
-                  className="bg-gray-700 hover:bg-gray-600"
-                >
-                  {updateProfileMutation.isPending ? "Updating..." : "Update Profile"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800/40 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Email Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="text-gray-300">Current Email</Label>
-                <p className="text-white mt-1">{user.email}</p>
-              </div>
-              
-              <div>
-                <Label className="text-gray-300">New Email</Label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
-                  placeholder="Enter new email address"
-                />
-              </div>
-
-              <Button
-                onClick={handleEmailUpdate}
-                disabled={isUpdatingEmail || updateEmailMutation.isPending}
-                variant="outline"
-                className="border-gray-600 text-gray-300"
-              >
-                {isUpdatingEmail || updateEmailMutation.isPending ? "Updating..." : "Update Email"}
-              </Button>
-              
+            <Button
+              type="submit"
+              disabled={updateProfileMutation.isPending || user.authType !== 'supabase'}
+              className="bg-gray-700 hover:bg-gray-600"
+            >
+              {updateProfileMutation.isPending ? "Updating..." : "Update Profile"}
+            </Button>
+            
+            {user.authType === 'zklogin' && (
               <p className="text-sm text-gray-400">
-                You'll need to confirm the new email address before the change takes effect.
+                Profile updates for ZK Login users will be available in future updates.
               </p>
-            </CardContent>
-          </Card>
-        </>
-      )}
+            )}
+          </form>
+        </CardContent>
+      </Card>
 
-      {/* ZK Login users get simplified profile */}
-      {user.authType === 'zklogin' && (
+      {/* Email Settings - Only for Supabase users */}
+      {user.authType === 'supabase' && (
         <Card className="bg-gray-800/40 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">ZK Login Profile</CardTitle>
+            <CardTitle className="text-white">Email Settings</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-gray-400">
-              You're logged in with ZK Login using your wallet. Profile management for ZK Login users will be available soon.
+          <CardContent className="space-y-4">
+            <div>
+              <Label className="text-gray-300">Current Email</Label>
+              <p className="text-white mt-1">{user.email}</p>
+            </div>
+            
+            <div>
+              <Label className="text-gray-300">New Email</Label>
+              <Input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="bg-gray-700 border-gray-600 text-white"
+                placeholder="Enter new email address"
+              />
+            </div>
+
+            <Button
+              onClick={handleEmailUpdate}
+              disabled={isUpdatingEmail || updateEmailMutation.isPending}
+              variant="outline"
+              className="border-gray-600 text-gray-300"
+            >
+              {isUpdatingEmail || updateEmailMutation.isPending ? "Updating..." : "Update Email"}
+            </Button>
+            
+            <p className="text-sm text-gray-400">
+              You'll need to confirm the new email address before the change takes effect.
             </p>
           </CardContent>
         </Card>
