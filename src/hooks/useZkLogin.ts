@@ -4,6 +4,7 @@ import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
 import { jwtToAddress } from '@mysten/zklogin';
 import { ZK_LOGIN_CONFIG, getRedirectUrl, getCurrentEpoch } from '@/config/zkLogin';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ZkLoginState {
   isInitialized: boolean;
@@ -88,7 +89,7 @@ export const useZkLogin = () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      console.log('Starting ZK Login flow with Enoki SDK...');
+      console.log('Starting ZK Login flow...');
 
       const randomness = generateRandomness();
       const ephemeralKeyPair = Ed25519Keypair.generate();
@@ -142,7 +143,7 @@ export const useZkLogin = () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      console.log('Handling OAuth callback with traditional zkLogin flow...');
+      console.log('Handling OAuth callback with hybrid auth flow...');
 
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
@@ -164,14 +165,48 @@ export const useZkLogin = () => {
       }
 
       const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
-
-      // For now, we'll use a simple approach to get the salt
-      // In a production app, you'd want to use Enoki's salt service
-      // But since the method doesn't exist, let's use a basic implementation
-      const salt = BigInt('1'); // This is a placeholder - in production you'd get this from Enoki
-
-      // Generate SUI address from JWT and salt
+      const salt = BigInt('1'); // Placeholder salt
       const userAddress = jwtToAddress(idToken, salt);
+
+      console.log('ZK Login address computed:', userAddress);
+
+      // Call the bridge function to create Supabase session
+      const bridgeResponse = await supabase.functions.invoke('zklogin-auth-bridge', {
+        body: {
+          idToken,
+          userAddress,
+          ephemeralKeyPair: Array.from(ephemeralKeyPair.getSecretKey().slice(0, 32)),
+          maxEpoch,
+          randomness,
+        }
+      });
+
+      if (bridgeResponse.error) {
+        console.error('Bridge function error:', bridgeResponse.error);
+        throw new Error('Failed to create Supabase session');
+      }
+
+      const { session_url } = bridgeResponse.data;
+      
+      if (session_url) {
+        console.log('Creating Supabase session via magic link...');
+        // Extract the token from the magic link and use it to create a session
+        const url = new URL(session_url);
+        const token = url.searchParams.get('token');
+        const type = url.searchParams.get('type');
+        
+        if (token && type) {
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: type as any
+          });
+          
+          if (verifyError) {
+            console.error('Session verification error:', verifyError);
+            // Continue with ZK Login state even if Supabase session fails
+          }
+        }
+      }
 
       const newState = {
         userAddress,
@@ -183,7 +218,7 @@ export const useZkLogin = () => {
       setState(prev => ({ ...prev, ...newState }));
       saveState({ randomness, maxEpoch, ...newState });
       
-      console.log('ZK Login completed successfully, user address:', userAddress);
+      console.log('Hybrid authentication completed successfully');
       
     } catch (error) {
       console.error('Failed to handle OAuth callback:', error);
@@ -195,7 +230,7 @@ export const useZkLogin = () => {
     }
   }, [saveState]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     localStorage.removeItem(STORAGE_KEY);
     setState({
       isInitialized: true,
@@ -206,6 +241,9 @@ export const useZkLogin = () => {
       randomness: null,
       error: null,
     });
+    
+    // Also sign out from Supabase
+    await supabase.auth.signOut();
   }, []);
 
   return {

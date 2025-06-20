@@ -12,28 +12,13 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { useNavigate, useLocation } from "react-router-dom";
-import { User as UserIcon, LogOut } from "lucide-react";
+import { User as UserIcon, LogOut, Wallet } from "lucide-react";
+import { useHybridAuth } from "@/hooks/useHybridAuth";
 
 export const Navigation = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, zkLoginAddress, isAuthenticated } = useHybridAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -41,6 +26,27 @@ export const Navigation = () => {
   };
 
   const isOnDashboard = location.pathname === '/dashboard';
+
+  const getUserDisplayName = () => {
+    if (zkLoginAddress) {
+      return `${zkLoginAddress.slice(0, 6)}...${zkLoginAddress.slice(-4)}`;
+    }
+    return user?.email || 'User';
+  };
+
+  const getAccountLabel = () => {
+    if (zkLoginAddress) {
+      return (
+        <div className="flex flex-col">
+          <span className="text-sm">{user?.email || 'ZK Login User'}</span>
+          <span className="text-xs text-gray-400 font-mono">
+            SUI: {zkLoginAddress.slice(0, 8)}...{zkLoginAddress.slice(-6)}
+          </span>
+        </div>
+      );
+    }
+    return user?.email;
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-gray-800">
@@ -53,14 +59,18 @@ export const Navigation = () => {
         </div>
         
         <div className="flex items-center space-x-4">
-          {user ? (
+          {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
                   className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
                 >
-                  <UserIcon className="h-4 w-4 mr-2" />
-                  Account
+                  {zkLoginAddress ? (
+                    <Wallet className="h-4 w-4 mr-2" />
+                  ) : (
+                    <UserIcon className="h-4 w-4 mr-2" />
+                  )}
+                  {getUserDisplayName()}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
@@ -68,7 +78,7 @@ export const Navigation = () => {
                 align="end"
               >
                 <DropdownMenuLabel className="text-gray-300">
-                  {user.email}
+                  {getAccountLabel()}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-gray-700" />
                 {!isOnDashboard && (

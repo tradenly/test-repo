@@ -1,11 +1,10 @@
 
-import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { Navigation } from "@/components/Navigation";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardContent } from "@/components/dashboard/DashboardContent";
+import { useHybridAuth } from "@/hooks/useHybridAuth";
+import { useState } from "react";
 
 export type DashboardSection = 
   | "overview" 
@@ -17,29 +16,10 @@ export type DashboardSection =
   | "rewards";
 
 const Dashboard = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoading, isAuthenticated } = useHybridAuth();
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
 
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-xl">Loading...</div>
@@ -47,8 +27,8 @@ const Dashboard = () => {
     );
   }
 
-  // Redirect to auth if not logged in
-  if (!user) {
+  // Redirect to auth if not authenticated
+  if (!isAuthenticated) {
     return <Navigate to="/auth" replace />;
   }
 
