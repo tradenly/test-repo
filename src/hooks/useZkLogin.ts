@@ -175,6 +175,10 @@ export const useZkLogin = () => {
       
       console.log('Generated user address:', userAddress);
 
+      // Store JWT token for transaction signing
+      localStorage.setItem('current_jwt', idToken);
+      console.log('Stored JWT token for transaction signing');
+
       const newState = {
         userAddress,
         isLoading: false,
@@ -199,6 +203,7 @@ export const useZkLogin = () => {
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('current_jwt'); // Clear JWT token
     setState({
       isInitialized: true,
       isLoading: false,

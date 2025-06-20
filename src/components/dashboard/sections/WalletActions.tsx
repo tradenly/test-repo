@@ -13,11 +13,12 @@ import {
   Download, 
   QrCode,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from "lucide-react";
 import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
-import { Transaction } from "@mysten/sui/transactions";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
+import { suiTransactionService } from "@/services/suiTransactionService";
 
 interface WalletActionsProps {
   user: UnifiedUser;
@@ -27,6 +28,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showSendForm, setShowSendForm] = useState(false);
+  const [showAssets, setShowAssets] = useState(false);
   const [sendAmount, setSendAmount] = useState("");
   const [recipientAddress, setRecipientAddress] = useState("");
 
@@ -34,26 +36,102 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
   const suiClient = new SuiClient({ url: getFullnodeUrl("mainnet") });
 
   // Get user's wallet address
-  const walletAddress = user.walletAddress || user.email;
+  const walletAddress = user.walletAddress;
 
   // Fetch SUI balance
   const { data: balance, isLoading: balanceLoading, refetch: refetchBalance } = useQuery({
     queryKey: ["suiBalance", walletAddress],
     queryFn: async () => {
-      if (!user.walletAddress) return "0";
+      if (!walletAddress) return "0";
       
       try {
         const balanceData = await suiClient.getBalance({
-          owner: user.walletAddress,
+          owner: walletAddress,
           coinType: "0x2::sui::SUI"
         });
-        return (parseInt(balanceData.totalBalance) / 1000000000).toFixed(4); // Convert from MIST to SUI
+        return (parseInt(balanceData.totalBalance) / 1000000000).toFixed(4);
       } catch (error) {
         console.error("Failed to fetch balance:", error);
         return "0";
       }
     },
-    enabled: !!user.walletAddress,
+    enabled: !!walletAddress,
+  });
+
+  // Fetch user assets
+  const { data: assets, isLoading: assetsLoading } = useQuery({
+    queryKey: ["userAssets", walletAddress],
+    queryFn: async () => {
+      if (!walletAddress) return null;
+      return await suiTransactionService.getUserAssets(walletAddress);
+    },
+    enabled: !!walletAddress && showAssets,
+  });
+
+  // Send transaction mutation
+  const sendTransactionMutation = useMutation({
+    mutationFn: async ({ amount, recipient }: { amount: string; recipient: string }) => {
+      if (!walletAddress || user.authType !== 'zklogin') {
+        throw new Error('ZK Login required for transactions');
+      }
+
+      // Get stored ZK Login state
+      const stored = localStorage.getItem('zklogin_state');
+      if (!stored) {
+        throw new Error('No ZK Login state found');
+      }
+
+      const { randomness, maxEpoch, ephemeralPrivateKey } = JSON.parse(stored);
+      if (!randomness || !maxEpoch || !ephemeralPrivateKey) {
+        throw new Error('Incomplete ZK Login state');
+      }
+
+      // Get current JWT token (this would need to be refreshed in a real app)
+      const currentJwt = localStorage.getItem('current_jwt');
+      if (!currentJwt) {
+        throw new Error('No JWT token found. Please re-authenticate.');
+      }
+
+      // Reconstruct ephemeral keypair
+      const privateKeyBytes = new Uint8Array(ephemeralPrivateKey);
+      const { Ed25519Keypair } = await import('@mysten/sui/keypairs/ed25519');
+      const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
+
+      return await suiTransactionService.sendSuiTransaction(
+        walletAddress,
+        recipient,
+        parseFloat(amount),
+        ephemeralKeyPair,
+        currentJwt,
+        randomness,
+        maxEpoch
+      );
+    },
+    onSuccess: (result) => {
+      if (result.success) {
+        toast({
+          title: "Transaction Sent",
+          description: `Transaction completed successfully! Digest: ${result.digest?.slice(0, 20)}...`,
+        });
+        refetchBalance();
+        setShowSendForm(false);
+        setSendAmount("");
+        setRecipientAddress("");
+      } else {
+        toast({
+          title: "Transaction Failed",
+          description: result.error,
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Transaction Failed", 
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleRefreshBalance = () => {
@@ -65,7 +143,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
   };
 
   const handleSend = () => {
-    if (!user.walletAddress) {
+    if (!walletAddress) {
       toast({
         title: "Wallet not connected",
         description: "Please connect a wallet to send transactions.",
@@ -77,10 +155,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
   };
 
   const handleViewAssets = () => {
-    toast({
-      title: "View Assets",
-      description: "Asset viewing feature coming soon!",
-    });
+    setShowAssets(!showAssets);
   };
 
   const handleBackup = () => {
@@ -98,8 +173,8 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
   };
 
   const handleReceive = () => {
-    if (user.walletAddress) {
-      navigator.clipboard.writeText(user.walletAddress);
+    if (walletAddress) {
+      navigator.clipboard.writeText(walletAddress);
       toast({
         title: "Address copied",
         description: "Your wallet address has been copied to clipboard.",
@@ -108,24 +183,29 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
   };
 
   const handleViewOnExplorer = () => {
-    if (user.walletAddress) {
-      const explorerUrl = `https://suivision.xyz/account/${user.walletAddress}`;
+    if (walletAddress) {
+      const explorerUrl = `https://suivision.xyz/account/${walletAddress}`;
       window.open(explorerUrl, '_blank');
     }
   };
 
   const submitSendTransaction = () => {
-    // For now, just show a toast - actual transaction implementation would need proper signing
-    toast({
-      title: "Send Transaction",
-      description: `Would send ${sendAmount} SUI to ${recipientAddress}. Transaction signing coming soon!`,
+    if (!sendAmount || !recipientAddress) {
+      toast({
+        title: "Invalid Input",
+        description: "Please enter both amount and recipient address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    sendTransactionMutation.mutate({
+      amount: sendAmount,
+      recipient: recipientAddress,
     });
-    setShowSendForm(false);
-    setSendAmount("");
-    setRecipientAddress("");
   };
 
-  if (!user.walletAddress) {
+  if (!walletAddress) {
     return (
       <Card className="bg-gray-800/40 border-gray-700">
         <CardContent className="p-6 text-center">
@@ -152,7 +232,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
             {balanceLoading ? "Loading..." : `${balance} SUI`}
           </div>
           <div className="flex items-center gap-2 text-gray-400 text-sm">
-            <span>Address: {user.walletAddress.slice(0, 10)}...{user.walletAddress.slice(-8)}</span>
+            <span>Address: {walletAddress.slice(0, 10)}...{walletAddress.slice(-8)}</span>
             <Button
               onClick={handleViewOnExplorer}
               variant="ghost"
@@ -204,7 +284,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
               className="bg-gray-700 hover:bg-gray-600 flex items-center"
             >
               <Eye className="mr-2 h-4 w-4" />
-              View Assets
+              {showAssets ? 'Hide Assets' : 'View Assets'}
             </Button>
 
             <Button
@@ -225,6 +305,56 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Assets Display */}
+      {showAssets && (
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white">Your Assets</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {assetsLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-white" />
+                <span className="ml-2 text-white">Loading assets...</span>
+              </div>
+            ) : assets?.success ? (
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-white font-semibold mb-2">Balances</h4>
+                  <div className="space-y-2">
+                    {assets.allBalances.map((balance, index) => (
+                      <div key={index} className="flex justify-between text-gray-300">
+                        <span>{balance.coinType === '0x2::sui::SUI' ? 'SUI' : balance.coinType}</span>
+                        <span>{(parseInt(balance.totalBalance) / 1000000000).toFixed(4)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-white font-semibold mb-2">Objects ({assets.ownedObjects.length})</h4>
+                  <div className="max-h-64 overflow-y-auto space-y-2">
+                    {assets.ownedObjects.slice(0, 10).map((obj, index) => (
+                      <div key={index} className="bg-gray-700/50 p-2 rounded text-sm">
+                        <div className="text-gray-300">Type: {obj.data?.type || 'Unknown'}</div>
+                        <div className="text-gray-400 text-xs">ID: {obj.data?.objectId}</div>
+                      </div>
+                    ))}
+                    {assets.ownedObjects.length > 10 && (
+                      <div className="text-gray-400 text-sm">
+                        ...and {assets.ownedObjects.length - 10} more objects
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-red-400">Failed to load assets: {assets?.error}</div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Send Form Modal */}
       {showSendForm && (
@@ -258,9 +388,10 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
             <div className="flex gap-2">
               <Button
                 onClick={submitSendTransaction}
-                disabled={!sendAmount || !recipientAddress}
+                disabled={!sendAmount || !recipientAddress || sendTransactionMutation.isPending}
                 className="bg-blue-600 hover:bg-blue-500"
               >
+                {sendTransactionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Send Transaction
               </Button>
               <Button
@@ -272,8 +403,8 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
               </Button>
             </div>
 
-            <p className="text-sm text-gray-400">
-              Note: Transaction signing implementation coming soon.
+            <p className="text-sm text-yellow-400">
+              Note: You'll need to re-authenticate periodically as JWT tokens expire.
             </p>
           </CardContent>
         </Card>
