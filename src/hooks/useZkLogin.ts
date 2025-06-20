@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
@@ -207,9 +208,9 @@ export const useZkLogin = () => {
         throw new Error('User not authenticated');
       }
 
-      // Use Enoki's sponsorAndExecuteTransaction method
-      const result = await enokiFlow.sponsorAndExecuteTransaction({
-        transaction,
+      // Use Enoki's sponsorAndExecuteTransactionBlock method
+      const result = await enokiFlow.sponsorAndExecuteTransactionBlock({
+        transactionBlock: transaction,
         network: 'mainnet',
       });
       
