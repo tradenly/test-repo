@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +18,7 @@ import {
 import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { suiTransactionService } from "@/services/suiTransactionService";
+import { useZkLogin } from "@/hooks/useZkLogin";
 
 interface WalletActionsProps {
   user: UnifiedUser;
@@ -27,6 +27,7 @@ interface WalletActionsProps {
 export const WalletActions = ({ user }: WalletActionsProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { executeTransaction } = useZkLogin();
   const [showSendForm, setShowSendForm] = useState(false);
   const [showAssets, setShowAssets] = useState(false);
   const [sendAmount, setSendAmount] = useState("");
@@ -75,55 +76,35 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
         throw new Error('ZK Login required for transactions');
       }
 
-      // Get stored ZK Login state
-      const stored = localStorage.getItem('zklogin_state');
-      if (!stored) {
-        throw new Error('No ZK Login state found');
-      }
-
-      const { randomness, maxEpoch, ephemeralPrivateKey } = JSON.parse(stored);
-      if (!randomness || !maxEpoch || !ephemeralPrivateKey) {
-        throw new Error('Incomplete ZK Login state');
-      }
-
-      // Get current JWT token (this would need to be refreshed in a real app)
-      const currentJwt = localStorage.getItem('current_jwt');
-      if (!currentJwt) {
-        throw new Error('No JWT token found. Please re-authenticate.');
-      }
-
-      // Reconstruct ephemeral keypair
-      const privateKeyBytes = new Uint8Array(ephemeralPrivateKey);
-      const { Ed25519Keypair } = await import('@mysten/sui/keypairs/ed25519');
-      const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
-
-      return await suiTransactionService.sendSuiTransaction(
+      // Create the transaction using the service
+      const txResult = await suiTransactionService.createSuiTransaction(
         walletAddress,
         recipient,
-        parseFloat(amount),
-        ephemeralKeyPair,
-        currentJwt,
-        randomness,
-        maxEpoch
+        parseFloat(amount)
       );
+
+      if (!txResult.success) {
+        throw new Error(txResult.error);
+      }
+
+      // Execute the transaction using Enoki
+      const executeResult = await executeTransaction(txResult.transaction);
+      
+      if (!executeResult.success) {
+        throw new Error(executeResult.error);
+      }
+
+      return executeResult;
     },
     onSuccess: (result) => {
-      if (result.success) {
-        toast({
-          title: "Transaction Sent",
-          description: `Transaction completed successfully! Digest: ${result.digest?.slice(0, 20)}...`,
-        });
-        refetchBalance();
-        setShowSendForm(false);
-        setSendAmount("");
-        setRecipientAddress("");
-      } else {
-        toast({
-          title: "Transaction Failed",
-          description: result.error,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Transaction Sent",
+        description: `Transaction completed successfully!`,
+      });
+      refetchBalance();
+      setShowSendForm(false);
+      setSendAmount("");
+      setRecipientAddress("");
     },
     onError: (error) => {
       toast({
@@ -404,7 +385,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
             </div>
 
             <p className="text-sm text-yellow-400">
-              Note: You'll need to re-authenticate periodically as JWT tokens expire.
+              Note: Transactions are executed through Enoki's proving service.
             </p>
           </CardContent>
         </Card>

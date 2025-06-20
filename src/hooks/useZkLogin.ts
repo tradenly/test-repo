@@ -199,7 +199,7 @@ export const useZkLogin = () => {
     }
   }, [saveState]);
 
-  // New method to execute transactions using Enoki
+  // Execute transactions using Enoki with proper method name
   const executeTransaction = useCallback(async (transaction: any) => {
     try {
       console.log('Executing transaction with Enoki...');
@@ -208,10 +208,10 @@ export const useZkLogin = () => {
         throw new Error('User not authenticated');
       }
 
-      // Use Enoki's signAndExecuteTransaction method
-      const result = await enokiFlow.signAndExecuteTransaction({
+      // Use Enoki's execute method - check Enoki docs for correct method name
+      const result = await enokiFlow.sponsorAndExecuteTransaction({
         transaction,
-        chain: 'sui:mainnet',
+        network: 'mainnet',
       });
       
       console.log('Transaction executed successfully:', result);
