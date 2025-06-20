@@ -26,8 +26,8 @@ const AdminPanel = () => {
     );
   }
 
-  // Redirect if not admin
-  if (!user || !isAdmin) {
+  // Only redirect after loading is complete and we're sure the user is not an admin
+  if (!user || (!isLoading && !isAdmin)) {
     return <Navigate to="/dashboard" replace />;
   }
 
