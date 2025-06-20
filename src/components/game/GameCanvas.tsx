@@ -370,58 +370,25 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx.translate(this.hippo.x + this.hippo.width/2, this.hippo.y + this.hippo.height/2);
         this.ctx.rotate(this.hippo.rotation);
         
-        // Enhanced hippo sprite - no external images, all drawn
-        // Main hippo body with gradient
-        const hippoGradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, this.hippo.width/2);
-        hippoGradient.addColorStop(0, '#A0522D');
-        hippoGradient.addColorStop(1, '#8B4513');
-        this.ctx.fillStyle = hippoGradient;
+        // Use the poop emoji from POOPEE branding!
+        this.ctx.font = 'bold 50px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
         
-        // Main body (rounded rectangle)
-        this.ctx.beginPath();
-        this.ctx.roundRect(-this.hippo.width/2, -this.hippo.height/2, this.hippo.width, this.hippo.height, 8);
-        this.ctx.fill();
+        // Add a subtle glow effect
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        this.ctx.shadowBlur = 8;
+        this.ctx.shadowOffsetX = 2;
+        this.ctx.shadowOffsetY = 2;
         
-        // Enhanced eyes with white sclera
-        this.ctx.fillStyle = 'white';
-        this.ctx.beginPath();
-        this.ctx.arc(-8, -12, 8, 0, Math.PI * 2);
-        this.ctx.arc(8, -12, 8, 0, Math.PI * 2);
-        this.ctx.fill();
+        // Draw the poop emoji
+        this.ctx.fillText('💩', 0, 0);
         
-        // Pupils
-        this.ctx.fillStyle = 'black';
-        this.ctx.beginPath();
-        this.ctx.arc(-8, -12, 4, 0, Math.PI * 2);
-        this.ctx.arc(8, -12, 4, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // Eye highlights
-        this.ctx.fillStyle = 'white';
-        this.ctx.beginPath();
-        this.ctx.arc(-6, -14, 2, 0, Math.PI * 2);
-        this.ctx.arc(10, -14, 2, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // Snout
-        this.ctx.fillStyle = '#8B4513';
-        this.ctx.beginPath();
-        this.ctx.roundRect(-12, -5, 24, 10, 5);
-        this.ctx.fill();
-        
-        // Nostrils
-        this.ctx.fillStyle = '#654321';
-        this.ctx.beginPath();
-        this.ctx.arc(-4, -2, 2, 0, Math.PI * 2);
-        this.ctx.arc(4, -2, 2, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // Ears
-        this.ctx.fillStyle = '#A0522D';
-        this.ctx.beginPath();
-        this.ctx.arc(-20, -20, 8, 0, Math.PI * 2);
-        this.ctx.arc(20, -20, 8, 0, Math.PI * 2);
-        this.ctx.fill();
+        // Reset shadow
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 0;
         
         this.ctx.restore();
       }
@@ -473,7 +440,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       <div className="flex flex-col gap-2">
         {gameState === 'menu' && (
           <Card className="bg-gray-800/90 border-gray-700 p-2 w-28">
-            <h3 className="text-xs font-bold text-white mb-1">🦛 Hippos</h3>
+            <h3 className="text-xs font-bold text-white mb-1">💩 Flappy Poop</h3>
             <p className="text-gray-300 text-xs mb-1">
               Click/Space to flap!
             </p>
