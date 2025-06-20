@@ -10,21 +10,33 @@ const AuthCallback = () => {
   useEffect(() => {
     const processCallback = async () => {
       try {
-        // Extract ID token from URL fragment (Google OAuth 2.0 implicit flow)
+        console.log('Processing OAuth callback...');
+        console.log('Current URL:', window.location.href);
+        console.log('Hash:', window.location.hash);
+        
+        // Fix: Extract ID token from URL fragment (Google OAuth 2.0 implicit flow)
         const urlParams = new URLSearchParams(window.location.hash.substring(1));
         const idToken = urlParams.get('id_token');
+        const error = urlParams.get('error');
+        
+        if (error) {
+          console.error('OAuth error:', error);
+          navigate('/auth?error=' + encodeURIComponent(error));
+          return;
+        }
         
         if (idToken) {
+          console.log('Found ID token, processing...');
           await handleOAuthCallback(idToken);
           // Redirect to dashboard on success
           navigate('/dashboard');
         } else {
-          // No token found, redirect to auth page
+          console.log('No token found, redirecting to auth page');
           navigate('/auth');
         }
       } catch (error) {
         console.error('OAuth callback error:', error);
-        navigate('/auth');
+        navigate('/auth?error=' + encodeURIComponent('callback_failed'));
       }
     };
 
@@ -36,6 +48,9 @@ const AuthCallback = () => {
       <div className="text-center">
         <div className="text-4xl mb-4">💩 🦛</div>
         <p className="text-white">Processing ZK Login...</p>
+        <div className="mt-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+        </div>
       </div>
     </div>
   );

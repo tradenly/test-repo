@@ -37,17 +37,19 @@ export const useZkLogin = () => {
         if (stored) {
           const parsed = JSON.parse(stored);
           
-          // Reconstruct the Ed25519Keypair from stored data
+          // Fix: Properly reconstruct the Ed25519Keypair from stored private key bytes
           let ephemeralKeyPair = null;
-          if (parsed.ephemeralKeyPair) {
-            ephemeralKeyPair = Ed25519Keypair.fromSecretKey(
-              new Uint8Array(parsed.ephemeralKeyPair.secretKey)
-            );
+          if (parsed.ephemeralPrivateKey) {
+            // Convert the stored array back to Uint8Array and create keypair
+            const privateKeyBytes = new Uint8Array(parsed.ephemeralPrivateKey);
+            ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
           }
           
           setState(prev => ({
             ...prev,
-            ...parsed,
+            userAddress: parsed.userAddress || null,
+            maxEpoch: parsed.maxEpoch || null,
+            randomness: parsed.randomness || null,
             ephemeralKeyPair,
             isInitialized: true,
           }));
@@ -63,16 +65,16 @@ export const useZkLogin = () => {
     loadStoredState();
   }, []);
 
-  // Save state to localStorage (excluding sensitive data)
+  // Fix: Improved state persistence
   const saveState = useCallback((newState: Partial<ZkLoginState>) => {
     try {
       const stateToSave = {
         userAddress: newState.userAddress,
         maxEpoch: newState.maxEpoch,
         randomness: newState.randomness,
-        ephemeralKeyPair: newState.ephemeralKeyPair ? {
-          secretKey: Array.from(newState.ephemeralKeyPair.getSecretKey())
-        } : null,
+        // Fix: Store only the private key bytes, not the full keypair object
+        ephemeralPrivateKey: newState.ephemeralKeyPair ? 
+          Array.from(newState.ephemeralKeyPair.getSecretKey()) : null,
       };
       
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
@@ -86,9 +88,13 @@ export const useZkLogin = () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Step 1: Generate randomness and ephemeral key pair (from SUI docs)
+      console.log('Starting ZK Login flow...');
+
+      // Step 1: Generate randomness and ephemeral key pair
       const randomness = generateRandomness();
       const ephemeralKeyPair = Ed25519Keypair.generate();
+      
+      console.log('Generated ephemeral keypair and randomness');
       
       // Step 2: Get current epoch from SUI network and calculate max epoch
       const currentEpoch = await getCurrentEpoch();
@@ -99,6 +105,8 @@ export const useZkLogin = () => {
       // Step 3: Generate nonce
       const ephemeralPublicKey = ephemeralKeyPair.getPublicKey();
       const nonce = generateNonce(ephemeralPublicKey, maxEpoch, randomness);
+
+      console.log('Generated nonce:', nonce);
 
       // Step 4: Save state before redirect
       const newState = {
@@ -111,7 +119,7 @@ export const useZkLogin = () => {
       setState(prev => ({ ...prev, ...newState }));
       saveState(newState);
 
-      // Step 5: Redirect to Google OAuth (following Google OAuth 2.0 docs)
+      // Step 5: Build Google OAuth URL and redirect
       const redirectUrl = getRedirectUrl();
       const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       
@@ -121,7 +129,10 @@ export const useZkLogin = () => {
       googleAuthUrl.searchParams.append('scope', 'openid email profile');
       googleAuthUrl.searchParams.append('nonce', nonce);
       
-      window.location.href = googleAuthUrl.toString();
+      console.log('Redirecting to Google OAuth:', googleAuthUrl.toString());
+      
+      // Fix: Use window.location.assign for proper redirect (not iframe)
+      window.location.assign(googleAuthUrl.toString());
       
     } catch (error) {
       console.error('Failed to start ZK Login:', error);
@@ -138,19 +149,21 @@ export const useZkLogin = () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
+      console.log('Handling OAuth callback with JWT...');
+
       // Get stored state
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
         throw new Error('No stored ZK Login state found');
       }
 
-      const { randomness, maxEpoch, ephemeralKeyPair: storedEphemeralKey } = JSON.parse(stored);
+      const { randomness, maxEpoch, ephemeralPrivateKey } = JSON.parse(stored);
       
-      if (!randomness || !maxEpoch || !storedEphemeralKey) {
+      if (!randomness || !maxEpoch || !ephemeralPrivateKey) {
         throw new Error('Incomplete ZK Login state found');
       }
 
-      console.log('Starting ZK Login proof generation...');
+      console.log('Found stored state, starting proof generation...');
 
       // Step 1: Get salt from Enoki via edge function
       console.log('Requesting salt from Enoki...');
@@ -167,7 +180,7 @@ export const useZkLogin = () => {
 
       // Step 2: Reconstruct ephemeral keypair
       const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(
-        new Uint8Array(storedEphemeralKey.secretKey)
+        new Uint8Array(ephemeralPrivateKey)
       );
       const ephemeralPublicKey = ephemeralKeyPair.getPublicKey();
 
@@ -190,7 +203,7 @@ export const useZkLogin = () => {
 
       console.log('ZK proof received from Enoki');
 
-      // Step 4: Generate SUI address from JWT (following SUI SDK docs)
+      // Step 4: Generate SUI address from JWT
       const userAddress = jwtToAddress(idToken, salt);
       
       const newState = {
@@ -199,7 +212,7 @@ export const useZkLogin = () => {
       };
       
       setState(prev => ({ ...prev, ...newState }));
-      saveState({ ...JSON.parse(stored), ...newState });
+      saveState({ randomness, maxEpoch, ephemeralPrivateKey, ...newState });
       
       console.log('ZK Login completed successfully, user address:', userAddress);
       
