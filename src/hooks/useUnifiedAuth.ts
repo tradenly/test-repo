@@ -15,7 +15,7 @@ export interface UnifiedUser {
 export const useUnifiedAuth = () => {
   const [unifiedUser, setUnifiedUser] = useState<UnifiedUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const { userAddress, isInitialized } = useZkLogin();
+  const { userAddress, isInitialized, logout: zkLogout } = useZkLogin();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -99,15 +99,24 @@ export const useUnifiedAuth = () => {
 
   const logout = async () => {
     try {
+      console.log('UnifiedAuth logout called for user type:', unifiedUser?.authType);
+      
       // Logout from Supabase if authenticated there
       if (unifiedUser?.authType === 'supabase') {
+        console.log('Logging out from Supabase...');
         await supabase.auth.signOut();
       }
       
-      // Clear ZK Login state
-      localStorage.removeItem('zklogin_state');
+      // Logout from ZK Login if authenticated there
+      if (unifiedUser?.authType === 'zklogin') {
+        console.log('Logging out from ZK Login...');
+        zkLogout();
+      }
       
+      // Clear unified user state
       setUnifiedUser(null);
+      console.log('UnifiedAuth logout completed');
+      
     } catch (error) {
       console.error('Logout failed:', error);
     }
