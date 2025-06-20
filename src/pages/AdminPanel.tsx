@@ -18,7 +18,10 @@ const AdminPanel = () => {
   const { isAdmin, isLoading, user } = useAdminAuth();
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
 
+  console.log('AdminPanel: Current state - isAdmin:', isAdmin, 'isLoading:', isLoading, 'user:', !!user);
+
   if (isLoading) {
+    console.log('AdminPanel: Still loading, showing loading screen');
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-xl">Loading...</div>
@@ -28,9 +31,11 @@ const AdminPanel = () => {
 
   // Only redirect after loading is complete and we're sure the user is not an admin
   if (!user || (!isLoading && !isAdmin)) {
+    console.log('AdminPanel: Redirecting to dashboard - user:', !!user, 'isAdmin:', isAdmin, 'isLoading:', isLoading);
     return <Navigate to="/dashboard" replace />;
   }
 
+  console.log('AdminPanel: Rendering admin panel');
   return (
     <div className="min-h-screen bg-black">
       <Navigation />

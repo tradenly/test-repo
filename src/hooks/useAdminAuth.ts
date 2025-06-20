@@ -10,24 +10,35 @@ export const useAdminAuth = () => {
   const { data: isAdmin, isLoading } = useQuery({
     queryKey: ['adminRole', user?.id],
     queryFn: async () => {
-      if (!user?.id) return false;
+      if (!user?.id) {
+        console.log('useAdminAuth: No user ID, returning false');
+        return false;
+      }
+      
+      console.log('useAdminAuth: Checking admin role for user:', user.id);
       
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
         .eq('role', 'admin')
-        .single();
+        .maybeSingle();
       
       if (error) {
-        console.log('No admin role found for user');
+        console.log('useAdminAuth: Error checking admin role:', error);
         return false;
       }
       
-      return !!data;
+      console.log('useAdminAuth: Query result:', data);
+      const hasAdminRole = !!data;
+      console.log('useAdminAuth: Has admin role:', hasAdminRole);
+      
+      return hasAdminRole;
     },
     enabled: !!user?.id && isAuthenticated,
   });
+
+  console.log('useAdminAuth: Current state - isAdmin:', isAdmin, 'isLoading:', isLoading, 'user:', !!user);
 
   return {
     isAdmin: !!isAdmin,
