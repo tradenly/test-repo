@@ -12,11 +12,12 @@ interface ZkLoginState {
   ephemeralKeyPair: Ed25519Keypair | null;
   maxEpoch: number | null;
   randomness: string | null;
+  googleUserId: string | null;
   error: string | null;
   hasValidJWT: boolean;
 }
 
-const STORAGE_KEY = 'zklogin_state';
+const STORAGE_PREFIX = 'zklogin_user_';
 
 export const useZkLogin = () => {
   const enokiFlow = useEnokiFlow();
@@ -27,9 +28,26 @@ export const useZkLogin = () => {
     ephemeralKeyPair: null,
     maxEpoch: null,
     randomness: null,
+    googleUserId: null,
     error: null,
     hasValidJWT: false,
   });
+
+  // Extract Google user ID from JWT token
+  const extractGoogleUserId = useCallback((jwtToken: string): string | null => {
+    try {
+      const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+      return payload.sub || null;
+    } catch (error) {
+      console.error('Failed to extract Google user ID from JWT:', error);
+      return null;
+    }
+  }, []);
+
+  // Get storage key for a specific Google user
+  const getStorageKey = useCallback((googleUserId: string) => {
+    return `${STORAGE_PREFIX}${googleUserId}`;
+  }, []);
 
   // Check for valid JWT token
   const checkJWTValidity = useCallback(() => {
@@ -37,42 +55,97 @@ export const useZkLogin = () => {
     return !!jwtToken;
   }, []);
 
-  // Initialize from localStorage on mount
+  // Get or create randomness for a Google user
+  const getOrCreateRandomness = useCallback((googleUserId: string): string => {
+    const storageKey = getStorageKey(googleUserId);
+    const stored = localStorage.getItem(storageKey);
+    
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.randomness) {
+          console.log('Using existing randomness for Google user:', googleUserId);
+          return parsed.randomness;
+        }
+      } catch (error) {
+        console.warn('Failed to parse stored randomness, generating new one');
+      }
+    }
+    
+    // Generate new randomness for this Google user
+    const newRandomness = generateRandomness();
+    console.log('Generated new randomness for Google user:', googleUserId);
+    
+    // Store it immediately
+    const stateToSave = { randomness: newRandomness };
+    localStorage.setItem(storageKey, JSON.stringify(stateToSave));
+    
+    return newRandomness;
+  }, [getStorageKey]);
+
+  // Initialize from localStorage and JWT on mount
   useEffect(() => {
     const loadStoredState = () => {
       try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        const hasValidJWT = checkJWTValidity();
+        const jwtToken = localStorage.getItem('current_jwt');
+        const hasValidJWT = !!jwtToken;
         
-        if (stored) {
-          const parsed = JSON.parse(stored);
+        if (jwtToken) {
+          const googleUserId = extractGoogleUserId(jwtToken);
           
-          let ephemeralKeyPair = null;
-          if (parsed.ephemeralPrivateKey && Array.isArray(parsed.ephemeralPrivateKey)) {
-            const privateKeyBytes = new Uint8Array(parsed.ephemeralPrivateKey);
-            if (privateKeyBytes.length === 32) {
-              ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
+          if (googleUserId) {
+            const storageKey = getStorageKey(googleUserId);
+            const stored = localStorage.getItem(storageKey);
+            
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              
+              // Reconstruct ephemeral keypair if available
+              let ephemeralKeyPair = null;
+              if (parsed.ephemeralPrivateKey && Array.isArray(parsed.ephemeralPrivateKey)) {
+                const privateKeyBytes = new Uint8Array(parsed.ephemeralPrivateKey);
+                if (privateKeyBytes.length === 32) {
+                  ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
+                }
+              }
+              
+              // Use consistent randomness for this Google user
+              const randomness = getOrCreateRandomness(googleUserId);
+              
+              // Derive consistent address
+              const salt = BigInt(randomness);
+              const userAddress = jwtToAddress(jwtToken, salt);
+              
+              console.log('Loaded consistent state for Google user:', googleUserId);
+              console.log('Derived address:', userAddress);
+              
+              setState(prev => ({
+                ...prev,
+                userAddress,
+                maxEpoch: parsed.maxEpoch || null,
+                randomness,
+                googleUserId,
+                ephemeralKeyPair,
+                hasValidJWT,
+                isInitialized: true,
+              }));
             } else {
-              console.warn('Invalid ephemeral key length, clearing stored state');
-              localStorage.removeItem(STORAGE_KEY);
+              // New user, just set basic state
+              setState(prev => ({ 
+                ...prev, 
+                googleUserId,
+                hasValidJWT, 
+                isInitialized: true 
+              }));
             }
+          } else {
+            setState(prev => ({ ...prev, hasValidJWT, isInitialized: true }));
           }
-          
-          setState(prev => ({
-            ...prev,
-            userAddress: parsed.userAddress || null,
-            maxEpoch: parsed.maxEpoch || null,
-            randomness: parsed.randomness || null,
-            ephemeralKeyPair,
-            hasValidJWT,
-            isInitialized: true,
-          }));
         } else {
-          setState(prev => ({ ...prev, hasValidJWT, isInitialized: true }));
+          setState(prev => ({ ...prev, hasValidJWT: false, isInitialized: true }));
         }
       } catch (error) {
         console.error('Failed to load ZK Login state:', error);
-        localStorage.removeItem(STORAGE_KEY);
         setState(prev => ({ 
           ...prev, 
           error: 'Failed to load saved state', 
@@ -83,10 +156,11 @@ export const useZkLogin = () => {
     };
 
     loadStoredState();
-  }, [checkJWTValidity]);
+  }, [extractGoogleUserId, getStorageKey, getOrCreateRandomness]);
 
-  const saveState = useCallback((newState: Partial<ZkLoginState>) => {
+  const saveState = useCallback((googleUserId: string, newState: Partial<ZkLoginState>) => {
     try {
+      const storageKey = getStorageKey(googleUserId);
       const stateToSave = {
         userAddress: newState.userAddress,
         maxEpoch: newState.maxEpoch,
@@ -95,22 +169,22 @@ export const useZkLogin = () => {
           Array.from(newState.ephemeralKeyPair.getSecretKey().slice(0, 32)) : null,
       };
       
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+      localStorage.setItem(storageKey, JSON.stringify(stateToSave));
     } catch (error) {
       console.error('Failed to save ZK Login state:', error);
     }
-  }, []);
+  }, [getStorageKey]);
 
   const startZkLogin = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      console.log('Starting ZK Login flow with Enoki SDK...');
+      console.log('Starting ZK Login flow...');
 
-      const randomness = generateRandomness();
+      // Generate new ephemeral keypair for this session (security requirement)
       const ephemeralKeyPair = Ed25519Keypair.generate();
       
-      console.log('Generated ephemeral keypair and randomness');
+      console.log('Generated new ephemeral keypair for session');
       
       const currentEpoch = await getCurrentEpoch();
       const maxEpoch = currentEpoch + ZK_LOGIN_CONFIG.DEFAULT_MAX_EPOCH_GAP;
@@ -118,19 +192,23 @@ export const useZkLogin = () => {
       console.log(`Current epoch: ${currentEpoch}, Max epoch: ${maxEpoch}`);
       
       const ephemeralPublicKey = ephemeralKeyPair.getPublicKey();
-      const nonce = generateNonce(ephemeralPublicKey, maxEpoch, randomness);
+      
+      // For the nonce generation, we need randomness, but we can't get consistent 
+      // randomness until we know the Google user ID (which comes from the JWT)
+      // So we'll use temporary randomness for the nonce, and fix the address derivation later
+      const tempRandomness = generateRandomness();
+      const nonce = generateNonce(ephemeralPublicKey, maxEpoch, tempRandomness);
 
-      console.log('Generated nonce:', nonce);
+      console.log('Generated nonce with temporary randomness');
 
       const newState = {
         ephemeralKeyPair,
         maxEpoch,
-        randomness,
+        randomness: tempRandomness,
         isLoading: false,
       };
       
       setState(prev => ({ ...prev, ...newState }));
-      saveState(newState);
 
       const redirectUrl = getRedirectUrl();
       const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -153,57 +231,79 @@ export const useZkLogin = () => {
         error: error instanceof Error ? error.message : 'Failed to start login' 
       }));
     }
-  }, [saveState]);
+  }, []);
 
   const handleOAuthCallback = useCallback(async (idToken: string) => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      console.log('Handling OAuth callback with Enoki...');
+      console.log('Handling OAuth callback...');
 
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) {
-        throw new Error('No stored ZK Login state found');
+      // Extract Google user ID from the JWT
+      const googleUserId = extractGoogleUserId(idToken);
+      if (!googleUserId) {
+        throw new Error('Failed to extract Google user ID from JWT token');
       }
 
-      const { randomness, maxEpoch, ephemeralPrivateKey } = JSON.parse(stored);
-      
-      if (!randomness || !maxEpoch || !ephemeralPrivateKey) {
-        throw new Error('Incomplete ZK Login state found');
+      console.log('Google user ID:', googleUserId);
+
+      // Get or create consistent randomness for this Google user
+      const consistentRandomness = getOrCreateRandomness(googleUserId);
+
+      // Get stored ephemeral keypair for this session (if any)
+      const storageKey = getStorageKey(googleUserId);
+      const stored = localStorage.getItem(storageKey);
+      let ephemeralKeyPair = null;
+      let maxEpoch = null;
+
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed.ephemeralPrivateKey && Array.isArray(parsed.ephemeralPrivateKey)) {
+            const privateKeyBytes = new Uint8Array(parsed.ephemeralPrivateKey);
+            if (privateKeyBytes.length === 32) {
+              ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
+              maxEpoch = parsed.maxEpoch;
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to restore ephemeral keypair from storage');
+        }
       }
 
-      console.log('Found stored state, deriving address...');
-
-      // Reconstruct ephemeral keypair
-      const privateKeyBytes = new Uint8Array(ephemeralPrivateKey);
-      if (privateKeyBytes.length !== 32) {
-        throw new Error(`Invalid private key length: ${privateKeyBytes.length}, expected 32`);
+      // If no ephemeral keypair, generate a new one
+      if (!ephemeralKeyPair) {
+        ephemeralKeyPair = Ed25519Keypair.generate();
+        const currentEpoch = await getCurrentEpoch();
+        maxEpoch = currentEpoch + ZK_LOGIN_CONFIG.DEFAULT_MAX_EPOCH_GAP;
+        console.log('Generated new ephemeral keypair for session');
       }
 
-      const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
-
-      // Use standard zkLogin address derivation
-      const salt = BigInt(randomness);
+      // Use consistent randomness for address derivation
+      const salt = BigInt(consistentRandomness);
       const userAddress = jwtToAddress(idToken, salt);
       
-      console.log('Generated user address:', userAddress);
+      console.log('Derived consistent address:', userAddress);
+      console.log('Using randomness:', consistentRandomness);
 
-      // Store JWT token for Enoki to use
+      // Store JWT token
       localStorage.setItem('current_jwt', idToken);
-      console.log('Stored JWT token for Enoki');
 
       const newState = {
         userAddress,
-        isLoading: false,
+        randomness: consistentRandomness,
+        maxEpoch,
         ephemeralKeyPair,
+        googleUserId,
+        isLoading: false,
         hasValidJWT: true,
         error: null,
       };
       
       setState(prev => ({ ...prev, ...newState }));
-      saveState({ randomness, maxEpoch, ...newState });
+      saveState(googleUserId, newState);
       
-      console.log('ZK Login completed successfully');
+      console.log('ZK Login completed successfully with consistent address');
       
     } catch (error) {
       console.error('Failed to handle OAuth callback:', error);
@@ -214,7 +314,7 @@ export const useZkLogin = () => {
         error: error instanceof Error ? error.message : 'Failed to complete login' 
       }));
     }
-  }, [saveState]);
+  }, [extractGoogleUserId, getOrCreateRandomness, getStorageKey, saveState]);
 
   // Enhanced transaction execution with better error handling
   const executeTransaction = useCallback(async (transaction: any) => {
@@ -264,8 +364,9 @@ export const useZkLogin = () => {
   }, [state.userAddress, state.ephemeralKeyPair, state.hasValidJWT]);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+    // Clear JWT but keep user-specific randomness for future logins
     localStorage.removeItem('current_jwt');
+    
     setState({
       isInitialized: true,
       isLoading: false,
@@ -273,6 +374,7 @@ export const useZkLogin = () => {
       ephemeralKeyPair: null,
       maxEpoch: null,
       randomness: null,
+      googleUserId: null,
       error: null,
       hasValidJWT: false,
     });
