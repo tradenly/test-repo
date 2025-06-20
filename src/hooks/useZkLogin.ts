@@ -1,9 +1,9 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
-import { generateNonce, generateRandomness } from '@mysten/zklogin';
+import { generateNonce, generateRandomness, getZkLoginSignature } from '@mysten/zklogin';
 import { jwtToAddress } from '@mysten/zklogin';
-import { ZK_LOGIN_CONFIG, getRedirectUrl, getCurrentEpoch } from '@/config/zkLogin';
+import { ZK_LOGIN_CONFIG, getRedirectUrl, getCurrentEpoch, suiClient } from '@/config/zkLogin';
+import { Transaction } from '@mysten/sui/transactions';
 
 interface ZkLoginState {
   isInitialized: boolean;
@@ -300,11 +300,11 @@ export const useZkLogin = () => {
     }
   }, [extractGoogleUserId, getOrCreateRandomness, restoreEphemeralKeyPair, saveEphemeralKeyPair]);
 
-  const executeTransaction = useCallback(async (transaction: any) => {
+  const executeTransaction = useCallback(async (transaction: Transaction) => {
     try {
-      console.log('Executing transaction...');
+      console.log('Executing ZK Login transaction...');
       
-      if (!state.userAddress || !state.ephemeralKeyPair) {
+      if (!state.userAddress || !state.ephemeralKeyPair || !state.randomness) {
         throw new Error('ZK Login authentication required for transactions');
       }
 
@@ -317,30 +317,80 @@ export const useZkLogin = () => {
         throw new Error('ZK Login session not found. Please complete Google authentication.');
       }
 
-      console.log('Transaction prepared for execution');
+      console.log('Preparing ZK proof for transaction...');
       
-      return {
-        success: true,
-        result: {
-          digest: 'mock_transaction_digest',
-          effects: {
-            status: { status: 'success' }
-          }
+      // Get current epoch for proof generation
+      const currentEpoch = await getCurrentEpoch();
+      const maxEpoch = currentEpoch + ZK_LOGIN_CONFIG.DEFAULT_MAX_EPOCH_GAP;
+      
+      // Build the transaction properly
+      transaction.setSender(state.userAddress);
+      
+      // Get transaction bytes for signing
+      const transactionBytes = await transaction.build({ client: suiClient });
+      console.log('Transaction built successfully');
+      
+      // Sign the transaction bytes with ephemeral keypair
+      const ephemeralSignature = await state.ephemeralKeyPair.signTransaction(transactionBytes);
+      console.log('Transaction signed with ephemeral keypair');
+      
+      // Generate ZK proof
+      console.log('Generating ZK proof...');
+      const zkSignature = await getZkLoginSignature({
+        inputs: {
+          jwt: jwtToken,
+          ephemeralKeyPair: state.ephemeralKeyPair,
+          userSalt: BigInt(state.randomness),
+          keyClaimName: 'sub',
         },
-      };
+        maxEpoch,
+        ephemeralSignature,
+      });
+      
+      console.log('ZK proof generated successfully');
+      
+      // Execute the transaction on Sui blockchain
+      console.log('Submitting transaction to Sui blockchain...');
+      const result = await suiClient.executeTransactionBlock({
+        transactionBlock: transactionBytes,
+        signature: zkSignature,
+        options: {
+          showEffects: true,
+          showEvents: true,
+          showObjectChanges: true,
+        },
+      });
+      
+      console.log('Transaction executed successfully:', result.digest);
+      console.log('Transaction effects:', result.effects?.status);
+      
+      // Check if transaction was successful
+      if (result.effects?.status?.status === 'success') {
+        return {
+          success: true,
+          result: {
+            digest: result.digest,
+            effects: result.effects,
+            events: result.events,
+            objectChanges: result.objectChanges,
+          },
+        };
+      } else {
+        throw new Error(`Transaction failed: ${result.effects?.status?.error || 'Unknown error'}`);
+      }
       
     } catch (error) {
-      console.error('Failed to execute transaction:', error);
+      console.error('Failed to execute ZK Login transaction:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Transaction failed',
       };
     }
-  }, [state.userAddress, state.ephemeralKeyPair, state.hasValidJWT]);
+  }, [state.userAddress, state.ephemeralKeyPair, state.randomness, state.hasValidJWT]);
 
   const isReadyForTransactions = useCallback(() => {
-    return !!(state.userAddress && state.ephemeralKeyPair && state.hasValidJWT);
-  }, [state.userAddress, state.ephemeralKeyPair, state.hasValidJWT]);
+    return !!(state.userAddress && state.ephemeralKeyPair && state.hasValidJWT && state.randomness);
+  }, [state.userAddress, state.ephemeralKeyPair, state.hasValidJWT, state.randomness]);
 
   const logout = useCallback(() => {
     console.log('Logging out ZK Login user...');
