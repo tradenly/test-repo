@@ -14,7 +14,6 @@ interface ZkLoginState {
   maxEpoch: number | null;
   randomness: string | null;
   error: string | null;
-  isMockMode: boolean; // Track if using mock salt
 }
 
 const STORAGE_KEY = 'zklogin_state';
@@ -28,7 +27,6 @@ export const useZkLogin = () => {
     maxEpoch: null,
     randomness: null,
     error: null,
-    isMockMode: false,
   });
 
   // Initialize from localStorage on mount
@@ -56,7 +54,6 @@ export const useZkLogin = () => {
             maxEpoch: parsed.maxEpoch || null,
             randomness: parsed.randomness || null,
             ephemeralKeyPair,
-            isMockMode: parsed.isMockMode || false,
             isInitialized: true,
           }));
         } else {
@@ -78,7 +75,6 @@ export const useZkLogin = () => {
         userAddress: newState.userAddress,
         maxEpoch: newState.maxEpoch,
         randomness: newState.randomness,
-        isMockMode: newState.isMockMode,
         ephemeralPrivateKey: newState.ephemeralKeyPair ? 
           Array.from(newState.ephemeralKeyPair.getSecretKey().slice(0, 32)) : null,
       };
@@ -160,10 +156,9 @@ export const useZkLogin = () => {
         throw new Error('Incomplete ZK Login state found');
       }
 
-      console.log('Found stored state, starting salt generation...');
+      console.log('Found stored state, requesting salt from Enoki...');
 
-      // Get salt from edge function (may be mock for testing)
-      console.log('Requesting salt...');
+      // Get salt from Enoki via edge function
       const saltResponse = await supabase.functions.invoke('zklogin-proof', {
         body: { action: 'salt', jwt: idToken }
       });
@@ -172,14 +167,8 @@ export const useZkLogin = () => {
         throw new Error(`Salt request failed: ${saltResponse.error.message}`);
       }
 
-      const { salt, source, warning, whitelisting_info } = saltResponse.data;
-      console.log(`Salt received from ${source}`);
-      
-      // Show warning if using mock salt
-      if (source === 'mock' || source === 'mock_fallback') {
-        console.warn('Using mock salt for testing:', warning);
-        console.log('Whitelisting info:', whitelisting_info);
-      }
+      const { salt } = saltResponse.data;
+      console.log('Salt received from Enoki');
 
       // Reconstruct ephemeral keypair
       const privateKeyBytes = new Uint8Array(ephemeralPrivateKey);
@@ -196,18 +185,13 @@ export const useZkLogin = () => {
         userAddress,
         isLoading: false,
         ephemeralKeyPair,
-        isMockMode: source === 'mock' || source === 'mock_fallback',
-        error: source === 'mock' || source === 'mock_fallback' ? 
-          'Using test mode - Client ID needs whitelisting for production' : null,
+        error: null,
       };
       
       setState(prev => ({ ...prev, ...newState }));
       saveState({ randomness, maxEpoch, ...newState });
       
       console.log('ZK Login completed successfully, user address:', userAddress);
-      if (newState.isMockMode) {
-        console.warn('Running in mock mode - transactions will not work');
-      }
       
     } catch (error) {
       console.error('Failed to handle OAuth callback:', error);
@@ -229,7 +213,6 @@ export const useZkLogin = () => {
       maxEpoch: null,
       randomness: null,
       error: null,
-      isMockMode: false,
     });
   }, []);
 
