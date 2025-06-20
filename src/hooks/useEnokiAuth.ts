@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useEnokiFlow } from '@mysten/enoki/react';
 import { Transaction } from '@mysten/sui/transactions';
+import { ZK_LOGIN_CONFIG, getRedirectUrl } from '@/config/zkLogin';
 
 interface EnokiAuthState {
   isInitialized: boolean;
@@ -29,7 +30,7 @@ export const useEnokiAuth = () => {
         setState(prev => ({ ...prev, isLoading: true }));
         
         // Check if user is already authenticated with Enoki
-        const address = await enokiFlow.getAddress();
+        const address = enokiFlow.address;
         
         if (address) {
           console.log('Enoki authenticated with address:', address);
@@ -63,7 +64,7 @@ export const useEnokiAuth = () => {
     };
 
     initializeAuth();
-  }, [enokiFlow]);
+  }, [enokiFlow.address]);
 
   const startZkLogin = useCallback(async () => {
     try {
@@ -71,9 +72,11 @@ export const useEnokiAuth = () => {
       
       console.log('Starting Enoki ZK Login flow...');
       
-      // Use Enoki's createAuthorizationURL for Google OAuth
+      // Use Enoki's createAuthorizationURL with required parameters
       const authUrl = await enokiFlow.createAuthorizationURL({
         provider: 'google',
+        clientId: ZK_LOGIN_CONFIG.CLIENT_ID,
+        redirectUrl: getRedirectUrl(),
         network: 'mainnet',
         extraParams: {
           prompt: 'select_account', // Force account selection
@@ -107,13 +110,11 @@ export const useEnokiAuth = () => {
         throw new Error('No authorization code found in callback');
       }
       
-      // Complete the OAuth flow with Enoki
-      await enokiFlow.handleAuthCallback({
-        authorizationCode,
-      });
+      // Complete the OAuth flow with Enoki - pass just the code string
+      await enokiFlow.handleAuthCallback(authorizationCode);
       
-      // Get the authenticated address
-      const address = await enokiFlow.getAddress();
+      // Get the authenticated address from the flow
+      const address = enokiFlow.address;
       
       if (!address) {
         throw new Error('Failed to get address after authentication');
@@ -151,8 +152,8 @@ export const useEnokiAuth = () => {
       // Set sender on the transaction
       transaction.setSender(state.userAddress);
       
-      // Use Enoki's executeTransactionBlock method
-      const result = await enokiFlow.executeTransactionBlock({
+      // Use Enoki's sponsorAndExecuteTransactionBlock method
+      const result = await enokiFlow.sponsorAndExecuteTransactionBlock({
         transactionBlock: transaction,
         options: {
           showEffects: true,
