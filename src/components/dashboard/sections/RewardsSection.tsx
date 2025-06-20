@@ -1,19 +1,39 @@
-
-import { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Gift, TrendingUp, Clock, CheckCircle } from "lucide-react";
+import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 
 interface RewardsSectionProps {
-  user: User;
+  user: UnifiedUser;
 }
 
 export const RewardsSection = ({ user }: RewardsSectionProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Only show rewards for Supabase users for now
+  if (user.authType !== 'supabase') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Rewards</h1>
+          <p className="text-gray-400">Rewards tracking is currently available for email users only</p>
+        </div>
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardContent className="p-12 text-center">
+            <Gift className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-white font-medium mb-2">Rewards Coming Soon</h3>
+            <p className="text-gray-400">
+              We're working on bringing rewards tracking to wallet users. Stay tuned!
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const { data: rewards, isLoading, error } = useQuery({
     queryKey: ["stakingRewards", user.id],
