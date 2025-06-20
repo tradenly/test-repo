@@ -58,9 +58,9 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
     console.log("Initializing game engine...");
 
-    // Set canvas size
+    // Set canvas size - reduced height by 5%
     canvas.width = 800;
-    canvas.height = 600;
+    canvas.height = 570;
 
     // Game engine class
     class GameEngine {
@@ -99,7 +99,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         console.log("Resetting game state...");
         this.hippo = {
           x: 100,
-          y: 300, // Center of canvas (600/2 = 300)
+          y: 285, // Adjusted for new canvas height (570/2 = 285)
           width: 60,
           height: 40,
           velocity: 0,
@@ -200,7 +200,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       addPipe() {
-        const gapSize = 160; // Slightly larger gap
+        const gapSize = 160;
         const minGapY = 80;
         const maxGapY = this.canvas.height - gapSize - 120;
         const gapY = Math.random() * (maxGapY - minGapY) + minGapY;
@@ -277,7 +277,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           // Enhanced ground with texture
           this.drawEnhancedGround();
 
-          // Draw hippo with enhanced sprite (no broken images)
+          // Draw hippo with enhanced sprite
           this.drawEnhancedHippo();
 
           // Enhanced score display
@@ -464,54 +464,58 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
   }, []);
 
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className="flex flex-col lg:flex-row items-start gap-4">
       <canvas 
         ref={canvasRef}
         className="border-2 border-gray-300 rounded-lg shadow-lg"
         style={{ maxWidth: '100%', height: 'auto' }}
       />
       
-      {gameState === 'menu' && (
-        <Card className="bg-gray-800/90 border-gray-700 p-6 text-center">
-          <h3 className="text-xl font-bold text-white mb-4">🦛 Flappy Hippos</h3>
-          <p className="text-gray-300 mb-4">
-            Click or press Space to flap! Navigate through the bamboo pipes and earn credits!
-          </p>
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Coins className="h-4 w-4 text-yellow-400" />
-            <span className="text-white">Cost: 1 Credit | Balance: {credits}</span>
-          </div>
-          <Button 
-            onClick={startGame} 
-            disabled={!canPlay || !isInitialized}
-            className="bg-green-600 hover:bg-green-500"
-          >
-            <Play className="h-4 w-4 mr-2" />
-            {!isInitialized ? 'Loading...' : canPlay ? 'Start Game' : 'Insufficient Credits'}
-          </Button>
-        </Card>
-      )}
-
-      {gameState === 'gameOver' && (
-        <Card className="bg-gray-800/90 border-gray-700 p-6 text-center">
-          <h3 className="text-xl font-bold text-white mb-4">Game Over!</h3>
-          <p className="text-gray-300 mb-4">Final Score: {score}</p>
-          <div className="flex gap-2 justify-center">
-            <Button onClick={resetGame} variant="outline">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Menu
-            </Button>
+      <div className="flex flex-col gap-3">
+        {gameState === 'menu' && (
+          <Card className="bg-gray-800/90 border-gray-700 p-4 w-64">
+            <h3 className="text-lg font-bold text-white mb-3">🦛 Flappy Hippos</h3>
+            <p className="text-gray-300 text-sm mb-3">
+              Click or press Space to flap! Navigate through pipes and earn credits!
+            </p>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Coins className="h-4 w-4 text-yellow-400" />
+              <span className="text-white text-sm">Cost: 1 | Balance: {credits}</span>
+            </div>
             <Button 
               onClick={startGame} 
               disabled={!canPlay || !isInitialized}
-              className="bg-green-600 hover:bg-green-500"
+              className="bg-green-600 hover:bg-green-500 w-full"
+              size="sm"
             >
               <Play className="h-4 w-4 mr-2" />
-              Play Again
+              {!isInitialized ? 'Loading...' : canPlay ? 'Start Game' : 'Insufficient Credits'}
             </Button>
-          </div>
-        </Card>
-      )}
+          </Card>
+        )}
+
+        {gameState === 'gameOver' && (
+          <Card className="bg-gray-800/90 border-gray-700 p-4 w-64">
+            <h3 className="text-lg font-bold text-white mb-3">Game Over!</h3>
+            <p className="text-gray-300 text-sm mb-3">Final Score: {score}</p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={resetGame} variant="outline" size="sm" className="w-full">
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Restart
+              </Button>
+              <Button 
+                onClick={startGame} 
+                disabled={!canPlay || !isInitialized}
+                className="bg-green-600 hover:bg-green-500 w-full"
+                size="sm"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Play Again
+              </Button>
+            </div>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
