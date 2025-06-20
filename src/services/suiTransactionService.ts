@@ -12,6 +12,12 @@ export interface TransactionResult {
   error?: string;
 }
 
+export interface TransactionHistoryResponse {
+  success: boolean;
+  transactions: any[];
+  error?: string;
+}
+
 export const buildBasicTransaction = async (
   targetAddress: string,
   amount: number
@@ -68,4 +74,36 @@ export const getCurrentEpoch = async (): Promise<number> => {
     console.error('Failed to get current epoch:', error);
     throw new Error('Failed to get current epoch');
   }
+};
+
+// Create the suiTransactionService object that TransactionHistory expects
+export const suiTransactionService = {
+  getTransactionHistory: async (walletAddress: string): Promise<TransactionHistoryResponse> => {
+    try {
+      // Fetch transaction history from Sui network
+      const transactions = await suiClient.queryTransactionBlocks({
+        filter: {
+          FromAddress: walletAddress,
+        },
+        options: {
+          showEffects: true,
+          showEvents: true,
+          showInput: true,
+        },
+        limit: 50,
+      });
+
+      return {
+        success: true,
+        transactions: transactions.data,
+      };
+    } catch (error) {
+      console.error('Failed to fetch transaction history:', error);
+      return {
+        success: false,
+        transactions: [],
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  },
 };
