@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useZkLogin } from './useZkLogin';
+import { useEnokiAuth } from './useEnokiAuth';
 
 export interface UnifiedUser {
   id: string;
@@ -15,7 +15,7 @@ export interface UnifiedUser {
 export const useUnifiedAuth = () => {
   const [unifiedUser, setUnifiedUser] = useState<UnifiedUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const { userAddress, isInitialized, logout: zkLogout, hasValidJWT } = useZkLogin();
+  const { userAddress, isInitialized, logout: enokiLogout, isAuthenticated } = useEnokiAuth();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -34,8 +34,8 @@ export const useUnifiedAuth = () => {
           return;
         }
 
-        // If no Supabase session, check ZK Login
-        if (isInitialized && userAddress && hasValidJWT) {
+        // If no Supabase session, check Enoki authentication
+        if (isInitialized && userAddress && isAuthenticated) {
           setUnifiedUser({
             id: userAddress,
             walletAddress: userAddress,
@@ -66,8 +66,8 @@ export const useUnifiedAuth = () => {
             authType: 'supabase',
             supabaseUser: session.user,
           });
-        } else if (userAddress && hasValidJWT) {
-          // Fall back to ZK Login if available
+        } else if (userAddress && isAuthenticated) {
+          // Fall back to Enoki if available
           setUnifiedUser({
             id: userAddress,
             walletAddress: userAddress,
@@ -82,24 +82,24 @@ export const useUnifiedAuth = () => {
     checkAuth();
 
     return () => subscription.unsubscribe();
-  }, [userAddress, isInitialized, hasValidJWT]);
+  }, [userAddress, isInitialized, isAuthenticated]);
 
-  // Update when ZK Login state changes (simplified)
+  // Update when Enoki auth state changes
   useEffect(() => {
     if (isInitialized && !unifiedUser?.supabaseUser) {
-      if (userAddress && hasValidJWT) {
-        console.log('ZK Login authenticated - setting unified user');
+      if (userAddress && isAuthenticated) {
+        console.log('Enoki authenticated - setting unified user');
         setUnifiedUser({
           id: userAddress,
           walletAddress: userAddress,
           authType: 'zklogin',
         });
       } else if (unifiedUser?.authType === 'zklogin') {
-        console.log('ZK Login cleared - clearing unified user');
+        console.log('Enoki cleared - clearing unified user');
         setUnifiedUser(null);
       }
     }
-  }, [userAddress, hasValidJWT, isInitialized, unifiedUser?.supabaseUser, unifiedUser?.authType]);
+  }, [userAddress, isAuthenticated, isInitialized, unifiedUser?.supabaseUser, unifiedUser?.authType]);
 
   const logout = async () => {
     try {
@@ -111,10 +111,10 @@ export const useUnifiedAuth = () => {
         await supabase.auth.signOut();
       }
       
-      // Logout from ZK Login if authenticated there
+      // Logout from Enoki if authenticated there
       if (unifiedUser?.authType === 'zklogin') {
-        console.log('Logging out from ZK Login...');
-        zkLogout();
+        console.log('Logging out from Enoki...');
+        await enokiLogout();
       }
       
       // Clear unified user state

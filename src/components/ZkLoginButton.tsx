@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { useZkLogin } from "@/hooks/useZkLogin";
+import { useEnokiAuth } from "@/hooks/useEnokiAuth";
 import { Loader2, LogOut } from "lucide-react";
 import {
   AlertDialog,
@@ -27,10 +27,10 @@ export const ZkLoginButton = ({
   showDetailedStatus = false, 
   showLogout = true 
 }: ZkLoginButtonProps) => {
-  const { startZkLogin, isLoading, userAddress, hasValidJWT, error, logout } = useZkLogin();
+  const { startZkLogin, isLoading, userAddress, isAuthenticated, error, logout } = useEnokiAuth();
 
   const handleLogin = () => {
-    if (userAddress && hasValidJWT && onSuccess) {
+    if (userAddress && isAuthenticated && onSuccess) {
       onSuccess(userAddress);
     } else {
       startZkLogin();
@@ -41,8 +41,8 @@ export const ZkLoginButton = ({
     logout();
   };
 
-  // If user is authenticated with ZK Login
-  if (userAddress && hasValidJWT) {
+  // If user is authenticated with Enoki
+  if (userAddress && isAuthenticated) {
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2">
@@ -64,7 +64,7 @@ export const ZkLoginButton = ({
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-white">Logout from ZK Login?</AlertDialogTitle>
                   <AlertDialogDescription className="text-gray-300">
-                    This will disconnect your Google authentication session. Your wallet address will remain the same when you log back in with the same Google account.
+                    This will disconnect your Google authentication session managed by Enoki. Your wallet address will remain the same when you log back in with the same Google account.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -83,13 +83,13 @@ export const ZkLoginButton = ({
           )}
         </div>
         {showDetailedStatus && (
-          <p className="text-xs text-green-400">✅ Ready for transactions</p>
+          <p className="text-xs text-green-400">✅ Ready for transactions (Enoki)</p>
         )}
       </div>
     );
   }
 
-  // Default state - not logged in or session expired
+  // Default state - not logged in
   return (
     <div className="space-y-2">
       <Button 
@@ -105,7 +105,7 @@ export const ZkLoginButton = ({
       )}
       {showDetailedStatus && !userAddress && (
         <p className="text-xs text-gray-400">
-          ZK Login provides secure wallet access via Google authentication
+          ZK Login powered by Enoki for secure wallet access
         </p>
       )}
     </div>

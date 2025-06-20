@@ -19,7 +19,7 @@ import {
 import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { suiTransactionService } from "@/services/suiTransactionService";
-import { useZkLogin } from "@/hooks/useZkLogin";
+import { useEnokiAuth } from "@/hooks/useEnokiAuth";
 import { ZkLoginButton } from "@/components/ZkLoginButton";
 import {
   AlertDialog,
@@ -40,7 +40,7 @@ interface WalletActionsProps {
 export const WalletActions = ({ user }: WalletActionsProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { executeTransaction, isReadyForTransactions, logout } = useZkLogin();
+  const { executeTransaction, isReadyForTransactions, logout } = useEnokiAuth();
   const [showSendForm, setShowSendForm] = useState(false);
   const [showAssets, setShowAssets] = useState(false);
   const [sendAmount, setSendAmount] = useState("");
@@ -108,7 +108,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
         throw new Error(txResult.error);
       }
 
-      // Execute the transaction using ZK Login
+      // Execute the transaction using Enoki
       const executeResult = await executeTransaction(txResult.transaction);
       
       if (!executeResult.success) {
@@ -120,7 +120,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
     onSuccess: (result) => {
       toast({
         title: "Transaction Sent",
-        description: `Transaction completed successfully!`,
+        description: `Transaction completed successfully! Digest: ${result.result?.digest?.slice(0, 10)}...`,
       });
       refetchBalance();
       setShowSendForm(false);
@@ -257,7 +257,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
               <span className="text-2xl mr-2">💰</span>
               Wallet Balance
               {user.authType === 'zklogin' && isReadyForTransactions() && (
-                <span className="ml-2 text-xs bg-green-600 px-2 py-1 rounded">Ready</span>
+                <span className="ml-2 text-xs bg-green-600 px-2 py-1 rounded">Enoki Ready</span>
               )}
             </div>
             {user.authType === 'zklogin' && isReadyForTransactions() && (
@@ -272,7 +272,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
                   <AlertDialogHeader>
                     <AlertDialogTitle className="text-white">Logout from ZK Login?</AlertDialogTitle>
                     <AlertDialogDescription className="text-gray-300">
-                      This will disconnect your Google authentication session. You'll need to re-authenticate with Google to perform transactions again. Your wallet address will remain the same when you log back in.
+                      This will disconnect your Google authentication session managed by Enoki. You'll need to re-authenticate with Google to perform transactions again.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -478,7 +478,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
 
             <div className="bg-blue-900/20 border border-blue-600 rounded p-3">
               <p className="text-sm text-blue-200">
-                🔐 <strong>Secure Transaction:</strong> This transaction will be executed using ZK Login proofs for enhanced security.
+                🔐 <strong>Secure Transaction:</strong> This transaction will be executed using Enoki's ZK Login proofs for enhanced security.
               </p>
             </div>
           </CardContent>
