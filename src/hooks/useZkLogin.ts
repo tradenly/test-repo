@@ -207,9 +207,10 @@ export const useZkLogin = () => {
         throw new Error('User not authenticated');
       }
 
-      // Use Enoki's executeTransaction method
-      const result = await enokiFlow.executeTransaction({
+      // Use Enoki's sponsorAndExecuteTransaction method
+      const result = await enokiFlow.sponsorAndExecuteTransaction({
         transaction,
+        network: 'mainnet',
       });
       
       console.log('Transaction executed successfully:', result);
