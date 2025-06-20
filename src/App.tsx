@@ -23,7 +23,7 @@ function App() {
           <Router>
             <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
               <Navigation />
-              <div className="pt-20">
+              <div>
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
