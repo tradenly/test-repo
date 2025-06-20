@@ -1,15 +1,7 @@
+
 import { SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
-import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
-import { generateNonce, generateRandomness, getZkLoginSignature } from '@mysten/zklogin';
-import { ZK_LOGIN_CONFIG, suiClient } from '@/config/zkLogin';
-
-interface ZkLoginSignatureInputs {
-  jwt: string;
-  ephemeralKeyPair: Ed25519Keypair;
-  userSalt: string;
-  maxEpoch: number;
-}
+import { suiClient } from '@/config/zkLogin';
 
 export class SuiTransactionService {
   private client: SuiClient;
@@ -18,14 +10,10 @@ export class SuiTransactionService {
     this.client = suiClient;
   }
 
-  async sendSuiTransaction(
+  async createSuiTransaction(
     fromAddress: string,
     toAddress: string,
-    amount: number,
-    ephemeralKeyPair: Ed25519Keypair,
-    jwt: string,
-    userSalt: string,
-    maxEpoch: number
+    amount: number
   ) {
     try {
       console.log('Creating SUI transfer transaction...');
@@ -43,65 +31,18 @@ export class SuiTransactionService {
       // Set sender
       tx.setSender(fromAddress);
       
-      console.log('Building transaction for signing...');
-      
-      // Build transaction bytes
-      const txBytes = await tx.build({ client: this.client });
-      
-      console.log('Signing transaction with ephemeral key...');
-      
-      // Sign with ephemeral key
-      const ephemeralSignature = await ephemeralKeyPair.sign(txBytes);
-      
-      console.log('Creating ZK Login signature...');
-      
-      // Create ZK Login signature with correct inputs structure
-      const zkLoginSignature = getZkLoginSignature({
-        inputs: {
-          proofPoints: {
-            a: [],
-            b: [[]],
-            c: []
-          },
-          issBase64Details: {
-            value: '',
-            indexMod4: 0
-          },
-          headerBase64: '',
-          addressSeed: userSalt,
-        },
-        maxEpoch,
-        userSignature: ephemeralSignature,
-      });
-      
-      console.log('Executing transaction...');
-      
-      // Execute transaction
-      const result = await this.client.executeTransactionBlock({
-        transactionBlock: txBytes,
-        signature: zkLoginSignature,
-        options: {
-          showEffects: true,
-          showEvents: true,
-          showObjectChanges: true,
-        },
-      });
-      
-      console.log('Transaction executed successfully:', result);
+      console.log('Transaction created successfully');
       
       return {
         success: true,
-        digest: result.digest,
-        effects: result.effects,
-        events: result.events,
-        objectChanges: result.objectChanges,
+        transaction: tx,
       };
       
     } catch (error) {
-      console.error('Transaction failed:', error);
+      console.error('Failed to create transaction:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Transaction failed',
+        error: error instanceof Error ? error.message : 'Failed to create transaction',
       };
     }
   }

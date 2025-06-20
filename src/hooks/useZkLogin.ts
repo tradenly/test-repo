@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
@@ -143,7 +144,7 @@ export const useZkLogin = () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      console.log('Handling OAuth callback with proper salt derivation...');
+      console.log('Handling OAuth callback with Enoki...');
 
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
@@ -156,7 +157,7 @@ export const useZkLogin = () => {
         throw new Error('Incomplete ZK Login state found');
       }
 
-      console.log('Found stored state, using proper salt derivation...');
+      console.log('Found stored state, deriving address...');
 
       // Reconstruct ephemeral keypair
       const privateKeyBytes = new Uint8Array(ephemeralPrivateKey);
@@ -166,18 +167,15 @@ export const useZkLogin = () => {
 
       const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
 
-      // Use the standard ZK Login approach with the randomness as salt
-      // The randomness we generated should be used as the salt for deterministic address generation
-      console.log('Deriving address using randomness as salt...');
-      
+      // Use standard zkLogin address derivation
       const salt = BigInt(randomness);
       const userAddress = jwtToAddress(idToken, salt);
       
       console.log('Generated user address:', userAddress);
 
-      // Store JWT token for transaction signing
+      // Store JWT token for Enoki to use
       localStorage.setItem('current_jwt', idToken);
-      console.log('Stored JWT token for transaction signing');
+      console.log('Stored JWT token for Enoki');
 
       const newState = {
         userAddress,
@@ -201,9 +199,40 @@ export const useZkLogin = () => {
     }
   }, [saveState]);
 
+  // New method to execute transactions using Enoki
+  const executeTransaction = useCallback(async (transaction: any) => {
+    try {
+      console.log('Executing transaction with Enoki...');
+      
+      if (!state.userAddress) {
+        throw new Error('User not authenticated');
+      }
+
+      // Use Enoki's signAndExecuteTransaction method
+      const result = await enokiFlow.signAndExecuteTransaction({
+        transaction,
+        chain: 'sui:mainnet',
+      });
+      
+      console.log('Transaction executed successfully:', result);
+      
+      return {
+        success: true,
+        result,
+      };
+      
+    } catch (error) {
+      console.error('Failed to execute transaction:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Transaction failed',
+      };
+    }
+  }, [enokiFlow, state.userAddress]);
+
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem('current_jwt'); // Clear JWT token
+    localStorage.removeItem('current_jwt');
     setState({
       isInitialized: true,
       isLoading: false,
@@ -219,6 +248,7 @@ export const useZkLogin = () => {
     ...state,
     startZkLogin,
     handleOAuthCallback,
+    executeTransaction,
     logout,
   };
 };
