@@ -1,5 +1,4 @@
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,38 +8,31 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { useNavigate, useLocation } from "react-router-dom";
 import { User as UserIcon, LogOut } from "lucide-react";
+import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 
 export const Navigation = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, logout } = useUnifiedAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await logout();
     navigate('/');
   };
 
   const isOnDashboard = location.pathname === '/dashboard';
+
+  const getUserDisplayName = () => {
+    if (user?.email) {
+      return user.email;
+    }
+    if (user?.walletAddress) {
+      return `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`;
+    }
+    return 'User';
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-gray-800">
@@ -68,7 +60,10 @@ export const Navigation = () => {
                 align="end"
               >
                 <DropdownMenuLabel className="text-gray-300">
-                  {user.email}
+                  {getUserDisplayName()}
+                  {user.authType === 'zklogin' && (
+                    <div className="text-xs text-blue-400">ZK Login</div>
+                  )}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-gray-700" />
                 {!isOnDashboard && (

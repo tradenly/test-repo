@@ -1,5 +1,4 @@
 
-import { User } from "@supabase/supabase-js";
 import { DashboardSection } from "@/pages/Dashboard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DashboardOverview } from "./sections/DashboardOverview";
@@ -9,10 +8,11 @@ import { StakingSection } from "./sections/StakingSection";
 import { SocialSection } from "./sections/SocialSection";
 import { PortfolioSection } from "./sections/PortfolioSection";
 import { RewardsSection } from "./sections/RewardsSection";
+import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 
 interface DashboardContentProps {
   activeSection: DashboardSection;
-  user: User;
+  user: UnifiedUser;
 }
 
 export const DashboardContent = ({ activeSection, user }: DashboardContentProps) => {

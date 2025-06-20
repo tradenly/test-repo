@@ -1,11 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { Navigation } from "@/components/Navigation";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardContent } from "@/components/dashboard/DashboardContent";
+import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 
 export type DashboardSection = 
   | "overview" 
@@ -17,27 +16,8 @@ export type DashboardSection =
   | "rewards";
 
 const Dashboard = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useUnifiedAuth();
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   if (loading) {
     return (
@@ -47,7 +27,7 @@ const Dashboard = () => {
     );
   }
 
-  // Redirect to auth if not logged in
+  // Redirect to auth if not logged in with either method
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
