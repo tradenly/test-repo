@@ -464,52 +464,52 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
   }, []);
 
   return (
-    <div className="flex flex-col lg:flex-row items-start gap-4">
+    <div className="flex flex-col lg:flex-row items-start gap-3">
       <canvas 
         ref={canvasRef}
         className="border-2 border-gray-300 rounded-lg shadow-lg"
         style={{ maxWidth: '100%', height: 'auto' }}
       />
       
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
         {gameState === 'menu' && (
-          <Card className="bg-gray-800/90 border-gray-700 p-4 w-64">
-            <h3 className="text-lg font-bold text-white mb-3">🦛 Flappy Hippos</h3>
-            <p className="text-gray-300 text-sm mb-3">
-              Click or press Space to flap! Navigate through pipes and earn credits!
+          <Card className="bg-gray-800/90 border-gray-700 p-2 w-36">
+            <h3 className="text-sm font-bold text-white mb-2">🦛 Flappy Hippos</h3>
+            <p className="text-gray-300 text-xs mb-2">
+              Click or Space to flap! Navigate pipes!
             </p>
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <Coins className="h-4 w-4 text-yellow-400" />
-              <span className="text-white text-sm">Cost: 1 | Balance: {credits}</span>
+            <div className="flex items-center justify-center gap-1 mb-2">
+              <Coins className="h-3 w-3 text-yellow-400" />
+              <span className="text-white text-xs">Cost: 1 | {credits}</span>
             </div>
             <Button 
               onClick={startGame} 
               disabled={!canPlay || !isInitialized}
-              className="bg-green-600 hover:bg-green-500 w-full"
+              className="bg-green-600 hover:bg-green-500 w-full text-xs"
               size="sm"
             >
-              <Play className="h-4 w-4 mr-2" />
-              {!isInitialized ? 'Loading...' : canPlay ? 'Start Game' : 'Insufficient Credits'}
+              <Play className="h-3 w-3 mr-1" />
+              {!isInitialized ? 'Loading...' : canPlay ? 'Start' : 'No Credits'}
             </Button>
           </Card>
         )}
 
         {gameState === 'gameOver' && (
-          <Card className="bg-gray-800/90 border-gray-700 p-4 w-64">
-            <h3 className="text-lg font-bold text-white mb-3">Game Over!</h3>
-            <p className="text-gray-300 text-sm mb-3">Final Score: {score}</p>
-            <div className="flex flex-col gap-2">
-              <Button onClick={resetGame} variant="outline" size="sm" className="w-full">
-                <RotateCcw className="h-4 w-4 mr-2" />
+          <Card className="bg-gray-800/90 border-gray-700 p-2 w-36">
+            <h3 className="text-sm font-bold text-white mb-2">Game Over!</h3>
+            <p className="text-gray-300 text-xs mb-2">Score: {score}</p>
+            <div className="flex flex-col gap-1">
+              <Button onClick={resetGame} variant="outline" size="sm" className="w-full text-xs">
+                <RotateCcw className="h-3 w-3 mr-1" />
                 Restart
               </Button>
               <Button 
                 onClick={startGame} 
                 disabled={!canPlay || !isInitialized}
-                className="bg-green-600 hover:bg-green-500 w-full"
+                className="bg-green-600 hover:bg-green-500 w-full text-xs"
                 size="sm"
               >
-                <Play className="h-4 w-4 mr-2" />
+                <Play className="h-3 w-3 mr-1" />
                 Play Again
               </Button>
             </div>
