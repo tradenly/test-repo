@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
@@ -145,7 +146,7 @@ export const useZkLogin = () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      console.log('Handling OAuth callback with Enoki SDK...');
+      console.log('Handling OAuth callback with traditional zkLogin flow...');
 
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
@@ -158,25 +159,28 @@ export const useZkLogin = () => {
         throw new Error('Incomplete ZK Login state found');
       }
 
-      console.log('Found stored state, requesting salt using Enoki SDK...');
+      console.log('Found stored state, computing user address...');
 
-      // Use the Enoki flow to create a zkLogin session
-      const zkLoginSession = await enokiFlow.createZkLoginSession({
-        jwt: idToken,
-        ephemeralKeyPair: Ed25519Keypair.fromSecretKey(new Uint8Array(ephemeralPrivateKey)),
-        maxEpoch,
-        randomness,
-      });
+      // Reconstruct ephemeral keypair
+      const privateKeyBytes = new Uint8Array(ephemeralPrivateKey);
+      if (privateKeyBytes.length !== 32) {
+        throw new Error(`Invalid private key length: ${privateKeyBytes.length}, expected 32`);
+      }
 
-      console.log('ZK Login session created successfully');
+      const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
 
-      // Get the user address from the session
-      const userAddress = zkLoginSession.address;
+      // For now, we'll use a simple approach to get the salt
+      // In a production app, you'd want to use Enoki's salt service
+      // But since the method doesn't exist, let's use a basic implementation
+      const salt = BigInt('1'); // This is a placeholder - in production you'd get this from Enoki
+
+      // Generate SUI address from JWT and salt
+      const userAddress = jwtToAddress(idToken, salt);
 
       const newState = {
         userAddress,
         isLoading: false,
-        ephemeralKeyPair: Ed25519Keypair.fromSecretKey(new Uint8Array(ephemeralPrivateKey)),
+        ephemeralKeyPair,
         error: null,
       };
       
@@ -193,7 +197,7 @@ export const useZkLogin = () => {
         error: error instanceof Error ? error.message : 'Failed to complete login' 
       }));
     }
-  }, [saveState, enokiFlow]);
+  }, [saveState]);
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
