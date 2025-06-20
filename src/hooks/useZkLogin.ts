@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
 import { jwtToAddress } from '@mysten/zklogin';
-import { useEnokiFlow } from '@mysten/enoki/react';
 import { ZK_LOGIN_CONFIG, getRedirectUrl, getCurrentEpoch } from '@/config/zkLogin';
 
 interface ZkLoginState {
@@ -28,9 +27,6 @@ export const useZkLogin = () => {
     randomness: null,
     error: null,
   });
-
-  // Initialize Enoki Flow using the hook without arguments
-  const enokiFlow = useEnokiFlow();
 
   // Initialize from localStorage on mount
   useEffect(() => {
