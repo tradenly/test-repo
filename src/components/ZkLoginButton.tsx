@@ -27,7 +27,7 @@ export const ZkLoginButton = ({
   showDetailedStatus = false, 
   showLogout = true 
 }: ZkLoginButtonProps) => {
-  const { startZkLogin, isLoading, userAddress, hasValidJWT, error, isReadyForTransactions, logout } = useZkLogin();
+  const { startZkLogin, isLoading, userAddress, hasValidJWT, error, logout } = useZkLogin();
 
   const handleLogin = () => {
     if (userAddress && onSuccess) {
