@@ -3,8 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
 import { jwtToAddress } from '@mysten/zklogin';
+import { EnokiFlow } from '@mysten/enoki/react';
 import { ZK_LOGIN_CONFIG, getRedirectUrl, getCurrentEpoch } from '@/config/zkLogin';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ZkLoginState {
   isInitialized: boolean;
@@ -27,6 +27,11 @@ export const useZkLogin = () => {
     maxEpoch: null,
     randomness: null,
     error: null,
+  });
+
+  // Initialize Enoki Flow
+  const enokiFlow = new EnokiFlow({
+    apiKey: ZK_LOGIN_CONFIG.ENOKI_API_KEY,
   });
 
   // Initialize from localStorage on mount
@@ -89,7 +94,7 @@ export const useZkLogin = () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      console.log('Starting ZK Login flow...');
+      console.log('Starting ZK Login flow with Enoki SDK...');
 
       const randomness = generateRandomness();
       const ephemeralKeyPair = Ed25519Keypair.generate();
@@ -143,7 +148,7 @@ export const useZkLogin = () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      console.log('Handling OAuth callback with JWT...');
+      console.log('Handling OAuth callback with Enoki SDK...');
 
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
@@ -156,19 +161,11 @@ export const useZkLogin = () => {
         throw new Error('Incomplete ZK Login state found');
       }
 
-      console.log('Found stored state, requesting salt from Enoki...');
+      console.log('Found stored state, requesting salt using Enoki SDK...');
 
-      // Get salt from Enoki via edge function
-      const saltResponse = await supabase.functions.invoke('zklogin-proof', {
-        body: { action: 'salt', jwt: idToken }
-      });
-
-      if (saltResponse.error) {
-        throw new Error(`Salt request failed: ${saltResponse.error.message}`);
-      }
-
-      const { salt } = saltResponse.data;
-      console.log('Salt received from Enoki');
+      // Use Enoki SDK to get salt
+      const salt = await enokiFlow.getZkLoginSalt(idToken);
+      console.log('Salt received from Enoki SDK');
 
       // Reconstruct ephemeral keypair
       const privateKeyBytes = new Uint8Array(ephemeralPrivateKey);
@@ -201,7 +198,7 @@ export const useZkLogin = () => {
         error: error instanceof Error ? error.message : 'Failed to complete login' 
       }));
     }
-  }, [saveState]);
+  }, [saveState, enokiFlow]);
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
