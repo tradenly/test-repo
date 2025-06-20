@@ -30,7 +30,7 @@ export const ZkLoginButton = ({
   const { startZkLogin, isLoading, userAddress, hasValidJWT, error, logout } = useZkLogin();
 
   const handleLogin = () => {
-    if (userAddress && onSuccess) {
+    if (userAddress && hasValidJWT && onSuccess) {
       onSuccess(userAddress);
     } else {
       startZkLogin();
@@ -41,6 +41,7 @@ export const ZkLoginButton = ({
     logout();
   };
 
+  // If user is fully authenticated with ZK Login
   if (userAddress && hasValidJWT) {
     return (
       <div className="space-y-2">
@@ -63,7 +64,7 @@ export const ZkLoginButton = ({
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-white">Logout from ZK Login?</AlertDialogTitle>
                   <AlertDialogDescription className="text-gray-300">
-                    This will disconnect your Google authentication session. You'll need to re-authenticate with Google to perform transactions again. Your wallet address will remain the same when you log back in.
+                    This will disconnect your Google authentication session. You'll need to re-authenticate with Google to perform transactions again. Your wallet address will remain the same when you log back in with the same Google account.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -88,6 +89,7 @@ export const ZkLoginButton = ({
     );
   }
 
+  // If user has address but no valid JWT (session expired)
   if (userAddress && !hasValidJWT) {
     return (
       <div className="space-y-2">
@@ -102,12 +104,13 @@ export const ZkLoginButton = ({
           Re-authenticate with Google
         </Button>
         {showDetailedStatus && (
-          <p className="text-xs text-yellow-400">⚠️ Session expired - re-authentication needed for transactions</p>
+          <p className="text-xs text-yellow-400">⚠️ Session expired - re-authentication needed</p>
         )}
       </div>
     );
   }
 
+  // Default state - not logged in
   return (
     <div className="space-y-2">
       <Button 
@@ -122,7 +125,9 @@ export const ZkLoginButton = ({
         <p className="text-sm text-red-400">{error}</p>
       )}
       {showDetailedStatus && !userAddress && (
-        <p className="text-xs text-gray-400">ZK Login required for secure transactions</p>
+        <p className="text-xs text-gray-400">
+          ZK Login provides secure wallet access via Google authentication
+        </p>
       )}
     </div>
   );
