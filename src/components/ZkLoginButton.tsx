@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useZkLogin } from "@/hooks/useZkLogin";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 interface ZkLoginButtonProps {
   onSuccess?: (address: string) => void;
@@ -9,7 +9,7 @@ interface ZkLoginButtonProps {
 }
 
 export const ZkLoginButton = ({ onSuccess, className }: ZkLoginButtonProps) => {
-  const { startZkLogin, isLoading, userAddress, error } = useZkLogin();
+  const { startZkLogin, isLoading, userAddress, error, isMockMode } = useZkLogin();
 
   const handleLogin = () => {
     if (userAddress && onSuccess) {
@@ -21,13 +21,21 @@ export const ZkLoginButton = ({ onSuccess, className }: ZkLoginButtonProps) => {
 
   if (userAddress) {
     return (
-      <Button 
-        onClick={handleLogin}
-        className={className}
-        variant="outline"
-      >
-        🔐 Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
-      </Button>
+      <div className="space-y-2">
+        <Button 
+          onClick={handleLogin}
+          className={className}
+          variant="outline"
+        >
+          🔐 Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
+          {isMockMode && <AlertTriangle className="ml-2 h-4 w-4 text-yellow-500" />}
+        </Button>
+        {isMockMode && (
+          <div className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded border">
+            <strong>Test Mode:</strong> Using mock salt. Client ID needs whitelisting for production use.
+          </div>
+        )}
+      </div>
     );
   }
 
