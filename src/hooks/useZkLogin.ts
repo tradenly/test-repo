@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
@@ -199,7 +198,7 @@ export const useZkLogin = () => {
     }
   }, [saveState]);
 
-  // Execute transactions using Enoki with proper method name
+  // Execute transactions using Enoki
   const executeTransaction = useCallback(async (transaction: any) => {
     try {
       console.log('Executing transaction with Enoki...');
@@ -208,10 +207,9 @@ export const useZkLogin = () => {
         throw new Error('User not authenticated');
       }
 
-      // Use Enoki's execute method - check Enoki docs for correct method name
-      const result = await enokiFlow.sponsorAndExecuteTransaction({
+      // Use Enoki's executeTransaction method
+      const result = await enokiFlow.executeTransaction({
         transaction,
-        network: 'mainnet',
       });
       
       console.log('Transaction executed successfully:', result);
