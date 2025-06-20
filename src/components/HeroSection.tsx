@@ -9,7 +9,7 @@ export const HeroSection = () => {
   };
 
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center text-center px-4 relative pt-20">
+    <section className="min-h-screen flex flex-col items-center justify-center text-center px-4 relative pt-20 bg-gradient-to-b from-black via-gray-900 to-gray-800">
       {/* Main hero content */}
       <div className="z-10 space-y-8 max-w-4xl">
         <div className="space-y-4">
