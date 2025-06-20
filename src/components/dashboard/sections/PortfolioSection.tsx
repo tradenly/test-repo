@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,27 +73,6 @@ export const PortfolioSection = ({ user }: PortfolioSectionProps) => {
     enabled: user.authType === 'supabase',
   });
 
-  // Show different content for ZK Login users
-  if (user.authType !== 'supabase') {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Portfolio</h1>
-          <p className="text-gray-400">Portfolio tracking is currently available for email users only</p>
-        </div>
-        <Card className="bg-gray-800/40 border-gray-700">
-          <CardContent className="p-12 text-center">
-            <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-white font-medium mb-2">Portfolio Tracking Coming Soon</h3>
-            <p className="text-gray-400">
-              We're working on bringing portfolio tracking to wallet users. Stay tuned!
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   const totalTokenValue = tokenBalances?.reduce((sum, token) => {
     // Rough estimation: 1 POOPEE = $0.001
     const tokenPrice = token.token_symbol === "POOPEE" ? 0.001 : 0;
@@ -123,7 +103,12 @@ export const PortfolioSection = ({ user }: PortfolioSectionProps) => {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Portfolio</h1>
-        <p className="text-gray-400">Overview of your crypto assets and investments</p>
+        <p className="text-gray-400">
+          {user.authType === 'supabase' 
+            ? "Overview of your crypto assets and investments" 
+            : "Portfolio data is currently available for email users only"
+          }
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -212,9 +197,17 @@ export const PortfolioSection = ({ user }: PortfolioSectionProps) => {
             ) : (
               <div className="text-center py-8">
                 <Wallet className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">No token balances found</p>
+                <p className="text-gray-400">
+                  {user.authType === 'supabase' 
+                    ? "No token balances found" 
+                    : "Token tracking available for email users"
+                  }
+                </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  Your token balances will appear here once detected
+                  {user.authType === 'supabase'
+                    ? "Your token balances will appear here once detected"
+                    : "Sign up with email to track your tokens"
+                  }
                 </p>
               </div>
             )}
@@ -268,9 +261,17 @@ export const PortfolioSection = ({ user }: PortfolioSectionProps) => {
             ) : (
               <div className="text-center py-8">
                 <Image className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">No NFTs found</p>
+                <p className="text-gray-400">
+                  {user.authType === 'supabase' 
+                    ? "No NFTs found" 
+                    : "NFT tracking available for email users"
+                  }
+                </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  Your NFT collection will appear here once detected
+                  {user.authType === 'supabase'
+                    ? "Your NFT collection will appear here once detected"
+                    : "Sign up with email to track your NFTs"
+                  }
                 </p>
               </div>
             )}
@@ -314,9 +315,17 @@ export const PortfolioSection = ({ user }: PortfolioSectionProps) => {
           ) : (
             <div className="text-center py-8">
               <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-400">No active stakes</p>
+              <p className="text-gray-400">
+                {user.authType === 'supabase' 
+                  ? "No active stakes" 
+                  : "Staking available for email users"
+                }
+              </p>
               <p className="text-sm text-gray-500 mt-1">
-                Start staking to earn passive income
+                {user.authType === 'supabase'
+                  ? "Start staking to earn passive income"
+                  : "Sign up with email to access staking features"
+                }
               </p>
             </div>
           )}

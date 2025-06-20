@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,30 +15,14 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Only show rewards for Supabase users for now
-  if (user.authType !== 'supabase') {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Rewards</h1>
-          <p className="text-gray-400">Rewards tracking is currently available for email users only</p>
-        </div>
-        <Card className="bg-gray-800/40 border-gray-700">
-          <CardContent className="p-12 text-center">
-            <Gift className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-white font-medium mb-2">Rewards Coming Soon</h3>
-            <p className="text-gray-400">
-              We're working on bringing rewards tracking to wallet users. Stay tuned!
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   const { data: rewards, isLoading, error } = useQuery({
     queryKey: ["stakingRewards", user.id],
     queryFn: async () => {
+      // Only fetch rewards if user has Supabase auth
+      if (user.authType !== 'supabase') {
+        return [];
+      }
+      
       try {
         const { data, error } = await supabase
           .from("staking_rewards")
@@ -60,6 +45,7 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
         throw error;
       }
     },
+    enabled: user.authType === 'supabase',
   });
 
   const claimRewardMutation = useMutation({
@@ -124,7 +110,7 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
     );
   }
 
-  if (isLoading) {
+  if (isLoading && user.authType === 'supabase') {
     return (
       <div className="space-y-8">
         <div>
@@ -140,9 +126,14 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Rewards</h1>
-          <p className="text-gray-400">Track and claim your staking rewards</p>
+          <p className="text-gray-400">
+            {user.authType === 'supabase' 
+              ? "Track and claim your staking rewards" 
+              : "Rewards tracking is currently available for email users only"
+            }
+          </p>
         </div>
-        {unclaimedRewards.length > 0 && (
+        {user.authType === 'supabase' && unclaimedRewards.length > 0 && (
           <Button
             onClick={claimAllRewards}
             disabled={claimRewardMutation.isPending}
@@ -207,7 +198,7 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
         </Card>
       </div>
 
-      {unclaimedRewards.length > 0 && (
+      {user.authType === 'supabase' && unclaimedRewards.length > 0 && (
         <Card className="bg-gray-800/40 border-gray-700">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
@@ -295,9 +286,17 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
           ) : (
             <div className="text-center py-8">
               <Gift className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-400">No rewards yet</p>
+              <p className="text-gray-400">
+                {user.authType === 'supabase' 
+                  ? "No rewards yet" 
+                  : "Rewards available for email users"
+                }
+              </p>
               <p className="text-sm text-gray-500 mt-1">
-                Start staking to earn rewards
+                {user.authType === 'supabase'
+                  ? "Start staking to earn rewards"
+                  : "Sign up with email to track rewards"
+                }
               </p>
             </div>
           )}
