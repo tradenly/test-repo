@@ -16,24 +16,18 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
   const queryClient = useQueryClient();
 
   const { data: rewards, isLoading, error } = useQuery({
-    queryKey: ["stakingRewards", user.id],
+    queryKey: ["votingRewards", user.id],
     queryFn: async () => {
-      // Only fetch rewards if user has Supabase auth
       if (user.authType !== 'supabase') {
         return [];
       }
       
       try {
         const { data, error } = await supabase
-          .from("staking_rewards")
-          .select(`
-            *,
-            user_stakes(
-              staking_pools(name, token_symbol)
-            )
-          `)
+          .from("voting_rewards")
+          .select("*")
           .eq("user_id", user.id)
-          .order("reward_date", { ascending: false });
+          .order("created_at", { ascending: false });
         
         if (error) {
           console.error("Rewards fetch error:", error);
@@ -51,17 +45,17 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
   const claimRewardMutation = useMutation({
     mutationFn: async (rewardId: string) => {
       const { error } = await supabase
-        .from("staking_rewards")
+        .from("voting_rewards")
         .update({
           claimed: true,
-          claim_date: new Date().toISOString(),
+          claimed_at: new Date().toISOString(),
         })
         .eq("id", rewardId);
       
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["stakingRewards", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["votingRewards", user.id] });
       toast({
         title: "Reward claimed",
         description: "Your reward has been successfully claimed.",
@@ -87,17 +81,6 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
     const amount = reward.reward_amount ? parseFloat(reward.reward_amount.toString()) : 0;
     return sum + amount;
   }, 0);
-
-  const claimAllRewards = async () => {
-    try {
-      const claimPromises = unclaimedRewards.map(reward => 
-        claimRewardMutation.mutateAsync(reward.id)
-      );
-      await Promise.all(claimPromises);
-    } catch (error) {
-      console.error("Error claiming all rewards:", error);
-    }
-  };
 
   if (error) {
     return (
@@ -128,14 +111,18 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
           <h1 className="text-3xl font-bold text-white mb-2">Rewards</h1>
           <p className="text-gray-400">
             {user.authType === 'supabase' 
-              ? "Track and claim your staking rewards" 
+              ? "Track and claim your voting rewards" 
               : "Rewards tracking is currently available for email users only"
             }
           </p>
         </div>
         {user.authType === 'supabase' && unclaimedRewards.length > 0 && (
           <Button
-            onClick={claimAllRewards}
+            onClick={() => {
+              unclaimedRewards.forEach(reward => 
+                claimRewardMutation.mutate(reward.id)
+              );
+            }}
             disabled={claimRewardMutation.isPending}
             className="bg-green-700 hover:bg-green-600"
           >
@@ -155,7 +142,7 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {totalUnclaimed.toFixed(2)} POOPEE
+              {totalUnclaimed.toFixed(2)}
             </div>
             <p className="text-xs text-gray-400">
               {unclaimedRewards.length} pending rewards
@@ -172,7 +159,7 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {totalClaimed.toFixed(2)} POOPEE
+              {totalClaimed.toFixed(2)}
             </div>
             <p className="text-xs text-gray-400">
               {claimedRewards.length} claimed rewards
@@ -189,7 +176,7 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {(totalUnclaimed + totalClaimed).toFixed(2)} POOPEE
+              {(totalUnclaimed + totalClaimed).toFixed(2)}
             </div>
             <p className="text-xs text-gray-400">
               All time earnings
@@ -212,13 +199,13 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
                 <div key={reward.id} className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg border border-gray-600">
                   <div>
                     <h3 className="font-medium text-white">
-                      {reward.reward_amount ? parseFloat(reward.reward_amount.toString()).toFixed(4) : "0.0000"} POOPEE
+                      {reward.reward_amount ? parseFloat(reward.reward_amount.toString()).toFixed(4) : "0.0000"}
                     </h3>
                     <p className="text-sm text-gray-400">
-                      From: {reward.user_stakes?.staking_pools?.name || "Unknown Pool"}
+                      Voting reward
                     </p>
                     <p className="text-xs text-gray-500">
-                      Earned: {reward.reward_date ? new Date(reward.reward_date).toLocaleDateString() : "Unknown"}
+                      Earned: {reward.created_at ? new Date(reward.created_at).toLocaleDateString() : "Unknown"}
                     </p>
                   </div>
                   <Button
@@ -255,13 +242,13 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
                     </div>
                     <div>
                       <h3 className="font-medium text-white">
-                        {reward.reward_amount ? parseFloat(reward.reward_amount.toString()).toFixed(4) : "0.0000"} POOPEE
+                        {reward.reward_amount ? parseFloat(reward.reward_amount.toString()).toFixed(4) : "0.0000"}
                       </h3>
                       <p className="text-sm text-gray-400">
-                        {reward.user_stakes?.staking_pools?.name || "Unknown Pool"}
+                        Voting reward
                       </p>
                       <p className="text-xs text-gray-500">
-                        {reward.reward_date ? new Date(reward.reward_date).toLocaleDateString() : "Unknown date"}
+                        {reward.created_at ? new Date(reward.created_at).toLocaleDateString() : "Unknown date"}
                       </p>
                     </div>
                   </div>
@@ -269,9 +256,9 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
                     <div className={`text-sm font-medium ${reward.claimed ? 'text-green-400' : 'text-orange-400'}`}>
                       {reward.claimed ? 'Claimed' : 'Pending'}
                     </div>
-                    {reward.claimed && reward.claim_date && (
+                    {reward.claimed && reward.claimed_at && (
                       <div className="text-xs text-gray-500">
-                        {new Date(reward.claim_date).toLocaleDateString()}
+                        {new Date(reward.claimed_at).toLocaleDateString()}
                       </div>
                     )}
                   </div>
@@ -294,7 +281,7 @@ export const RewardsSection = ({ user }: RewardsSectionProps) => {
               </p>
               <p className="text-sm text-gray-500 mt-1">
                 {user.authType === 'supabase'
-                  ? "Start staking to earn rewards"
+                  ? "Start participating in voting to earn rewards"
                   : "Sign up with email to track rewards"
                 }
               </p>

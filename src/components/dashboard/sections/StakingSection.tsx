@@ -18,33 +18,33 @@ interface StakingSectionProps {
 export const StakingSection = ({ user }: StakingSectionProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedPool, setSelectedPool] = useState("");
-  const [stakeAmount, setStakeAmount] = useState("");
+  const [selectedMarket, setSelectedMarket] = useState("");
+  const [betAmount, setBetAmount] = useState("");
 
-  const { data: pools, isLoading: poolsLoading, error: poolsError } = useQuery({
-    queryKey: ["stakingPools"],
+  const { data: markets, isLoading: marketsLoading, error: marketsError } = useQuery({
+    queryKey: ["predictionMarkets"],
     queryFn: async () => {
       try {
         const { data, error } = await supabase
-          .from("staking_pools")
+          .from("prediction_markets")
           .select("*")
-          .eq("is_active", true)
-          .order("apy_percentage", { ascending: false });
+          .eq("status", "active")
+          .order("created_at", { ascending: false });
         
         if (error) {
-          console.error("Pools fetch error:", error);
+          console.error("Markets fetch error:", error);
           throw error;
         }
         return data || [];
       } catch (error) {
-        console.error("Failed to fetch staking pools:", error);
+        console.error("Failed to fetch prediction markets:", error);
         throw error;
       }
     },
   });
 
-  const { data: userStakes, isLoading: stakesLoading, error: stakesError } = useQuery({
-    queryKey: ["userStakes", user.id],
+  const { data: userBets, isLoading: betsLoading, error: betsError } = useQuery({
+    queryKey: ["userMarketBets", user.id],
     queryFn: async () => {
       if (user.authType !== 'supabase') {
         return [];
@@ -52,68 +52,64 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
       
       try {
         const { data, error } = await supabase
-          .from("user_stakes")
-          .select(`
-            *,
-            staking_pools(name, apy_percentage, token_symbol)
-          `)
+          .from("prediction_market_bets")
+          .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
         
         if (error) {
-          console.error("Stakes fetch error:", error);
+          console.error("Bets fetch error:", error);
           throw error;
         }
         return data || [];
       } catch (error) {
-        console.error("Failed to fetch user stakes:", error);
+        console.error("Failed to fetch user bets:", error);
         throw error;
       }
     },
     enabled: user.authType === 'supabase',
   });
 
-  const createStakeMutation = useMutation({
-    mutationFn: async ({ poolId, amount }: { poolId: string; amount: string }) => {
+  const createBetMutation = useMutation({
+    mutationFn: async ({ marketId, amount }: { marketId: string; amount: string }) => {
       if (user.authType !== 'supabase') {
-        throw new Error('Staking currently requires email authentication for data persistence');
+        throw new Error('Betting currently requires email authentication for data persistence');
       }
       
       const { error } = await supabase
-        .from("user_stakes")
+        .from("prediction_market_bets")
         .insert({
           user_id: user.id,
-          pool_id: poolId,
+          market_id: marketId,
           amount: parseFloat(amount),
-          status: "active",
         });
       
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["userStakes", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["userMarketBets", user.id] });
       toast({
-        title: "Stake created",
-        description: "Your tokens have been successfully staked.",
+        title: "Bet placed",
+        description: "Your bet has been successfully placed.",
       });
-      setStakeAmount("");
-      setSelectedPool("");
+      setBetAmount("");
+      setSelectedMarket("");
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create stake. Please try again.",
+        description: "Failed to place bet. Please try again.",
         variant: "destructive",
       });
-      console.error("Stake creation error:", error);
+      console.error("Bet creation error:", error);
     },
   });
 
-  const handleStake = () => {
-    if (!selectedPool || !stakeAmount) {
+  const handleBet = () => {
+    if (!selectedMarket || !betAmount) {
       toast({
         title: "Error",
-        description: "Please select a pool and enter an amount.",
+        description: "Please select a market and enter an amount.",
         variant: "destructive",
       });
       return;
@@ -122,24 +118,24 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
     if (user.authType !== 'supabase') {
       toast({
         title: "Feature Limitation",
-        description: "Staking data persistence requires email authentication. ZK Login staking coming soon!",
+        description: "Betting data persistence requires email authentication. ZK Login betting coming soon!",
         variant: "destructive",
       });
       return;
     }
     
-    createStakeMutation.mutate({ poolId: selectedPool, amount: stakeAmount });
+    createBetMutation.mutate({ marketId: selectedMarket, amount: betAmount });
   };
 
-  const isLoading = poolsLoading || stakesLoading;
-  const hasError = poolsError || stakesError;
+  const isLoading = marketsLoading || betsLoading;
+  const hasError = marketsError || betsError;
 
   if (hasError) {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Staking</h1>
-          <p className="text-red-400">Failed to load staking data. Please try refreshing the page.</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Prediction Markets</h1>
+          <p className="text-red-400">Failed to load market data. Please try refreshing the page.</p>
         </div>
       </div>
     );
@@ -149,8 +145,8 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Staking</h1>
-          <p className="text-gray-400">Loading staking data...</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Prediction Markets</h1>
+          <p className="text-gray-400">Loading market data...</p>
         </div>
       </div>
     );
@@ -159,11 +155,11 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Staking</h1>
-        <p className="text-gray-400">Stake your POOPEE tokens and NFTs to earn rewards</p>
+        <h1 className="text-3xl font-bold text-white mb-2">Prediction Markets</h1>
+        <p className="text-gray-400">Place bets on prediction markets</p>
         {user.authType === 'zklogin' && (
           <p className="text-amber-400 text-sm mt-1">
-            Note: Full staking functionality with data persistence requires email authentication
+            Note: Full betting functionality with data persistence requires email authentication
           </p>
         )}
       </div>
@@ -173,26 +169,26 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <PiggyBank className="h-5 w-5" />
-              Create New Stake
+              Place New Bet
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label className="text-gray-300">Select Staking Pool</Label>
-              <Select value={selectedPool} onValueChange={setSelectedPool}>
+              <Label className="text-gray-300">Select Market</Label>
+              <Select value={selectedMarket} onValueChange={setSelectedMarket}>
                 <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                  <SelectValue placeholder="Choose a staking pool" />
+                  <SelectValue placeholder="Choose a prediction market" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
-                  {pools && pools.length > 0 ? (
-                    pools.map((pool) => (
-                      <SelectItem key={pool.id} value={pool.id}>
-                        {pool.name} - {pool.apy_percentage}% APY
+                  {markets && markets.length > 0 ? (
+                    markets.map((market) => (
+                      <SelectItem key={market.id} value={market.id}>
+                        {market.title}
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="no-pools" disabled>
-                      No pools available
+                    <SelectItem value="no-markets" disabled>
+                      No markets available
                     </SelectItem>
                   )}
                 </SelectContent>
@@ -200,27 +196,27 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
             </div>
 
             <div>
-              <Label className="text-gray-300">Amount to Stake</Label>
+              <Label className="text-gray-300">Bet Amount</Label>
               <Input
                 type="number"
-                value={stakeAmount}
-                onChange={(e) => setStakeAmount(e.target.value)}
+                value={betAmount}
+                onChange={(e) => setBetAmount(e.target.value)}
                 className="bg-gray-700 border-gray-600 text-white"
                 placeholder="Enter amount"
               />
             </div>
 
             <Button
-              onClick={handleStake}
-              disabled={createStakeMutation.isPending || !selectedPool || !stakeAmount || !pools?.length}
+              onClick={handleBet}
+              disabled={createBetMutation.isPending || !selectedMarket || !betAmount || !markets?.length}
               className="w-full bg-gray-700 hover:bg-gray-600"
             >
-              {createStakeMutation.isPending ? "Creating Stake..." : "Stake Tokens"}
+              {createBetMutation.isPending ? "Placing Bet..." : "Place Bet"}
             </Button>
             
             {user.authType === 'zklogin' && (
               <p className="text-sm text-gray-400">
-                Stake data will be simulated for ZK Login users until full integration is complete
+                Bet data will be simulated for ZK Login users until full integration is complete
               </p>
             )}
           </CardContent>
@@ -228,29 +224,28 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
 
         <Card className="bg-gray-800/40 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Available Pools</CardTitle>
+            <CardTitle className="text-white">Available Markets</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {pools && pools.length > 0 ? (
-                pools.map((pool) => (
-                  <div key={pool.id} className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+              {markets && markets.length > 0 ? (
+                markets.map((market) => (
+                  <div key={market.id} className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-medium text-white">{pool.name}</h3>
+                      <h3 className="font-medium text-white">{market.title}</h3>
                       <div className="flex items-center text-green-400">
                         <TrendingUp className="h-4 w-4 mr-1" />
-                        {pool.apy_percentage}% APY
+                        {market.status}
                       </div>
                     </div>
-                    <p className="text-sm text-gray-400 mb-2">{pool.description || "No description available"}</p>
+                    <p className="text-sm text-gray-400 mb-2">{market.description || "No description available"}</p>
                     <div className="text-xs text-gray-500">
-                      Min: {pool.min_stake_amount ? parseFloat(pool.min_stake_amount.toString()).toLocaleString() : "0"} {pool.token_symbol}
-                      {pool.lock_period_days && pool.lock_period_days > 0 && ` • ${pool.lock_period_days} days lock`}
+                      Created: {new Date(market.created_at).toLocaleDateString()}
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-gray-400 text-center py-8">No staking pools available at the moment.</p>
+                <p className="text-gray-400 text-center py-8">No prediction markets available at the moment.</p>
               )}
             </div>
           </CardContent>
@@ -259,31 +254,28 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
 
       <Card className="bg-gray-800/40 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white">Your Active Stakes</CardTitle>
+          <CardTitle className="text-white">Your Active Bets</CardTitle>
         </CardHeader>
         <CardContent>
-          {userStakes && userStakes.length > 0 ? (
+          {userBets && userBets.length > 0 ? (
             <div className="space-y-4">
-              {userStakes.map((stake) => (
-                <div key={stake.id} className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+              {userBets.map((bet) => (
+                <div key={bet.id} className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium text-white">
-                        {stake.staking_pools?.name || "Unknown Pool"}
+                        Bet #{bet.id.slice(0, 8)}
                       </h3>
                       <p className="text-sm text-gray-400">
-                        Staked: {stake.amount ? parseFloat(stake.amount.toString()).toLocaleString() : "0"} {stake.staking_pools?.token_symbol || "POOPEE"}
+                        Amount: {bet.amount ? parseFloat(bet.amount.toString()).toLocaleString() : "0"}
                       </p>
                       <p className="text-xs text-gray-500">
-                        Started: {stake.start_date ? new Date(stake.start_date).toLocaleDateString() : "Unknown"}
+                        Placed: {new Date(bet.created_at).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="text-right">
                       <div className="text-green-400 font-medium">
-                        {stake.staking_pools?.apy_percentage || 0}% APY
-                      </div>
-                      <div className="text-sm text-gray-400 capitalize">
-                        {stake.status || "active"}
+                        {bet.outcome || 'Pending'}
                       </div>
                     </div>
                   </div>
@@ -295,8 +287,8 @@ export const StakingSection = ({ user }: StakingSectionProps) => {
               <PiggyBank className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-400">
                 {user.authType === 'supabase' 
-                  ? "No active stakes yet. Create your first stake above!"
-                  : "Staking interface is ready! Full data persistence available with email authentication."
+                  ? "No active bets yet. Place your first bet above!"
+                  : "Betting interface is ready! Full data persistence available with email authentication."
                 }
               </p>
             </div>
