@@ -21,7 +21,7 @@ export const Navigation = () => {
   const { data: credits } = useCredits(user?.id || "");
   const { isAdmin, isLoading: adminLoading } = useAdminAuth();
 
-  console.log('Navigation: isAdmin:', isAdmin, 'adminLoading:', adminLoading);
+  console.log('🧭 Navigation: isAdmin:', isAdmin, 'adminLoading:', adminLoading);
 
   const handleSignOut = async () => {
     await logout();
@@ -86,11 +86,11 @@ export const Navigation = () => {
                       Dashboard
                     </DropdownMenuItem>
                   )}
-                  {/* Show admin option if user is admin OR if we're still loading (to avoid flicker) */}
-                  {(isAdmin || adminLoading) && !isOnAdmin && (
+                  {/* Show admin option if user is confirmed admin */}
+                  {isAdmin && !isOnAdmin && (
                     <DropdownMenuItem 
                       onClick={() => {
-                        console.log('Navigation: Admin panel clicked, isAdmin:', isAdmin);
+                        console.log('🎯 Navigation: Admin panel clicked, isAdmin:', isAdmin, 'navigating to /admin');
                         navigate('/admin');
                       }}
                       className="text-yellow-300 hover:bg-gray-800 hover:text-yellow-100 cursor-pointer"
