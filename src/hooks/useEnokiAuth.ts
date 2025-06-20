@@ -12,6 +12,17 @@ interface EnokiAuthState {
   isAuthenticated: boolean;
 }
 
+// Type assertion helpers for accessing Enoki flow properties
+type EnokiFlowWithAddress = {
+  getAddress?: () => Promise<string>;
+  address?: string;
+  user?: { address: string };
+  sponsorAndExecuteTransactionBlock?: (params: any) => Promise<any>;
+  signAndExecuteTransactionBlock?: (params: any) => Promise<any>;
+  executeTransactionBlock?: (params: any) => Promise<any>;
+  logout?: () => Promise<void>;
+};
+
 export const useEnokiAuth = () => {
   const [state, setState] = useState<EnokiAuthState>({
     isInitialized: false,
@@ -22,6 +33,7 @@ export const useEnokiAuth = () => {
   });
 
   const enokiFlow = useEnokiFlow();
+  const enokiFlowExtended = enokiFlow as typeof enokiFlow & EnokiFlowWithAddress;
 
   // Initialize from Enoki state
   useEffect(() => {
@@ -33,12 +45,12 @@ export const useEnokiAuth = () => {
         // Try different ways to access the address based on Enoki API
         let address: string | null = null;
         
-        if (typeof enokiFlow.getAddress === 'function') {
-          address = await enokiFlow.getAddress();
-        } else if (enokiFlow.address) {
-          address = enokiFlow.address;
-        } else if (enokiFlow.user?.address) {
-          address = enokiFlow.user.address;
+        if (typeof enokiFlowExtended.getAddress === 'function') {
+          address = await enokiFlowExtended.getAddress();
+        } else if (enokiFlowExtended.address) {
+          address = enokiFlowExtended.address;
+        } else if (enokiFlowExtended.user?.address) {
+          address = enokiFlowExtended.user.address;
         }
         
         if (address) {
@@ -73,7 +85,7 @@ export const useEnokiAuth = () => {
     };
 
     initializeAuth();
-  }, [enokiFlow]);
+  }, [enokiFlowExtended]);
 
   const startZkLogin = useCallback(async () => {
     try {
@@ -125,12 +137,12 @@ export const useEnokiAuth = () => {
       // Get the authenticated address - try multiple methods
       let address: string | null = null;
       
-      if (typeof enokiFlow.getAddress === 'function') {
-        address = await enokiFlow.getAddress();
-      } else if (enokiFlow.address) {
-        address = enokiFlow.address;
-      } else if (enokiFlow.user?.address) {
-        address = enokiFlow.user.address;
+      if (typeof enokiFlowExtended.getAddress === 'function') {
+        address = await enokiFlowExtended.getAddress();
+      } else if (enokiFlowExtended.address) {
+        address = enokiFlowExtended.address;
+      } else if (enokiFlowExtended.user?.address) {
+        address = enokiFlowExtended.user.address;
       }
       
       if (!address) {
@@ -156,7 +168,7 @@ export const useEnokiAuth = () => {
         error: error instanceof Error ? error.message : 'Failed to complete login' 
       }));
     }
-  }, [enokiFlow]);
+  }, [enokiFlow, enokiFlowExtended]);
 
   const executeTransaction = useCallback(async (transaction: Transaction) => {
     try {
@@ -172,8 +184,8 @@ export const useEnokiAuth = () => {
       // Try different Enoki transaction execution methods
       let result;
       
-      if (typeof enokiFlow.sponsorAndExecuteTransactionBlock === 'function') {
-        result = await enokiFlow.sponsorAndExecuteTransactionBlock({
+      if (typeof enokiFlowExtended.sponsorAndExecuteTransactionBlock === 'function') {
+        result = await enokiFlowExtended.sponsorAndExecuteTransactionBlock({
           transactionBlock: transaction,
           options: {
             showEffects: true,
@@ -181,8 +193,8 @@ export const useEnokiAuth = () => {
             showObjectChanges: true,
           },
         });
-      } else if (typeof enokiFlow.signAndExecuteTransactionBlock === 'function') {
-        result = await enokiFlow.signAndExecuteTransactionBlock({
+      } else if (typeof enokiFlowExtended.signAndExecuteTransactionBlock === 'function') {
+        result = await enokiFlowExtended.signAndExecuteTransactionBlock({
           transactionBlock: transaction,
           options: {
             showEffects: true,
@@ -190,8 +202,8 @@ export const useEnokiAuth = () => {
             showObjectChanges: true,
           },
         });
-      } else if (typeof enokiFlow.executeTransactionBlock === 'function') {
-        result = await enokiFlow.executeTransactionBlock({
+      } else if (typeof enokiFlowExtended.executeTransactionBlock === 'function') {
+        result = await enokiFlowExtended.executeTransactionBlock({
           transactionBlock: transaction,
           options: {
             showEffects: true,
@@ -222,7 +234,7 @@ export const useEnokiAuth = () => {
         error: error instanceof Error ? error.message : 'Transaction failed',
       };
     }
-  }, [enokiFlow, state.isAuthenticated, state.userAddress]);
+  }, [enokiFlowExtended, state.isAuthenticated, state.userAddress]);
 
   const isReadyForTransactions = useCallback(() => {
     return state.isAuthenticated && !!state.userAddress;
@@ -233,8 +245,8 @@ export const useEnokiAuth = () => {
       console.log('Logging out from Enoki...');
       
       // Use Enoki's logout method if available
-      if (typeof enokiFlow.logout === 'function') {
-        await enokiFlow.logout();
+      if (typeof enokiFlowExtended.logout === 'function') {
+        await enokiFlowExtended.logout();
       }
       
       setState({
@@ -258,7 +270,7 @@ export const useEnokiAuth = () => {
         isAuthenticated: false,
       });
     }
-  }, [enokiFlow]);
+  }, [enokiFlowExtended]);
 
   return {
     ...state,
