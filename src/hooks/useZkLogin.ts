@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
@@ -29,10 +28,8 @@ export const useZkLogin = () => {
     error: null,
   });
 
-  // Initialize Enoki Flow using the hook
-  const enokiFlow = useEnokiFlow({
-    apiKey: ZK_LOGIN_CONFIG.ENOKI_API_KEY,
-  });
+  // Initialize Enoki Flow using the hook without arguments
+  const enokiFlow = useEnokiFlow();
 
   // Initialize from localStorage on mount
   useEffect(() => {
@@ -163,25 +160,23 @@ export const useZkLogin = () => {
 
       console.log('Found stored state, requesting salt using Enoki SDK...');
 
-      // Use Enoki SDK to get salt
-      const salt = await enokiFlow.getZkLoginSalt(idToken);
-      console.log('Salt received from Enoki SDK');
+      // Use the Enoki flow to create a zkLogin session
+      const zkLoginSession = await enokiFlow.createZkLoginSession({
+        jwt: idToken,
+        ephemeralKeyPair: Ed25519Keypair.fromSecretKey(new Uint8Array(ephemeralPrivateKey)),
+        maxEpoch,
+        randomness,
+      });
 
-      // Reconstruct ephemeral keypair
-      const privateKeyBytes = new Uint8Array(ephemeralPrivateKey);
-      if (privateKeyBytes.length !== 32) {
-        throw new Error(`Invalid private key length: ${privateKeyBytes.length}, expected 32`);
-      }
+      console.log('ZK Login session created successfully');
 
-      const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
+      // Get the user address from the session
+      const userAddress = zkLoginSession.address;
 
-      // Generate SUI address from JWT and salt
-      const userAddress = jwtToAddress(idToken, salt);
-      
       const newState = {
         userAddress,
         isLoading: false,
-        ephemeralKeyPair,
+        ephemeralKeyPair: Ed25519Keypair.fromSecretKey(new Uint8Array(ephemeralPrivateKey)),
         error: null,
       };
       
