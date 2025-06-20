@@ -1,16 +1,33 @@
 
 import { Button } from "@/components/ui/button";
 import { useZkLogin } from "@/hooks/useZkLogin";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, LogOut } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ZkLoginButtonProps {
   onSuccess?: (address: string) => void;
   className?: string;
   showDetailedStatus?: boolean;
+  showLogout?: boolean;
 }
 
-export const ZkLoginButton = ({ onSuccess, className, showDetailedStatus = false }: ZkLoginButtonProps) => {
-  const { startZkLogin, isLoading, userAddress, hasValidJWT, error, isReadyForTransactions } = useZkLogin();
+export const ZkLoginButton = ({ 
+  onSuccess, 
+  className, 
+  showDetailedStatus = false, 
+  showLogout = true 
+}: ZkLoginButtonProps) => {
+  const { startZkLogin, isLoading, userAddress, hasValidJWT, error, isReadyForTransactions, logout } = useZkLogin();
 
   const handleLogin = () => {
     if (userAddress && onSuccess) {
@@ -20,16 +37,50 @@ export const ZkLoginButton = ({ onSuccess, className, showDetailedStatus = false
     }
   };
 
+  const handleLogout = () => {
+    logout();
+  };
+
   if (userAddress && hasValidJWT) {
     return (
       <div className="space-y-2">
-        <Button 
-          onClick={handleLogin}
-          className={className}
-          variant="outline"
-        >
-          🔐 ZK Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={handleLogin}
+            className={className}
+            variant="outline"
+          >
+            🔐 ZK Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
+          </Button>
+          {showLogout && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-400">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-gray-900 border-gray-700">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-white">Logout from ZK Login?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-gray-300">
+                    This will disconnect your Google authentication session. You'll need to re-authenticate with Google to perform transactions again. Your wallet address will remain the same when you log back in.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-gray-700 text-white border-gray-600 hover:bg-gray-600">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleLogout}
+                    className="bg-red-600 hover:bg-red-500"
+                  >
+                    Logout
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
         {showDetailedStatus && (
           <p className="text-xs text-green-400">✅ Ready for transactions</p>
         )}

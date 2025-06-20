@@ -14,13 +14,25 @@ import {
   Copy,
   ExternalLink,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  LogOut
 } from "lucide-react";
 import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { suiTransactionService } from "@/services/suiTransactionService";
 import { useZkLogin } from "@/hooks/useZkLogin";
 import { ZkLoginButton } from "@/components/ZkLoginButton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface WalletActionsProps {
   user: UnifiedUser;
@@ -29,7 +41,7 @@ interface WalletActionsProps {
 export const WalletActions = ({ user }: WalletActionsProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { executeTransaction, isReadyForTransactions } = useZkLogin();
+  const { executeTransaction, isReadyForTransactions, logout } = useZkLogin();
   const [showSendForm, setShowSendForm] = useState(false);
   const [showAssets, setShowAssets] = useState(false);
   const [sendAmount, setSendAmount] = useState("");
@@ -199,6 +211,14 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
     }
   };
 
+  const handleZkLogout = () => {
+    logout();
+    toast({
+      title: "Logged out",
+      description: "You have been logged out from ZK Login. Your wallet address will be restored when you log back in.",
+    });
+  };
+
   const submitSendTransaction = () => {
     if (!sendAmount || !recipientAddress) {
       toast({
@@ -240,7 +260,7 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
                 <p className="text-yellow-200 font-medium">Authentication Required</p>
                 <p className="text-yellow-300 text-sm">Complete ZK Login to enable transactions</p>
               </div>
-              <ZkLoginButton className="bg-yellow-600 hover:bg-yellow-500" />
+              <ZkLoginButton className="bg-yellow-600 hover:bg-yellow-500" showLogout={false} />
             </div>
           </CardContent>
         </Card>
@@ -249,11 +269,42 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
       {/* Balance Display */}
       <Card className="bg-gray-800/40 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white flex items-center">
-            <span className="text-2xl mr-2">💰</span>
-            Wallet Balance
+          <CardTitle className="text-white flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="text-2xl mr-2">💰</span>
+              Wallet Balance
+              {user.authType === 'zklogin' && isReadyForTransactions() && (
+                <span className="ml-2 text-xs bg-green-600 px-2 py-1 rounded">ZK Ready</span>
+              )}
+            </div>
             {user.authType === 'zklogin' && isReadyForTransactions() && (
-              <span className="ml-2 text-xs bg-green-600 px-2 py-1 rounded">ZK Ready</span>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-400">
+                    <LogOut className="h-4 w-4 mr-1" />
+                    Logout
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-gray-900 border-gray-700">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-white">Logout from ZK Login?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-gray-300">
+                      This will disconnect your Google authentication session. You'll need to re-authenticate with Google to perform transactions again. Your wallet address will remain the same when you log back in.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="bg-gray-700 text-white border-gray-600 hover:bg-gray-600">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleZkLogout}
+                      className="bg-red-600 hover:bg-red-500"
+                    >
+                      Logout
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </CardTitle>
         </CardHeader>
