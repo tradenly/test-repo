@@ -4,6 +4,7 @@ import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness } from '@mysten/zklogin';
 import { jwtToAddress } from '@mysten/zklogin';
 import { ZK_LOGIN_CONFIG, getRedirectUrl, getCurrentEpoch } from '@/config/zkLogin';
+import { useEnokiFlow } from '@mysten/enoki/react';
 
 interface ZkLoginState {
   isInitialized: boolean;
@@ -18,6 +19,7 @@ interface ZkLoginState {
 const STORAGE_KEY = 'zklogin_state';
 
 export const useZkLogin = () => {
+  const enokiFlow = useEnokiFlow();
   const [state, setState] = useState<ZkLoginState>({
     isInitialized: false,
     isLoading: false,
@@ -142,7 +144,7 @@ export const useZkLogin = () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      console.log('Handling OAuth callback with traditional zkLogin flow...');
+      console.log('Handling OAuth callback with Enoki integration...');
 
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
@@ -155,7 +157,7 @@ export const useZkLogin = () => {
         throw new Error('Incomplete ZK Login state found');
       }
 
-      console.log('Found stored state, computing user address...');
+      console.log('Found stored state, using Enoki for salt derivation...');
 
       // Reconstruct ephemeral keypair
       const privateKeyBytes = new Uint8Array(ephemeralPrivateKey);
@@ -165,25 +167,53 @@ export const useZkLogin = () => {
 
       const ephemeralKeyPair = Ed25519Keypair.fromSecretKey(privateKeyBytes);
 
-      // For now, we'll use a simple approach to get the salt
-      // In a production app, you'd want to use Enoki's salt service
-      // But since the method doesn't exist, let's use a basic implementation
-      const salt = BigInt('1'); // This is a placeholder - in production you'd get this from Enoki
+      // Use Enoki to get the proper salt for this JWT
+      try {
+        console.log('Getting salt from Enoki...');
+        const salt = await enokiFlow.getZkLoginSalt();
+        console.log('Successfully got salt from Enoki:', salt);
 
-      // Generate SUI address from JWT and salt
-      const userAddress = jwtToAddress(idToken, salt);
+        // Generate SUI address from JWT and Enoki salt
+        const userAddress = jwtToAddress(idToken, BigInt(salt));
+        console.log('Generated user address:', userAddress);
 
-      const newState = {
-        userAddress,
-        isLoading: false,
-        ephemeralKeyPair,
-        error: null,
-      };
-      
-      setState(prev => ({ ...prev, ...newState }));
-      saveState({ randomness, maxEpoch, ...newState });
-      
-      console.log('ZK Login completed successfully, user address:', userAddress);
+        const newState = {
+          userAddress,
+          isLoading: false,
+          ephemeralKeyPair,
+          error: null,
+        };
+        
+        setState(prev => ({ ...prev, ...newState }));
+        saveState({ randomness, maxEpoch, ...newState });
+        
+        console.log('ZK Login completed successfully with Enoki integration');
+        
+      } catch (enokiError) {
+        console.error('Enoki salt derivation failed:', enokiError);
+        
+        // Fallback: Try to use Enoki's address derivation directly
+        try {
+          console.log('Trying Enoki address derivation fallback...');
+          const address = await enokiFlow.getAddress({ jwt: idToken });
+          
+          const newState = {
+            userAddress: address,
+            isLoading: false,
+            ephemeralKeyPair,
+            error: null,
+          };
+          
+          setState(prev => ({ ...prev, ...newState }));
+          saveState({ randomness, maxEpoch, ...newState });
+          
+          console.log('ZK Login completed with Enoki address derivation fallback');
+          
+        } catch (fallbackError) {
+          console.error('Enoki address derivation fallback also failed:', fallbackError);
+          throw new Error('Failed to derive address using Enoki. Please check your Enoki configuration.');
+        }
+      }
       
     } catch (error) {
       console.error('Failed to handle OAuth callback:', error);
@@ -193,7 +223,7 @@ export const useZkLogin = () => {
         error: error instanceof Error ? error.message : 'Failed to complete login' 
       }));
     }
-  }, [saveState]);
+  }, [saveState, enokiFlow]);
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);

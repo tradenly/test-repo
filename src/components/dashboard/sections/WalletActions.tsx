@@ -12,7 +12,8 @@ import {
   Eye, 
   Download, 
   QrCode,
-  Copy
+  Copy,
+  ExternalLink
 } from "lucide-react";
 import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
 import { Transaction } from "@mysten/sui/transactions";
@@ -29,7 +30,8 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
   const [sendAmount, setSendAmount] = useState("");
   const [recipientAddress, setRecipientAddress] = useState("");
 
-  const suiClient = new SuiClient({ url: getFullnodeUrl("devnet") });
+  // Use mainnet to match our configuration
+  const suiClient = new SuiClient({ url: getFullnodeUrl("mainnet") });
 
   // Get user's wallet address
   const walletAddress = user.walletAddress || user.email;
@@ -105,6 +107,13 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
     }
   };
 
+  const handleViewOnExplorer = () => {
+    if (user.walletAddress) {
+      const explorerUrl = `https://suivision.xyz/account/${user.walletAddress}`;
+      window.open(explorerUrl, '_blank');
+    }
+  };
+
   const submitSendTransaction = () => {
     // For now, just show a toast - actual transaction implementation would need proper signing
     toast({
@@ -142,9 +151,27 @@ export const WalletActions = ({ user }: WalletActionsProps) => {
           <div className="text-3xl font-bold text-white mb-2">
             {balanceLoading ? "Loading..." : `${balance} SUI`}
           </div>
-          <p className="text-gray-400 text-sm">
-            Address: {user.walletAddress.slice(0, 10)}...{user.walletAddress.slice(-8)}
-          </p>
+          <div className="flex items-center gap-2 text-gray-400 text-sm">
+            <span>Address: {user.walletAddress.slice(0, 10)}...{user.walletAddress.slice(-8)}</span>
+            <Button
+              onClick={handleViewOnExplorer}
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+              title="View on SuiVision Explorer"
+            >
+              <ExternalLink className="h-3 w-3" />
+            </Button>
+            <Button
+              onClick={handleReceive}
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+              title="Copy Address"
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
