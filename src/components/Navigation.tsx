@@ -1,13 +1,23 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { User as UserIcon, LogOut } from "lucide-react";
 
 export const Navigation = () => {
   const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Get initial session
@@ -30,6 +40,8 @@ export const Navigation = () => {
     navigate('/');
   };
 
+  const isOnDashboard = location.pathname === '/dashboard';
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-gray-800">
       <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
@@ -42,27 +54,45 @@ export const Navigation = () => {
         
         <div className="flex items-center space-x-4">
           {user ? (
-            <div className="flex items-center space-x-4">
-              <Button 
-                onClick={() => navigate('/dashboard')}
-                variant="outline"
-                className="border-gray-600 text-gray-300 hover:bg-gray-800"
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
+                >
+                  <UserIcon className="h-4 w-4 mr-2" />
+                  Account
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                className="w-56 bg-gray-900 border-gray-700" 
+                align="end"
               >
-                Dashboard
-              </Button>
-              <span className="text-gray-300">Welcome, {user.email}</span>
-              <Button 
-                onClick={handleSignOut}
-                variant="outline"
-                className="border-gray-600 text-gray-300 hover:bg-gray-800"
-              >
-                Sign Out
-              </Button>
-            </div>
+                <DropdownMenuLabel className="text-gray-300">
+                  {user.email}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-gray-700" />
+                {!isOnDashboard && (
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/dashboard')}
+                    className="text-gray-300 hover:bg-gray-800 hover:text-white cursor-pointer"
+                  >
+                    <UserIcon className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem 
+                  onClick={handleSignOut}
+                  className="text-gray-300 hover:bg-gray-800 hover:text-white cursor-pointer"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Button 
               onClick={() => navigate('/auth')}
-              className="bg-gray-700 hover:bg-gray-600 border border-gray-600"
+              className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
             >
               Sign In
             </Button>
