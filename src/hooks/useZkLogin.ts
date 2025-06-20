@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { generateNonce, generateRandomness, getZkLoginSignature } from '@mysten/zklogin';
@@ -334,14 +335,13 @@ export const useZkLogin = () => {
       const ephemeralSignature = await state.ephemeralKeyPair.signTransaction(transactionBytes);
       console.log('Transaction signed with ephemeral keypair');
       
-      // Generate ZK proof
+      // Generate ZK proof with correct structure
       console.log('Generating ZK proof...');
       const zkSignature = await getZkLoginSignature({
         inputs: {
           jwt: jwtToken,
           ephemeralKeyPair: state.ephemeralKeyPair,
           userSalt: BigInt(state.randomness),
-          keyClaimName: 'sub',
         },
         maxEpoch,
         ephemeralSignature,
