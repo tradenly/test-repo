@@ -30,7 +30,8 @@ export const useCredits = (userId: string) => {
     queryFn: async () => {
       console.log("Fetching credits for user:", userId);
       
-      const { data, error } = await supabase
+      // Use type assertion to work around missing table types
+      const { data, error } = await (supabase as any)
         .from("user_credits")
         .select("*")
         .eq("user_id", userId)
@@ -46,7 +47,7 @@ export const useCredits = (userId: string) => {
             balance: 0, 
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          };
+          } as UserCredits;
         }
         throw error;
       }
@@ -64,7 +65,8 @@ export const useCreditTransactions = (userId: string) => {
     queryFn: async () => {
       console.log("Fetching credit transactions for user:", userId);
       
-      const { data, error } = await supabase
+      // Use type assertion to work around missing table types
+      const { data, error } = await (supabase as any)
         .from("credit_transactions")
         .select("*")
         .eq("user_id", userId)
@@ -76,7 +78,7 @@ export const useCreditTransactions = (userId: string) => {
       }
       
       console.log("Credit transactions data:", data);
-      return data as CreditTransaction[];
+      return (data || []) as CreditTransaction[];
     },
     enabled: !!userId,
   });
