@@ -420,6 +420,45 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_verifications: {
+        Row: {
+          blockchain: Database["public"]["Enums"]["blockchain_type"]
+          created_at: string
+          credits_awarded: number
+          id: string
+          memecoin_count: number | null
+          nft_count: number | null
+          user_id: string
+          verification_type: string
+          verified_at: string
+          wallet_address: string
+        }
+        Insert: {
+          blockchain: Database["public"]["Enums"]["blockchain_type"]
+          created_at?: string
+          credits_awarded?: number
+          id?: string
+          memecoin_count?: number | null
+          nft_count?: number | null
+          user_id: string
+          verification_type: string
+          verified_at?: string
+          wallet_address: string
+        }
+        Update: {
+          blockchain?: Database["public"]["Enums"]["blockchain_type"]
+          created_at?: string
+          credits_awarded?: number
+          id?: string
+          memecoin_count?: number | null
+          nft_count?: number | null
+          user_id?: string
+          verification_type?: string
+          verified_at?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       leaderboard_stats: {

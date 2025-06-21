@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Coins, CreditCard, TrendingUp, History } from "lucide-react";
+import { Coins, Gift, TrendingUp, History } from "lucide-react";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { useCredits, useCreditTransactions, type CreditTransaction } from "@/hooks/useCredits";
 import { useToast } from "@/hooks/use-toast";
+import { WalletVerificationForm } from "./WalletVerificationForm";
 
 interface CreditManagementCardProps {
   user: UnifiedUser;
@@ -18,25 +20,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
   const { data: credits, isLoading: creditsLoading } = useCredits(user.id);
   const { data: transactions, isLoading: transactionsLoading } = useCreditTransactions(user.id);
   const { toast } = useToast();
-  const [purchaseAmount, setPurchaseAmount] = useState("");
   const [cashoutAmount, setCashoutAmount] = useState("");
-
-  const handlePurchaseCredits = async () => {
-    const amount = parseFloat(purchaseAmount);
-    if (!amount || amount < 5) {
-      toast({
-        title: "Invalid Amount",
-        description: "Minimum purchase is 5 USDC (25 credits). Please use the crypto purchase option.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Use Crypto Purchase",
-      description: "Please use the 'Purchase Credits with USDC' card to buy credits with cryptocurrency.",
-    });
-  };
 
   const handleCashoutCredits = async () => {
     const amount = parseFloat(cashoutAmount);
@@ -83,6 +67,8 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
       case 'cashout': return '💰';
       case 'bonus': return '🎁';
       case 'refund': return '↩️';
+      case 'nft_verification': return '🖼️';
+      case 'memecoin_verification': return '🪙';
       default: return '📄';
     }
   };
@@ -113,18 +99,18 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
             </div>
             <div className="bg-gray-900/40 rounded-lg p-4 text-center">
               <div className="text-xl font-bold text-blue-400 mb-1">
-                {transactions?.filter(t => t.transaction_type === 'purchase').length || 0}
+                {transactions?.filter(t => ['purchase', 'nft_verification', 'memecoin_verification'].includes(t.transaction_type)).length || 0}
               </div>
-              <div className="text-gray-400 text-sm">Purchases</div>
+              <div className="text-gray-400 text-sm">Credit Sources</div>
             </div>
           </div>
         </div>
 
-        <Tabs defaultValue="buy" className="mt-6">
+        <Tabs defaultValue="redeem" className="mt-6">
           <TabsList className="grid w-full grid-cols-3 bg-gray-700">
-            <TabsTrigger value="buy" className="data-[state=active]:bg-gray-600">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Buy Credits
+            <TabsTrigger value="redeem" className="data-[state=active]:bg-gray-600">
+              <Gift className="h-4 w-4 mr-2" />
+              Redeem Credits
             </TabsTrigger>
             <TabsTrigger value="cashout" className="data-[state=active]:bg-gray-600">
               <TrendingUp className="h-4 w-4 mr-2" />
@@ -136,42 +122,8 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="buy" className="space-y-4">
-            <div className="bg-gray-900/40 rounded-lg p-4">
-              <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-3 mb-4">
-                <p className="text-blue-200 text-sm">
-                  <strong>💰 New Rate:</strong> 1 USDC = 5 Credits | <strong>Minimum:</strong> 5 USDC (25 Credits)
-                </p>
-              </div>
-              <Label className="text-gray-300">Purchase Amount (USDC)</Label>
-              <div className="flex gap-2 mt-2">
-                <Input
-                  type="number"
-                  placeholder="5.00"
-                  value={purchaseAmount}
-                  onChange={(e) => setPurchaseAmount(e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white"
-                />
-                <Button onClick={handlePurchaseCredits} className="bg-blue-600 hover:bg-blue-700">
-                  Buy Credits
-                </Button>
-              </div>
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {[5, 10, 25].map((amount) => (
-                  <Button
-                    key={amount}
-                    size="sm"
-                    onClick={() => setPurchaseAmount(amount.toString())}
-                    className="bg-blue-600 hover:bg-blue-700 text-white hover:text-black"
-                  >
-                    {amount} USDC
-                  </Button>
-                ))}
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
-                1 USDC = 5 Credits. Use the crypto purchase card to buy with USDC.
-              </p>
-            </div>
+          <TabsContent value="redeem" className="space-y-4">
+            <WalletVerificationForm user={user} />
           </TabsContent>
 
           <TabsContent value="cashout" className="space-y-4">
@@ -208,7 +160,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                         <span className="text-lg">{getTransactionTypeIcon(transaction.transaction_type)}</span>
                         <div>
                           <div className="text-white text-sm font-medium capitalize">
-                            {transaction.transaction_type}
+                            {transaction.transaction_type.replace('_', ' ')}
                           </div>
                           <div className="text-gray-400 text-xs">
                             {new Date(transaction.created_at).toLocaleDateString()}
@@ -217,10 +169,18 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                       </div>
                       <div className="text-right">
                         <div className={`text-sm font-medium ${
-                          transaction.transaction_type === 'purchase' || transaction.transaction_type === 'earned' || transaction.transaction_type === 'bonus'
+                          transaction.transaction_type === 'purchase' || 
+                          transaction.transaction_type === 'earned' || 
+                          transaction.transaction_type === 'bonus' ||
+                          transaction.transaction_type === 'nft_verification' ||
+                          transaction.transaction_type === 'memecoin_verification'
                             ? 'text-green-400' : 'text-red-400'
                         }`}>
-                          {transaction.transaction_type === 'purchase' || transaction.transaction_type === 'earned' || transaction.transaction_type === 'bonus' ? '+' : '-'}
+                          {(transaction.transaction_type === 'purchase' || 
+                            transaction.transaction_type === 'earned' || 
+                            transaction.transaction_type === 'bonus' ||
+                            transaction.transaction_type === 'nft_verification' ||
+                            transaction.transaction_type === 'memecoin_verification') ? '+' : '-'}
                           {transaction.amount}
                         </div>
                         <Badge className={`text-xs ${getStatusBadgeColor(transaction.status)}`}>
@@ -232,7 +192,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                 </div>
               ) : (
                 <div className="text-gray-400 text-center py-4">
-                  No transactions yet. Start by purchasing some credits with USDC!
+                  No transactions yet. Start by verifying your wallet or purchasing credits!
                 </div>
               )}
             </div>
