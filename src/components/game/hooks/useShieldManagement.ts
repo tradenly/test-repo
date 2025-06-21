@@ -21,13 +21,13 @@ export const useShieldManagement = ({
   const { user } = useUnifiedAuth();
   const spendCredits = useSpendCredits();
 
-  // Centralized shield management function
-  const updateGameEngineShields = useCallback((newTotalShields: number) => {
-    console.log("🛡️ useShieldManagement: Updating game engine shields to:", newTotalShields);
+  // Centralized shield management function that uses current totalShields
+  const updateGameEngineShields = useCallback(() => {
+    console.log("🛡️ useShieldManagement: Updating game engine shields to:", totalShields);
     if (gameRef.current) {
-      gameRef.current.updateShields(newTotalShields);
+      gameRef.current.updateShields(totalShields);
     }
-  }, [gameRef]);
+  }, [gameRef, totalShields]);
 
   const buyShields = useCallback(async () => {
     if (!user?.id || credits < 5) {
