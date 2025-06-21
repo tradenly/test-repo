@@ -73,6 +73,9 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       private pipesPassedCount = 0;
       private eventListeners: (() => void)[] = [];
       private parallaxOffset = 0;
+      private pipeHitsRemaining = 1;
+      private invincibilityTime = 0;
+      private hitEffectTime = 0;
 
       constructor(context: CanvasRenderingContext2D, canvasElement: HTMLCanvasElement) {
         this.ctx = context;
@@ -109,6 +112,9 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.score = 0;
         this.pipesPassedCount = 0;
         this.parallaxOffset = 0;
+        this.pipeHitsRemaining = 1;
+        this.invincibilityTime = 0;
+        this.hitEffectTime = 0;
         this.addPipe();
         if (!this.gameRunning) {
           this.render();
@@ -167,6 +173,14 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         // Update parallax background
         this.parallaxOffset -= 1;
 
+        // Update invincibility and hit effect timers
+        if (this.invincibilityTime > 0) {
+          this.invincibilityTime--;
+        }
+        if (this.hitEffectTime > 0) {
+          this.hitEffectTime--;
+        }
+
         // Update hippo physics
         this.hippo.velocity += 0.6; // gravity
         this.hippo.y += this.hippo.velocity;
@@ -210,36 +224,59 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           bottomY: gapY + gapSize,
           bottomHeight: this.canvas.height - (gapY + gapSize),
           width: 60,
-          scored: false
+          scored: false,
+          hit: false
         });
       }
 
       checkCollisions() {
-        // Ground collision
+        // Ground collision - still kills immediately
         if (this.hippo.y + this.hippo.height > this.canvas.height - 60) {
           console.log("Ground collision detected");
           this.gameOver();
           return;
         }
 
-        // Ceiling collision
+        // Ceiling collision - now bounces instead of killing
         if (this.hippo.y < 0) {
-          console.log("Ceiling collision detected");
-          this.gameOver();
+          console.log("Ceiling bounce!");
+          this.hippo.y = 0;
+          this.hippo.velocity = 8; // Push downward
+          this.hitEffectTime = 15; // Visual feedback for 15 frames
           return;
         }
 
-        // Pipe collision
-        this.pipes.forEach(pipe => {
-          if (this.hippo.x + this.hippo.width > pipe.x && 
-              this.hippo.x < pipe.x + pipe.width) {
-            if (this.hippo.y < pipe.topHeight || 
-                this.hippo.y + this.hippo.height > pipe.bottomY) {
-              console.log("Pipe collision detected");
-              this.gameOver();
+        // Pipe collision - only if not invincible
+        if (this.invincibilityTime <= 0) {
+          this.pipes.forEach(pipe => {
+            if (!pipe.hit && 
+                this.hippo.x + this.hippo.width > pipe.x && 
+                this.hippo.x < pipe.x + pipe.width) {
+              if (this.hippo.y < pipe.topHeight || 
+                  this.hippo.y + this.hippo.height > pipe.bottomY) {
+                
+                if (this.pipeHitsRemaining > 0) {
+                  // First hit - knockback and invincibility
+                  console.log("Pipe hit! Knockback applied. Hits remaining:", this.pipeHitsRemaining - 1);
+                  this.pipeHitsRemaining--;
+                  pipe.hit = true; // Mark this pipe as hit so it won't trigger again
+                  
+                  // Knockback effect
+                  this.hippo.velocity = -8; // Upward velocity
+                  this.hippo.x = Math.max(50, this.hippo.x - 20); // Push backward
+                  
+                  // Set invincibility and visual effects
+                  this.invincibilityTime = 60; // 1 second at 60fps
+                  this.hitEffectTime = 30; // Visual effect for 0.5 seconds
+                } else {
+                  // Second hit - game over
+                  console.log("Final pipe collision - Game Over!");
+                  this.gameOver();
+                }
+              }
             }
-          }
-        });
+          });
+        }
       }
 
       gameOver() {
@@ -267,6 +304,16 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           this.ctx.fillStyle = gradient;
           this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+          // Add screen shake effect during hits
+          if (this.hitEffectTime > 0) {
+            this.ctx.save();
+            const shakeIntensity = Math.min(this.hitEffectTime / 10, 3);
+            this.ctx.translate(
+              (Math.random() - 0.5) * shakeIntensity,
+              (Math.random() - 0.5) * shakeIntensity
+            );
+          }
+
           // Enhanced clouds
           this.drawEnhancedClouds();
 
@@ -281,6 +328,13 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
           // Enhanced score display
           this.drawEnhancedScore();
+
+          // Draw hit counter
+          this.drawHitCounter();
+
+          if (this.hitEffectTime > 0) {
+            this.ctx.restore();
+          }
         } catch (error) {
           console.error("Error in render:", error);
         }
@@ -307,7 +361,6 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       drawEnhancedPipe(pipe: any) {
-        // Bamboo-style pipes with texture
         const gradient = this.ctx.createLinearGradient(pipe.x, 0, pipe.x + pipe.width, 0);
         gradient.addColorStop(0, '#228B22');
         gradient.addColorStop(0.5, '#32CD32');
@@ -344,7 +397,6 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       drawEnhancedGround() {
-        // Water/river ground
         const groundGradient = this.ctx.createLinearGradient(0, this.canvas.height - 60, 0, this.canvas.height);
         groundGradient.addColorStop(0, '#4682B4');
         groundGradient.addColorStop(0.5, '#5F9EA0');
@@ -370,6 +422,11 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx.translate(this.hippo.x + this.hippo.width/2, this.hippo.y + this.hippo.height/2);
         this.ctx.rotate(this.hippo.rotation);
         
+        // Flash effect during invincibility
+        if (this.invincibilityTime > 0 && Math.floor(this.invincibilityTime / 5) % 2 === 0) {
+          this.ctx.globalAlpha = 0.5;
+        }
+        
         // Use the poop emoji from POOPEE branding!
         this.ctx.font = 'bold 50px Arial';
         this.ctx.textAlign = 'center';
@@ -384,17 +441,17 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         // Draw the poop emoji
         this.ctx.fillText('💩', 0, 0);
         
-        // Reset shadow
+        // Reset shadow and alpha
         this.ctx.shadowColor = 'transparent';
         this.ctx.shadowBlur = 0;
         this.ctx.shadowOffsetX = 0;
         this.ctx.shadowOffsetY = 0;
+        this.ctx.globalAlpha = 1;
         
         this.ctx.restore();
       }
 
       drawEnhancedScore() {
-        // Score background
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         this.ctx.fillRect(this.canvas.width/2 - 50, 10, 100, 50);
         
@@ -406,6 +463,16 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx.textAlign = 'center';
         this.ctx.strokeText(this.score.toString(), this.canvas.width / 2, 45);
         this.ctx.fillText(this.score.toString(), this.canvas.width / 2, 45);
+      }
+
+      drawHitCounter() {
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(10, 10, 120, 40);
+        
+        this.ctx.fillStyle = this.pipeHitsRemaining > 0 ? '#4CAF50' : '#f44336';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText(`Shield: ${this.pipeHitsRemaining > 0 ? '🛡️' : '❌'}`, 20, 35);
       }
     }
 
