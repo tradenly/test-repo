@@ -23,7 +23,7 @@ export const GameMenu = ({
   onBuyShields, 
   isPurchasing 
 }: GameMenuProps) => (
-  <Card className="bg-gray-800/90 border-gray-700 p-2 w-32">
+  <Card className="bg-gray-800/90 border-gray-700 p-2 w-40">
     <h3 className="text-xs font-bold text-white mb-1">💩 Flappy Poop</h3>
     <p className="text-gray-300 text-xs mb-1">
       Click/Space to flap!
@@ -53,7 +53,7 @@ export const GameMenu = ({
         size="sm"
       >
         <Shield className="h-3 w-3 mr-1" />
-        Buy 3 Shields (5💰)
+        3 Shields (5💰)
       </Button>
     </div>
   </Card>
@@ -84,7 +84,7 @@ export const GameOver = ({
   onBuyShields, 
   isPurchasing 
 }: GameOverProps) => (
-  <Card className="bg-gray-800/90 border-gray-700 p-2 w-36">
+  <Card className="bg-gray-800/90 border-gray-700 p-2 w-44">
     <h3 className="text-xs font-bold text-white mb-1">Game Over!</h3>
     <p className="text-gray-300 text-xs mb-1">Score: {score}</p>
     <p className="text-gray-300 text-xs mb-2">
@@ -111,7 +111,7 @@ export const GameOver = ({
         size="sm"
       >
         <Shield className="h-3 w-3 mr-1" />
-        Buy 3 Shields (5💰)
+        3 Shields (5💰)
       </Button>
     </div>
   </Card>
