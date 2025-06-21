@@ -20,7 +20,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
   const [score, setScore] = useState(0);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [shieldCount, setShieldCount] = useState(3);
+  const [shieldCount, setShieldCount] = useState(3); // Start with 3 shields
   
   const { user } = useUnifiedAuth();
   const spendCredits = useSpendCredits();
@@ -44,7 +44,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     console.log("Resetting game...");
     setGameState('menu');
     setScore(0);
-    setShieldCount(3);
+    setShieldCount(3); // Reset to 3 shields
     if (gameRef.current) {
       gameRef.current.reset();
     }
@@ -65,7 +65,6 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       
       if (gameRef.current) {
         gameRef.current.addShields(3);
-        setShieldCount(prev => prev + 3);
       }
       
       toast.success("3 shields purchased!");
@@ -90,7 +89,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
     console.log("Initializing game engine...");
 
-    // Set canvas size - reduced height by 5%
+    // Set canvas size
     canvas.width = 800;
     canvas.height = 570;
 
@@ -138,7 +137,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         console.log("Resetting game state...");
         this.hippo = {
           x: 100,
-          y: 285, // Adjusted for new canvas height (570/2 = 285)
+          y: 285,
           width: 60,
           height: 40,
           velocity: 0,
@@ -157,7 +156,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.lastMissileTime = 0;
         this.missileWarningTime = 0;
         this.addPipe();
-        setShieldCount(3);
+        setShieldCount(3); // Sync React state
         if (!this.gameRunning) {
           this.render();
         }
@@ -165,14 +164,15 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
       addShields(count: number) {
         this.pipeHitsRemaining += count;
-        setShieldCount(this.pipeHitsRemaining);
+        setShieldCount(this.pipeHitsRemaining); // Sync React state
+        console.log("Added shields. New count:", this.pipeHitsRemaining);
       }
 
       bindEvents() {
         const handleInput = (e: Event) => {
           console.log("Input detected:", e.type);
           if (this.gameRunning) {
-            this.hippo.velocity = -12; // Increased flap strength
+            this.hippo.velocity = -12;
             this.hippo.rotation = -0.3;
             console.log("Hippo flapped! New velocity:", this.hippo.velocity);
           }
@@ -198,7 +198,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         console.log("Starting game engine...");
         this.gameRunning = true;
         this.gameStartTime = Date.now();
-        this.lastMissileTime = this.gameStartTime;
+        this.lastMissileTime = 0; // Reset missile timer
         this.gameLoop();
       }
 
@@ -220,12 +220,12 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
       update() {
         const currentTime = Date.now();
-        const gameTime = currentTime - this.gameStartTime;
+        const gameTimeElapsed = currentTime - this.gameStartTime;
 
         // Update parallax background
         this.parallaxOffset -= 1;
 
-        // Update invincibility and hit effect timers
+        // Update timers
         if (this.invincibilityTime > 0) {
           this.invincibilityTime--;
         }
@@ -237,28 +237,37 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         }
 
         // Missile system - spawn every 90 seconds (90000ms)
-        if (gameTime - (this.lastMissileTime - this.gameStartTime) >= 90000) {
+        if (gameTimeElapsed >= 90000 && this.lastMissileTime === 0) {
+          // First missile at 90 seconds
           this.spawnMissile();
-          this.lastMissileTime = currentTime;
+          this.lastMissileTime = gameTimeElapsed;
+          console.log("First missile spawned at 90 seconds");
+        } else if (this.lastMissileTime > 0 && gameTimeElapsed - this.lastMissileTime >= 90000) {
+          // Subsequent missiles every 90 seconds
+          this.spawnMissile();
+          this.lastMissileTime = gameTimeElapsed;
+          console.log("Missile spawned at", gameTimeElapsed / 1000, "seconds");
         }
 
-        // Missile warning - 5 seconds before missile spawn
-        if (gameTime - (this.lastMissileTime - this.gameStartTime) >= 85000 && this.missileWarningTime <= 0) {
+        // Missile warning - 5 seconds before next missile
+        const timeSinceLastMissile = gameTimeElapsed - this.lastMissileTime;
+        const timeToNextMissile = 90000 - timeSinceLastMissile;
+        if (timeToNextMissile <= 5000 && timeToNextMissile > 0 && this.missileWarningTime <= 0) {
           this.missileWarningTime = 300; // 5 seconds at 60fps
+          console.log("Missile warning activated");
         }
 
         // Update hippo physics
-        this.hippo.velocity += 0.6; // gravity
+        this.hippo.velocity += 0.6;
         this.hippo.y += this.hippo.velocity;
         
-        // Gradually rotate hippo based on velocity
         if (this.hippo.velocity > 0) {
           this.hippo.rotation = Math.min(this.hippo.rotation + 0.05, 0.5);
         }
 
         // Update pipes
         this.pipes.forEach(pipe => {
-          pipe.x -= 4; // Slightly faster pipe movement
+          pipe.x -= 4;
           
           if (!pipe.scored && pipe.x + pipe.width < this.hippo.x) {
             pipe.scored = true;
@@ -277,7 +286,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
         // Update missiles
         this.missiles.forEach(missile => {
-          missile.x -= 2.5; // Slow movement from right to left
+          missile.x -= 2.5;
         });
 
         this.missiles = this.missiles.filter(missile => missile.x > -missile.width);
@@ -318,24 +327,24 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       checkCollisions() {
-        // Ground collision - still kills immediately
+        // Ground collision - instant death
         if (this.hippo.y + this.hippo.height > this.canvas.height - 60) {
           console.log("Ground collision detected");
           this.gameOver();
           return;
         }
 
-        // Ceiling collision - now bounces instead of killing
+        // Ceiling collision - bounce
         if (this.hippo.y < 0) {
           console.log("Ceiling bounce!");
           this.hippo.y = 0;
-          this.hippo.velocity = 8; // Push downward
-          this.hitEffectTime = 15; // Visual feedback for 15 frames
+          this.hippo.velocity = 8;
+          this.hitEffectTime = 15;
           return;
         }
 
         // Missile collision - instant death regardless of shields
-        this.missiles.forEach(missile => {
+        for (let missile of this.missiles) {
           if (this.hippo.x + this.hippo.width > missile.x && 
               this.hippo.x < missile.x + missile.width &&
               this.hippo.y + this.hippo.height > missile.y && 
@@ -344,11 +353,11 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
             this.gameOver();
             return;
           }
-        });
+        }
 
         // Pipe collision - only if not invincible
         if (this.invincibilityTime <= 0) {
-          this.pipes.forEach(pipe => {
+          for (let pipe of this.pipes) {
             if (!pipe.hit && 
                 this.hippo.x + this.hippo.width > pipe.x && 
                 this.hippo.x < pipe.x + pipe.width) {
@@ -356,27 +365,24 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
                   this.hippo.y + this.hippo.height > pipe.bottomY) {
                 
                 if (this.pipeHitsRemaining > 0) {
-                  // Hit with shields remaining - knockback and invincibility
                   console.log("Pipe hit! Knockback applied. Hits remaining:", this.pipeHitsRemaining - 1);
                   this.pipeHitsRemaining--;
-                  setShieldCount(this.pipeHitsRemaining);
-                  pipe.hit = true; // Mark this pipe as hit so it won't trigger again
+                  setShieldCount(this.pipeHitsRemaining); // Sync React state
+                  pipe.hit = true;
                   
-                  // Knockback effect
-                  this.hippo.velocity = -8; // Upward velocity
-                  this.hippo.x = Math.max(50, this.hippo.x - 20); // Push backward
+                  this.hippo.velocity = -8;
+                  this.hippo.x = Math.max(50, this.hippo.x - 20);
                   
-                  // Set invincibility and visual effects
-                  this.invincibilityTime = 60; // 1 second at 60fps
-                  this.hitEffectTime = 30; // Visual effect for 0.5 seconds
+                  this.invincibilityTime = 60;
+                  this.hitEffectTime = 30;
                 } else {
-                  // No shields remaining - game over
                   console.log("Final pipe collision - Game Over!");
                   this.gameOver();
                 }
+                break;
               }
             }
-          });
+          }
         }
       }
 
@@ -414,7 +420,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
             this.ctx.globalAlpha = 1;
           }
 
-          // Add screen shake effect during hits
+          // Screen shake during hits
           if (this.hitEffectTime > 0) {
             this.ctx.save();
             const shakeIntensity = Math.min(this.hitEffectTime / 10, 3);
@@ -424,25 +430,12 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
             );
           }
 
-          // Enhanced clouds
           this.drawEnhancedClouds();
-
-          // Draw pipes with better styling
           this.pipes.forEach(pipe => this.drawEnhancedPipe(pipe));
-
-          // Draw missiles
           this.missiles.forEach(missile => this.drawMissile(missile));
-
-          // Enhanced ground with texture
           this.drawEnhancedGround();
-
-          // Draw hippo with enhanced sprite
           this.drawEnhancedHippo();
-
-          // Enhanced score display
           this.drawEnhancedScore();
-
-          // Draw enhanced shield counter
           this.drawEnhancedShieldCounter();
 
           if (this.hitEffectTime > 0) {
@@ -476,7 +469,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx.restore();
       }
 
-      // ... keep existing code (drawEnhancedClouds, drawEnhancedPipe, drawEnhancedGround methods)
+      // ... keep existing code (drawEnhancedClouds, drawEnhancedPipe, drawEnhancedGround, drawEnhancedHippo, drawEnhancedScore methods)
       drawEnhancedClouds() {
         this.ctx.fillStyle = 'white';
         this.ctx.globalAlpha = 0.8;
@@ -485,7 +478,6 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           const x = (i * 250) + 30 + (this.parallaxOffset * 0.3);
           const y = 60 + (i * 20);
           
-          // Multi-layered clouds
           this.ctx.beginPath();
           this.ctx.arc(x, y, 20, 0, Math.PI * 2);
           this.ctx.arc(x + 20, y, 30, 0, Math.PI * 2);
@@ -505,18 +497,13 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         
         this.ctx.fillStyle = gradient;
         
-        // Top pipe
         this.ctx.fillRect(pipe.x, 0, pipe.width, pipe.topHeight);
-        
-        // Bottom pipe
         this.ctx.fillRect(pipe.x, pipe.bottomY, pipe.width, pipe.bottomHeight);
         
-        // Enhanced pipe caps with shadows
         this.ctx.fillStyle = '#32CD32';
         this.ctx.fillRect(pipe.x - 5, pipe.topHeight - 35, pipe.width + 10, 35);
         this.ctx.fillRect(pipe.x - 5, pipe.bottomY, pipe.width + 10, 35);
         
-        // Add bamboo rings
         this.ctx.strokeStyle = '#1F5F1F';
         this.ctx.lineWidth = 2;
         for (let i = 0; i < pipe.topHeight; i += 40) {
@@ -542,7 +529,6 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx.fillStyle = groundGradient;
         this.ctx.fillRect(0, this.canvas.height - 60, this.canvas.width, 60);
         
-        // Add water ripples
         this.ctx.strokeStyle = '#87CEEB';
         this.ctx.lineWidth = 2;
         this.ctx.globalAlpha = 0.5;
@@ -559,26 +545,21 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx.translate(this.hippo.x + this.hippo.width/2, this.hippo.y + this.hippo.height/2);
         this.ctx.rotate(this.hippo.rotation);
         
-        // Flash effect during invincibility
         if (this.invincibilityTime > 0 && Math.floor(this.invincibilityTime / 5) % 2 === 0) {
           this.ctx.globalAlpha = 0.5;
         }
         
-        // Use the poop emoji from POOPEE branding!
         this.ctx.font = 'bold 50px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         
-        // Add a subtle glow effect
         this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
         this.ctx.shadowBlur = 8;
         this.ctx.shadowOffsetX = 2;
         this.ctx.shadowOffsetY = 2;
         
-        // Draw the poop emoji
         this.ctx.fillText('💩', 0, 0);
         
-        // Reset shadow and alpha
         this.ctx.shadowColor = 'transparent';
         this.ctx.shadowBlur = 0;
         this.ctx.shadowOffsetX = 0;
@@ -592,7 +573,6 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         this.ctx.fillRect(this.canvas.width/2 - 50, 10, 100, 50);
         
-        // Score text with outline
         this.ctx.fillStyle = 'white';
         this.ctx.strokeStyle = 'black';
         this.ctx.lineWidth = 3;
@@ -606,20 +586,17 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         this.ctx.fillRect(10, 10, 160, 50);
         
-        // Shield header
         this.ctx.fillStyle = '#4CAF50';
         this.ctx.font = 'bold 14px Arial';
         this.ctx.textAlign = 'left';
         this.ctx.fillText('SHIELDS:', 20, 30);
         
-        // Draw shield icons
         this.ctx.font = 'bold 24px Arial';
         for (let i = 0; i < 3; i++) {
           this.ctx.fillStyle = i < this.pipeHitsRemaining ? '#4CAF50' : '#666';
           this.ctx.fillText('🛡️', 20 + (i * 35), 50);
         }
         
-        // Shield count text
         this.ctx.fillStyle = this.pipeHitsRemaining > 0 ? '#4CAF50' : '#f44336';
         this.ctx.font = 'bold 12px Arial';
         this.ctx.fillText(`${this.pipeHitsRemaining}/3`, 135, 50);
