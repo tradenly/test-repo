@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -48,11 +47,12 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     console.log("Resetting game...");
     setGameState('menu');
     setScore(0);
-    setShieldCount(totalShields); // Use total shields including purchased
+    setPurchasedShields(0); // Reset purchased shields when restarting
+    setShieldCount(3); // Always start with 3 shields
     if (gameRef.current) {
-      gameRef.current.reset(totalShields); // Pass total shields to game engine
+      gameRef.current.reset(3); // Always reset to 3 shields, not totalShields
     }
-  }, [totalShields]);
+  }, []);
 
   const buyShields = useCallback(async () => {
     if (!user?.id || credits < 5) {
@@ -67,10 +67,10 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         description: "Purchased 3 shields in Flappy Hippos"
       });
       
-      // Add to purchased shields count
+      // Add to purchased shields count for current game only
       setPurchasedShields(prev => prev + 3);
       
-      toast.success("3 shields purchased! They will be available for your next game.");
+      toast.success("3 shields purchased! They are added to your current game.");
     } catch (error) {
       console.error("Error purchasing shields:", error);
       toast.error("Failed to purchase shields");
@@ -110,7 +110,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       private eventListeners: (() => void)[] = [];
       private parallaxOffset = 0;
       private pipeHitsRemaining = 3;
-      private maxShields = 3; // Will be updated when game starts
+      private maxShields = 3;
       private invincibilityTime = 0;
       private hitEffectTime = 0;
       private gameStartTime = 0;
@@ -167,7 +167,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.eventListeners = [];
       }
 
-      reset(startingShields = totalShields) {
+      reset(startingShields = 3) {
         console.log("Resetting game state with shields:", startingShields);
         this.hippo = {
           x: 100,
@@ -239,14 +239,14 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           this.missileWarningTime--;
         }
 
-        // Missile system - spawn every 90 seconds (90000ms)
-        if (gameTimeElapsed >= 90000 && this.lastMissileTime === 0) {
-          // First missile at 90 seconds
+        // Missile system - spawn every 45 seconds (45000ms)
+        if (gameTimeElapsed >= 45000 && this.lastMissileTime === 0) {
+          // First missile at 45 seconds
           this.spawnMissile();
           this.lastMissileTime = gameTimeElapsed;
-          console.log("First missile spawned at 90 seconds");
-        } else if (this.lastMissileTime > 0 && gameTimeElapsed - this.lastMissileTime >= 90000) {
-          // Subsequent missiles every 90 seconds
+          console.log("First missile spawned at 45 seconds");
+        } else if (this.lastMissileTime > 0 && gameTimeElapsed - this.lastMissileTime >= 45000) {
+          // Subsequent missiles every 45 seconds
           this.spawnMissile();
           this.lastMissileTime = gameTimeElapsed;
           console.log("Missile spawned at", gameTimeElapsed / 1000, "seconds");
@@ -254,7 +254,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
         // Missile warning - 5 seconds before next missile
         const timeSinceLastMissile = gameTimeElapsed - this.lastMissileTime;
-        const timeToNextMissile = 90000 - timeSinceLastMissile;
+        const timeToNextMissile = 45000 - timeSinceLastMissile;
         if (timeToNextMissile <= 5000 && timeToNextMissile > 0 && this.missileWarningTime <= 0) {
           this.missileWarningTime = 300; // 5 seconds at 60fps
           console.log("Missile warning activated");
@@ -607,7 +607,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           this.ctx.fillText('🛡️', 20 + labelWidth + (i * shieldWidth), 45);
         }
         
-        // Fix the shield counter display to show current/max format
+        // Show current/max format
         this.ctx.fillStyle = this.pipeHitsRemaining > 0 ? '#4CAF50' : '#f44336';
         this.ctx.font = 'bold 12px Arial';
         this.ctx.fillText(`${this.pipeHitsRemaining}/${this.maxShields}`, 20 + labelWidth + (maxShieldsToShow * shieldWidth), 50);
@@ -634,13 +634,15 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     };
   }, [totalShields]);
 
-  // Update shield count when totalShields changes
+  // Update shield count when purchased shields change and we're in a game
   useEffect(() => {
-    setShieldCount(totalShields);
-    if (gameRef.current && gameState === 'menu') {
-      gameRef.current.reset(totalShields);
+    if (gameRef.current && gameState === 'playing') {
+      const newTotalShields = 3 + purchasedShields;
+      gameRef.current.pipeHitsRemaining = newTotalShields;
+      gameRef.current.maxShields = newTotalShields;
+      setShieldCount(newTotalShields);
     }
-  }, [totalShields, gameState]);
+  }, [purchasedShields, gameState]);
 
   return (
     <div className="flex flex-col lg:flex-row items-start gap-3">
