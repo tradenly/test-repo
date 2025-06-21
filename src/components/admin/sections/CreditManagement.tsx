@@ -134,9 +134,10 @@ export const CreditManagement = () => {
         }
       }
 
-      // Record transaction using valid transaction types
-      const transactionType = type === 'add' ? 'bonus' : 'refund'; // Use 'bonus' for add, 'refund' for subtract (as negative amount)
-      const transactionAmount = type === 'add' ? amount : -amount;
+      // Record transaction using valid transaction types from the database schema
+      // Valid types: 'purchase', 'earned', 'spent', 'cashout', 'bonus', 'refund'
+      const transactionType = type === 'add' ? 'earned' : 'spent'; // Use 'earned' for add, 'spent' for subtract
+      const transactionAmount = type === 'add' ? amount : amount; // Always positive amount, type determines credit/debit
       
       const { error: transactionError } = await supabase
         .from('credit_transactions')
