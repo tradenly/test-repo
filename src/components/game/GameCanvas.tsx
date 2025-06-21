@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,10 +21,13 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
   const [score, setScore] = useState(0);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [shieldCount, setShieldCount] = useState(3); // Start with 3 shields
+  const [shieldCount, setShieldCount] = useState(3); // Current shields in game
+  const [purchasedShields, setPurchasedShields] = useState(0); // Extra shields bought
   
   const { user } = useUnifiedAuth();
   const spendCredits = useSpendCredits();
+
+  const totalShields = 3 + purchasedShields;
 
   const startGame = useCallback(() => {
     if (!canPlay || !isInitialized || !gameRef.current) {
@@ -44,11 +48,11 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     console.log("Resetting game...");
     setGameState('menu');
     setScore(0);
-    setShieldCount(3); // Reset to 3 shields
+    setShieldCount(totalShields); // Use total shields including purchased
     if (gameRef.current) {
-      gameRef.current.reset();
+      gameRef.current.reset(totalShields); // Pass total shields to game engine
     }
-  }, []);
+  }, [totalShields]);
 
   const buyShields = useCallback(async () => {
     if (!user?.id || credits < 5) {
@@ -63,11 +67,10 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         description: "Purchased 3 shields in Flappy Hippos"
       });
       
-      if (gameRef.current) {
-        gameRef.current.addShields(3);
-      }
+      // Add to purchased shields count
+      setPurchasedShields(prev => prev + 3);
       
-      toast.success("3 shields purchased!");
+      toast.success("3 shields purchased! They will be available for your next game.");
     } catch (error) {
       console.error("Error purchasing shields:", error);
       toast.error("Failed to purchase shields");
@@ -106,7 +109,8 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       private pipesPassedCount = 0;
       private eventListeners: (() => void)[] = [];
       private parallaxOffset = 0;
-      private pipeHitsRemaining = 3; // Start with 3 shields
+      private pipeHitsRemaining = 3;
+      private maxShields = 3; // Will be updated when game starts
       private invincibilityTime = 0;
       private hitEffectTime = 0;
       private gameStartTime = 0;
@@ -133,8 +137,8 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.eventListeners = [];
       }
 
-      reset() {
-        console.log("Resetting game state...");
+      reset(startingShields = totalShields) {
+        console.log("Resetting game state with shields:", startingShields);
         this.hippo = {
           x: 100,
           y: 285,
@@ -149,49 +153,18 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.score = 0;
         this.pipesPassedCount = 0;
         this.parallaxOffset = 0;
-        this.pipeHitsRemaining = 3; // Reset to 3 shields
+        this.pipeHitsRemaining = startingShields;
+        this.maxShields = startingShields;
         this.invincibilityTime = 0;
         this.hitEffectTime = 0;
         this.gameStartTime = 0;
         this.lastMissileTime = 0;
         this.missileWarningTime = 0;
         this.addPipe();
-        setShieldCount(3); // Sync React state
+        setShieldCount(startingShields); // Sync React state
         if (!this.gameRunning) {
           this.render();
         }
-      }
-
-      addShields(count: number) {
-        this.pipeHitsRemaining += count;
-        setShieldCount(this.pipeHitsRemaining); // Sync React state
-        console.log("Added shields. New count:", this.pipeHitsRemaining);
-      }
-
-      bindEvents() {
-        const handleInput = (e: Event) => {
-          console.log("Input detected:", e.type);
-          if (this.gameRunning) {
-            this.hippo.velocity = -12;
-            this.hippo.rotation = -0.3;
-            console.log("Hippo flapped! New velocity:", this.hippo.velocity);
-          }
-        };
-
-        const handleKeydown = (e: KeyboardEvent) => {
-          if (e.code === 'Space') {
-            e.preventDefault();
-            handleInput(e);
-          }
-        };
-
-        this.canvas.addEventListener('click', handleInput);
-        document.addEventListener('keydown', handleKeydown);
-
-        this.eventListeners.push(
-          () => this.canvas.removeEventListener('click', handleInput),
-          () => document.removeEventListener('keydown', handleKeydown)
-        );
       }
 
       start() {
@@ -583,23 +556,31 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       drawEnhancedShieldCounter() {
+        // Dynamic width based on shield count
+        const maxShieldsToShow = Math.max(6, this.maxShields);
+        const shieldWidth = 25;
+        const padding = 20;
+        const labelWidth = 70;
+        const counterWidth = 30;
+        const totalWidth = labelWidth + (maxShieldsToShow * shieldWidth) + counterWidth + (padding * 2);
+        
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        this.ctx.fillRect(10, 10, 160, 50);
+        this.ctx.fillRect(10, 10, totalWidth, 50);
         
         this.ctx.fillStyle = '#4CAF50';
         this.ctx.font = 'bold 14px Arial';
         this.ctx.textAlign = 'left';
         this.ctx.fillText('SHIELDS:', 20, 30);
         
-        this.ctx.font = 'bold 24px Arial';
-        for (let i = 0; i < 3; i++) {
+        this.ctx.font = 'bold 20px Arial';
+        for (let i = 0; i < maxShieldsToShow; i++) {
           this.ctx.fillStyle = i < this.pipeHitsRemaining ? '#4CAF50' : '#666';
-          this.ctx.fillText('🛡️', 20 + (i * 35), 50);
+          this.ctx.fillText('🛡️', 20 + labelWidth + (i * shieldWidth), 45);
         }
         
         this.ctx.fillStyle = this.pipeHitsRemaining > 0 ? '#4CAF50' : '#f44336';
         this.ctx.font = 'bold 12px Arial';
-        this.ctx.fillText(`${this.pipeHitsRemaining}/3`, 135, 50);
+        this.ctx.fillText(`${this.pipeHitsRemaining}/${this.maxShields}`, 20 + labelWidth + (maxShieldsToShow * shieldWidth), 50);
       }
     }
 
@@ -621,7 +602,15 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         gameRef.current.cleanup();
       }
     };
-  }, []);
+  }, [totalShields]);
+
+  // Update shield count when totalShields changes
+  useEffect(() => {
+    setShieldCount(totalShields);
+    if (gameRef.current && gameState === 'menu') {
+      gameRef.current.reset(totalShields);
+    }
+  }, [totalShields, gameState]);
 
   return (
     <div className="flex flex-col lg:flex-row items-start gap-3">
@@ -633,7 +622,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       
       <div className="flex flex-col gap-2">
         {gameState === 'menu' && (
-          <Card className="bg-gray-800/90 border-gray-700 p-2 w-28">
+          <Card className="bg-gray-800/90 border-gray-700 p-2 w-32">
             <h3 className="text-xs font-bold text-white mb-1">💩 Flappy Poop</h3>
             <p className="text-gray-300 text-xs mb-1">
               Click/Space to flap!
@@ -642,27 +631,40 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
               <Coins className="h-3 w-3 text-yellow-400" />
               <span className="text-white text-xs">{credits}</span>
             </div>
-            <div className="flex items-center justify-center gap-1 mb-1">
+            <div className="flex items-center justify-center gap-1 mb-2">
               <Shield className="h-3 w-3 text-green-400" />
-              <span className="text-white text-xs">{shieldCount} Shields</span>
+              <span className="text-white text-xs">{totalShields} Shields</span>
             </div>
-            <Button 
-              onClick={startGame} 
-              disabled={!canPlay || !isInitialized}
-              className="bg-green-600 hover:bg-green-500 w-full text-xs"
-              size="sm"
-            >
-              <Play className="h-3 w-3 mr-1" />
-              {!isInitialized ? 'Loading...' : canPlay ? 'Start' : 'No Credits'}
-            </Button>
+            <div className="flex flex-col gap-1">
+              <Button 
+                onClick={startGame} 
+                disabled={!canPlay || !isInitialized}
+                className="bg-green-600 hover:bg-green-500 w-full text-xs py-1"
+                size="sm"
+              >
+                <Play className="h-3 w-3 mr-1" />
+                {!isInitialized ? 'Loading...' : canPlay ? 'Start' : 'No Credits'}
+              </Button>
+              <Button 
+                onClick={buyShields} 
+                disabled={credits < 5 || spendCredits.isPending}
+                className="bg-blue-600 hover:bg-blue-500 w-full text-xs py-1"
+                size="sm"
+              >
+                <Shield className="h-3 w-3 mr-1" />
+                Buy 3 Shields (5💰)
+              </Button>
+            </div>
           </Card>
         )}
 
         {gameState === 'gameOver' && (
-          <Card className="bg-gray-800/90 border-gray-700 p-2 w-32">
+          <Card className="bg-gray-800/90 border-gray-700 p-2 w-36">
             <h3 className="text-xs font-bold text-white mb-1">Game Over!</h3>
             <p className="text-gray-300 text-xs mb-1">Score: {score}</p>
-            <p className="text-gray-300 text-xs mb-2">Shields: {shieldCount}</p>
+            <p className="text-gray-300 text-xs mb-2">
+              Shields: {shieldCount}/{totalShields}
+            </p>
             <div className="flex flex-col gap-1">
               <Button onClick={resetGame} variant="outline" size="sm" className="w-full text-xs py-1">
                 <RotateCcw className="h-3 w-3 mr-1" />
