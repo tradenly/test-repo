@@ -24,6 +24,9 @@ export const useUnifiedAuth = () => {
         
         if (mounted && session?.user) {
           console.log('UnifiedAuth: Found existing session, setting user immediately');
+          console.log('UnifiedAuth: User provider:', session.user.app_metadata?.provider);
+          console.log('UnifiedAuth: User metadata:', session.user.user_metadata);
+          
           setUnifiedUser({
             id: session.user.id,
             email: session.user.email,
@@ -51,6 +54,12 @@ export const useUnifiedAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('UnifiedAuth: Auth state changed:', event, !!session);
+        
+        if (session?.user) {
+          console.log('UnifiedAuth: Provider:', session.user.app_metadata?.provider);
+          console.log('UnifiedAuth: Email verified:', session.user.email_confirmed_at);
+        }
+        
         if (mounted) {
           if (session?.user) {
             setUnifiedUser({
