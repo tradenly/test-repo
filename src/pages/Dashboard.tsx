@@ -11,6 +11,7 @@ export type DashboardSection =
   | "profile" 
   | "flappy-hippos"
   | "leaderboard"
+  | "documents"
   | "wallets" 
   | "staking" 
   | "social" 

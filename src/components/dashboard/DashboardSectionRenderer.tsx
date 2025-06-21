@@ -5,6 +5,7 @@ import { DashboardOverview } from "./sections/DashboardOverview";
 import { ProfileSection } from "./sections/ProfileSection";
 import { FlappyHipposSection } from "./sections/FlappyHipposSection";
 import { LeaderboardSection } from "./sections/LeaderboardSection";
+import { DocumentsSection } from "./sections/DocumentsSection";
 import { WalletsSection } from "./sections/WalletsSection";
 import { StakingSection } from "./sections/StakingSection";
 import { SocialSection } from "./sections/SocialSection";
@@ -28,6 +29,8 @@ export const DashboardSectionRenderer = ({ activeSection, user }: DashboardSecti
         return <FlappyHipposSection user={user} />;
       case "leaderboard":
         return <LeaderboardSection user={user} />;
+      case "documents":
+        return <DocumentsSection user={user} />;
       case "wallets":
         return <WalletsSection user={user} />;
       case "staking":
