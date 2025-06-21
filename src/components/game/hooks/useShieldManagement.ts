@@ -23,7 +23,7 @@ export const useShieldManagement = ({
 
   // Centralized shield management function
   const updateGameEngineShields = useCallback((newTotalShields: number) => {
-    console.log("🛡️ Updating game engine shields to:", newTotalShields);
+    console.log("🛡️ useShieldManagement: Updating game engine shields to:", newTotalShields);
     if (gameRef.current) {
       gameRef.current.updateShields(newTotalShields);
     }
@@ -35,7 +35,7 @@ export const useShieldManagement = ({
       return;
     }
 
-    console.log("💰 Purchasing shields...");
+    console.log("💰 useShieldManagement: Starting shield purchase process...");
     try {
       await spendCredits.mutateAsync({
         userId: user.id,
@@ -43,19 +43,17 @@ export const useShieldManagement = ({
         description: "Purchased 3 shields in Flappy Hippos"
       });
       
-      // Update state first
-      buyShieldsState();
+      console.log("💰 useShieldManagement: Credits spent successfully, updating state...");
       
-      // Calculate new total and immediately sync with game engine
-      const newTotalShields = totalShields + 3;
-      updateGameEngineShields(newTotalShields);
+      // Update the state first - this will trigger a re-render and useEffect
+      buyShieldsState();
       
       toast.success("3 shields purchased! They are added to your current game.");
     } catch (error) {
       console.error("Error purchasing shields:", error);
       toast.error("Failed to purchase shields");
     }
-  }, [user?.id, credits, spendCredits, buyShieldsState, totalShields, updateGameEngineShields]);
+  }, [user?.id, credits, spendCredits, buyShieldsState]);
 
   return {
     updateGameEngineShields,

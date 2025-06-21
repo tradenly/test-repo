@@ -54,7 +54,7 @@ export const useGameEngineManager = ({
       return;
     }
 
-    console.log("🎮 Initializing game engine...");
+    console.log("🎮 useGameEngineManager: Initializing game engine...");
     initializationRef.current = true;
 
     // Set canvas size
@@ -73,14 +73,14 @@ export const useGameEngineManager = ({
         (score) => setScoreRef.current?.(score)
       );
       setIsInitialized(true);
-      console.log("🎮 Game engine created and initialized");
+      console.log("🎮 useGameEngineManager: Game engine created and initialized");
     } catch (error) {
       console.error("❌ Error creating game engine:", error);
       initializationRef.current = false;
     }
 
     return () => {
-      console.log("🧹 Component unmounting, cleaning up...");
+      console.log("🧹 useGameEngineManager: Component unmounting, cleaning up...");
       if (gameRef.current) {
         gameRef.current.cleanup();
         gameRef.current = null;
@@ -90,20 +90,22 @@ export const useGameEngineManager = ({
     };
   }, []); // Empty dependency array to prevent recreation
 
-  // Update game engine shields whenever totalShields changes
+  // Critical fix: Update game engine shields whenever totalShields changes
   useEffect(() => {
+    console.log("🛡️ useGameEngineManager: totalShields changed to:", totalShields);
     if (isInitialized && gameRef.current) {
-      console.log("🛡️ Total shields changed to:", totalShields, "- syncing game engine");
+      console.log("🛡️ useGameEngineManager: Syncing shields with game engine");
       updateGameEngineShields(totalShields);
     }
   }, [totalShields, isInitialized, updateGameEngineShields]);
 
   const startGame = useCallback(() => {
     if (!isInitialized || !gameRef.current) {
-      console.log("❌ Cannot start game - conditions not met:", { isInitialized, gameRef: !!gameRef.current });
+      console.log("❌ useGameEngineManager: Cannot start game - conditions not met:", { isInitialized, gameRef: !!gameRef.current });
       return false;
     }
     
+    console.log("🎯 useGameEngineManager: Starting game with shields:", totalShields);
     // Immediately update game engine with current shields and start
     updateGameEngineShields(totalShields);
     gameRef.current.start();
@@ -111,6 +113,7 @@ export const useGameEngineManager = ({
   }, [isInitialized, totalShields, updateGameEngineShields]);
 
   const resetGame = useCallback(() => {
+    console.log("🔄 useGameEngineManager: Resetting game engine to 3 shields");
     // Reset game engine to 3 shields
     if (gameRef.current) {
       gameRef.current.reset(3);

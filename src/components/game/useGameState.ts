@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export type GameState = 'menu' | 'playing' | 'gameOver';
 
@@ -11,6 +11,8 @@ export const useGameState = () => {
 
   // Always start with 3 base shields + any purchased shields
   const totalShields = 3 + purchasedShields;
+
+  console.log("🛡️ useGameState: totalShields calculated as:", totalShields, "(base: 3 + purchased:", purchasedShields, ")");
 
   const startGame = useCallback(() => {
     console.log("🎮 Starting game with shields:", totalShields);
@@ -34,7 +36,7 @@ export const useGameState = () => {
 
   const buyShields = useCallback(() => {
     const newPurchasedShields = purchasedShields + 3;
-    console.log("💰 Shields purchased - updating from", totalShields, "to", 3 + newPurchasedShields);
+    console.log("💰 useGameState: Shields purchased - updating from", totalShields, "to", 3 + newPurchasedShields);
     setPurchasedShields(newPurchasedShields);
   }, [purchasedShields, totalShields]);
 
