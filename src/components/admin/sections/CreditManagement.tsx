@@ -102,18 +102,36 @@ export const CreditManagement = () => {
 
       console.log('📊 CreditManagement: Balance change:', { currentBalance, newBalance });
 
-      // Update credits
-      const { error: updateError } = await supabase
-        .from('user_credits')
-        .upsert({
-          user_id: userId,
-          balance: newBalance,
-          updated_at: new Date().toISOString(),
-        });
+      // Update credits using UPDATE instead of UPSERT
+      if (currentCredits) {
+        // Record exists, update it
+        const { error: updateError } = await supabase
+          .from('user_credits')
+          .update({
+            balance: newBalance,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId);
 
-      if (updateError) {
-        console.error('❌ CreditManagement: Error updating credits:', updateError);
-        throw updateError;
+        if (updateError) {
+          console.error('❌ CreditManagement: Error updating credits:', updateError);
+          throw updateError;
+        }
+      } else {
+        // Record doesn't exist, create it
+        const { error: insertError } = await supabase
+          .from('user_credits')
+          .insert({
+            user_id: userId,
+            balance: newBalance,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (insertError) {
+          console.error('❌ CreditManagement: Error creating credits:', insertError);
+          throw insertError;
+        }
       }
 
       // Record transaction
