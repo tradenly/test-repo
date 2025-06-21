@@ -20,52 +20,53 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
   const [score, setScore] = useState(0);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [shieldCount, setShieldCount] = useState(3); // Current shields in game
-  const [purchasedShields, setPurchasedShields] = useState(0); // Extra shields bought
+  const [purchasedShields, setPurchasedShields] = useState(0); // Extra shields bought for current session
   
   const { user } = useUnifiedAuth();
   const spendCredits = useSpendCredits();
 
+  // Always start with 3 base shields + any purchased shields
   const totalShields = 3 + purchasedShields;
 
-  // Helper function to update game engine shields
-  const updateGameShields = useCallback((newTotalShields: number) => {
+  // Centralized shield management function
+  const syncShields = useCallback((newTotalShields: number) => {
+    console.log("🛡️ Syncing shields to:", newTotalShields);
     if (gameRef.current) {
       gameRef.current.pipeHitsRemaining = newTotalShields;
       gameRef.current.maxShields = newTotalShields;
-      setShieldCount(newTotalShields);
-      console.log("Updated game shields to:", newTotalShields);
+      console.log("🛡️ Game engine updated - pipeHitsRemaining:", newTotalShields, "maxShields:", newTotalShields);
     }
   }, []);
 
   const startGame = useCallback(() => {
     if (!canPlay || !isInitialized || !gameRef.current) {
-      console.log("Cannot start game - conditions not met:", { canPlay, isInitialized, gameRef: !!gameRef.current });
+      console.log("❌ Cannot start game - conditions not met:", { canPlay, isInitialized, gameRef: !!gameRef.current });
       return;
     }
     
-    console.log("Starting game with total shields:", totalShields);
+    console.log("🎮 Starting game with shields:", totalShields);
     onGameStart();
     setGameState('playing');
     setScore(0);
     setGameStartTime(Date.now());
     
-    // Ensure game starts with correct shield count
-    updateGameShields(totalShields);
+    // Sync shields and start the game
+    syncShields(totalShields);
     gameRef.current.start();
-  }, [canPlay, onGameStart, isInitialized, totalShields, updateGameShields]);
+  }, [canPlay, onGameStart, isInitialized, totalShields, syncShields]);
 
   const resetGame = useCallback(() => {
-    console.log("Resetting game...");
+    console.log("🔄 Resetting game to fresh state");
     setGameState('menu');
     setScore(0);
-    setPurchasedShields(0); // Reset purchased shields when restarting
+    setPurchasedShields(0); // Reset purchased shields - back to 3 total
     
-    // Reset to 3 shields
+    // Reset game engine to 3 shields
     if (gameRef.current) {
       gameRef.current.reset(3);
     }
-    setShieldCount(3);
+    
+    console.log("🔄 Game reset complete - shields back to 3");
   }, []);
 
   const buyShields = useCallback(async () => {
@@ -74,6 +75,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       return;
     }
 
+    console.log("💰 Purchasing shields...");
     try {
       await spendCredits.mutateAsync({
         userId: user.id,
@@ -81,22 +83,24 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         description: "Purchased 3 shields in Flappy Hippos"
       });
       
-      // Add to purchased shields count for current game only
+      // Update purchased shields
       const newPurchasedShields = purchasedShields + 3;
+      const newTotalShields = 3 + newPurchasedShields;
+      
+      console.log("💰 Shields purchased - updating from", totalShields, "to", newTotalShields);
       setPurchasedShields(newPurchasedShields);
       
-      // Immediately update the game engine with new shield count
-      const newTotalShields = 3 + newPurchasedShields;
-      updateGameShields(newTotalShields);
+      // Immediately sync with game engine
+      syncShields(newTotalShields);
       
       toast.success("3 shields purchased! They are added to your current game.");
     } catch (error) {
       console.error("Error purchasing shields:", error);
       toast.error("Failed to purchase shields");
     }
-  }, [user?.id, credits, spendCredits, purchasedShields, updateGameShields]);
+  }, [user?.id, credits, spendCredits, purchasedShields, syncShields]);
 
-  // Game engine initialization - removed totalShields dependency to prevent recreation
+  // Game engine initialization - only create once
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
@@ -188,7 +192,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       reset(startingShields = 3) {
-        console.log("Resetting game state with shields:", startingShields);
+        console.log("🎯 Game engine reset with shields:", startingShields);
         this.hippo = {
           x: 100,
           y: 285,
@@ -211,17 +215,16 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.lastMissileTime = 0;
         this.missileWarningTime = 0;
         this.addPipe();
-        setShieldCount(startingShields); // Sync React state
         if (!this.gameRunning) {
           this.render();
         }
       }
 
       start() {
-        console.log("Starting game engine...");
+        console.log("🎯 Game engine starting with shields:", this.pipeHitsRemaining, "/", this.maxShields);
         this.gameRunning = true;
         this.gameStartTime = Date.now();
-        this.lastMissileTime = 0; // Reset missile timer
+        this.lastMissileTime = 0;
         this.gameLoop();
       }
 
@@ -388,9 +391,8 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
                   this.hippo.y + this.hippo.height > pipe.bottomY) {
                 
                 if (this.pipeHitsRemaining > 0) {
-                  console.log("Pipe hit! Knockback applied. Hits remaining:", this.pipeHitsRemaining - 1);
+                  console.log("🛡️ Pipe hit! Shields remaining:", this.pipeHitsRemaining - 1);
                   this.pipeHitsRemaining--;
-                  setShieldCount(this.pipeHitsRemaining); // Sync React state
                   pipe.hit = true;
                   
                   this.hippo.velocity = -8;
@@ -650,15 +652,15 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         gameRef.current.cleanup();
       }
     };
-  }, []); // Removed totalShields dependency
+  }, []); // Only create once
 
-  // Update shields whenever totalShields changes - removed gameState condition
+  // Sync shields whenever totalShields changes
   useEffect(() => {
-    if (gameRef.current && isInitialized) {
-      console.log("Updating shields to:", totalShields);
-      updateGameShields(totalShields);
+    if (isInitialized) {
+      console.log("🛡️ Total shields changed to:", totalShields, "- syncing game engine");
+      syncShields(totalShields);
     }
-  }, [totalShields, isInitialized, updateGameShields]);
+  }, [totalShields, isInitialized, syncShields]);
 
   return (
     <div className="flex flex-col lg:flex-row items-start gap-3">
@@ -711,7 +713,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
             <h3 className="text-xs font-bold text-white mb-1">Game Over!</h3>
             <p className="text-gray-300 text-xs mb-1">Score: {score}</p>
             <p className="text-gray-300 text-xs mb-2">
-              Shields: {shieldCount}/{totalShields}
+              Shields: {gameRef.current?.pipeHitsRemaining || 0}/{totalShields}
             </p>
             <div className="flex flex-col gap-1">
               <Button onClick={resetGame} variant="outline" size="sm" className="w-full text-xs py-1">
