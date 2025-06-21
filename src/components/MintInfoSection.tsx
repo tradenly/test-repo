@@ -13,8 +13,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/d2021028-4b2b-43e2-9e12-caa067f79f85.png" 
-                alt="Cute hippo character" 
+                src="/lovable-uploads/2e962177-f8d5-4c0c-8d72-e72e836aac4f.png" 
+                alt="Gray hippo with open mouth" 
                 className="w-16 h-16 mx-auto"
               />
             </div>
@@ -36,8 +36,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/7ec41366-0c16-45a1-a11c-1c0daa447f04.png" 
-                alt="Hippo with open mouth" 
+                src="/lovable-uploads/70c65819-bd1d-4679-9bfe-eebb7a50d5b8.png" 
+                alt="Cute sitting hippo with pink accents" 
                 className="w-16 h-16 mx-auto"
               />
             </div>
