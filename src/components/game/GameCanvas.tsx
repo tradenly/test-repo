@@ -1,7 +1,10 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Coins, Play, RotateCcw } from "lucide-react";
+import { Coins, Play, RotateCcw, Shield } from "lucide-react";
+import { useSpendCredits } from "@/hooks/useCreditOperations";
+import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
+import { toast } from "sonner";
 
 interface GameCanvasProps {
   onGameEnd: (score: number, pipesPassedCount: number, duration: number) => void;
@@ -17,6 +20,10 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
   const [score, setScore] = useState(0);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [shieldCount, setShieldCount] = useState(3);
+  
+  const { user } = useUnifiedAuth();
+  const spendCredits = useSpendCredits();
 
   const startGame = useCallback(() => {
     if (!canPlay || !isInitialized || !gameRef.current) {
@@ -37,10 +44,36 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     console.log("Resetting game...");
     setGameState('menu');
     setScore(0);
+    setShieldCount(3);
     if (gameRef.current) {
       gameRef.current.reset();
     }
   }, []);
+
+  const buyShields = useCallback(async () => {
+    if (!user?.id || credits < 5) {
+      toast.error("Not enough credits to buy shields!");
+      return;
+    }
+
+    try {
+      await spendCredits.mutateAsync({
+        userId: user.id,
+        amount: 5,
+        description: "Purchased 3 shields in Flappy Hippos"
+      });
+      
+      if (gameRef.current) {
+        gameRef.current.addShields(3);
+        setShieldCount(prev => prev + 3);
+      }
+      
+      toast.success("3 shields purchased!");
+    } catch (error) {
+      console.error("Error purchasing shields:", error);
+      toast.error("Failed to purchase shields");
+    }
+  }, [user?.id, credits, spendCredits]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -67,15 +100,19 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       private canvas: HTMLCanvasElement;
       private hippo: any;
       private pipes: any[] = [];
+      private missiles: any[] = [];
       private gameRunning = false;
       private animationId: number | null = null;
       private score = 0;
       private pipesPassedCount = 0;
       private eventListeners: (() => void)[] = [];
       private parallaxOffset = 0;
-      private pipeHitsRemaining = 1;
+      private pipeHitsRemaining = 3; // Start with 3 shields
       private invincibilityTime = 0;
       private hitEffectTime = 0;
+      private gameStartTime = 0;
+      private lastMissileTime = 0;
+      private missileWarningTime = 0;
 
       constructor(context: CanvasRenderingContext2D, canvasElement: HTMLCanvasElement) {
         this.ctx = context;
@@ -108,17 +145,27 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           rotation: 0
         };
         this.pipes = [];
+        this.missiles = [];
         this.gameRunning = false;
         this.score = 0;
         this.pipesPassedCount = 0;
         this.parallaxOffset = 0;
-        this.pipeHitsRemaining = 1;
+        this.pipeHitsRemaining = 3; // Reset to 3 shields
         this.invincibilityTime = 0;
         this.hitEffectTime = 0;
+        this.gameStartTime = 0;
+        this.lastMissileTime = 0;
+        this.missileWarningTime = 0;
         this.addPipe();
+        setShieldCount(3);
         if (!this.gameRunning) {
           this.render();
         }
+      }
+
+      addShields(count: number) {
+        this.pipeHitsRemaining += count;
+        setShieldCount(this.pipeHitsRemaining);
       }
 
       bindEvents() {
@@ -150,6 +197,8 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       start() {
         console.log("Starting game engine...");
         this.gameRunning = true;
+        this.gameStartTime = Date.now();
+        this.lastMissileTime = this.gameStartTime;
         this.gameLoop();
       }
 
@@ -170,6 +219,9 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       update() {
+        const currentTime = Date.now();
+        const gameTime = currentTime - this.gameStartTime;
+
         // Update parallax background
         this.parallaxOffset -= 1;
 
@@ -179,6 +231,20 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         }
         if (this.hitEffectTime > 0) {
           this.hitEffectTime--;
+        }
+        if (this.missileWarningTime > 0) {
+          this.missileWarningTime--;
+        }
+
+        // Missile system - spawn every 90 seconds (90000ms)
+        if (gameTime - (this.lastMissileTime - this.gameStartTime) >= 90000) {
+          this.spawnMissile();
+          this.lastMissileTime = currentTime;
+        }
+
+        // Missile warning - 5 seconds before missile spawn
+        if (gameTime - (this.lastMissileTime - this.gameStartTime) >= 85000 && this.missileWarningTime <= 0) {
+          this.missileWarningTime = 300; // 5 seconds at 60fps
         }
 
         // Update hippo physics
@@ -209,7 +275,29 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           this.addPipe();
         }
 
+        // Update missiles
+        this.missiles.forEach(missile => {
+          missile.x -= 2.5; // Slow movement from right to left
+        });
+
+        this.missiles = this.missiles.filter(missile => missile.x > -missile.width);
+
         this.checkCollisions();
+      }
+
+      spawnMissile() {
+        console.log("Spawning missile!");
+        const minY = this.canvas.height * 0.2;
+        const maxY = this.canvas.height * 0.8 - 50;
+        const y = Math.random() * (maxY - minY) + minY;
+
+        this.missiles.push({
+          x: this.canvas.width + 50,
+          y: y,
+          width: 70,
+          height: 50,
+          speed: 2.5
+        });
       }
 
       addPipe() {
@@ -246,6 +334,18 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           return;
         }
 
+        // Missile collision - instant death regardless of shields
+        this.missiles.forEach(missile => {
+          if (this.hippo.x + this.hippo.width > missile.x && 
+              this.hippo.x < missile.x + missile.width &&
+              this.hippo.y + this.hippo.height > missile.y && 
+              this.hippo.y < missile.y + missile.height) {
+            console.log("Missile collision - instant death!");
+            this.gameOver();
+            return;
+          }
+        });
+
         // Pipe collision - only if not invincible
         if (this.invincibilityTime <= 0) {
           this.pipes.forEach(pipe => {
@@ -256,9 +356,10 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
                   this.hippo.y + this.hippo.height > pipe.bottomY) {
                 
                 if (this.pipeHitsRemaining > 0) {
-                  // First hit - knockback and invincibility
+                  // Hit with shields remaining - knockback and invincibility
                   console.log("Pipe hit! Knockback applied. Hits remaining:", this.pipeHitsRemaining - 1);
                   this.pipeHitsRemaining--;
+                  setShieldCount(this.pipeHitsRemaining);
                   pipe.hit = true; // Mark this pipe as hit so it won't trigger again
                   
                   // Knockback effect
@@ -269,7 +370,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
                   this.invincibilityTime = 60; // 1 second at 60fps
                   this.hitEffectTime = 30; // Visual effect for 0.5 seconds
                 } else {
-                  // Second hit - game over
+                  // No shields remaining - game over
                   console.log("Final pipe collision - Game Over!");
                   this.gameOver();
                 }
@@ -304,6 +405,15 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           this.ctx.fillStyle = gradient;
           this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+          // Missile warning effect
+          if (this.missileWarningTime > 0) {
+            this.ctx.strokeStyle = '#ff0000';
+            this.ctx.lineWidth = 8;
+            this.ctx.globalAlpha = 0.3 + (Math.sin(this.missileWarningTime * 0.3) * 0.3);
+            this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.globalAlpha = 1;
+          }
+
           // Add screen shake effect during hits
           if (this.hitEffectTime > 0) {
             this.ctx.save();
@@ -320,6 +430,9 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           // Draw pipes with better styling
           this.pipes.forEach(pipe => this.drawEnhancedPipe(pipe));
 
+          // Draw missiles
+          this.missiles.forEach(missile => this.drawMissile(missile));
+
           // Enhanced ground with texture
           this.drawEnhancedGround();
 
@@ -329,8 +442,8 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           // Enhanced score display
           this.drawEnhancedScore();
 
-          // Draw hit counter
-          this.drawHitCounter();
+          // Draw enhanced shield counter
+          this.drawEnhancedShieldCounter();
 
           if (this.hitEffectTime > 0) {
             this.ctx.restore();
@@ -340,6 +453,30 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         }
       }
 
+      drawMissile(missile: any) {
+        this.ctx.save();
+        this.ctx.translate(missile.x + missile.width/2, missile.y + missile.height/2);
+        
+        // Add glow effect
+        this.ctx.shadowColor = 'rgba(255, 0, 0, 0.8)';
+        this.ctx.shadowBlur = 15;
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 0;
+        
+        // Draw the hippo missile
+        this.ctx.font = 'bold 60px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('🦛', 0, 0);
+        
+        // Reset shadow
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+        
+        this.ctx.restore();
+      }
+
+      // ... keep existing code (drawEnhancedClouds, drawEnhancedPipe, drawEnhancedGround methods)
       drawEnhancedClouds() {
         this.ctx.fillStyle = 'white';
         this.ctx.globalAlpha = 0.8;
@@ -465,14 +602,27 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx.fillText(this.score.toString(), this.canvas.width / 2, 45);
       }
 
-      drawHitCounter() {
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(10, 10, 120, 40);
+      drawEnhancedShieldCounter() {
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        this.ctx.fillRect(10, 10, 160, 50);
         
-        this.ctx.fillStyle = this.pipeHitsRemaining > 0 ? '#4CAF50' : '#f44336';
-        this.ctx.font = 'bold 16px Arial';
+        // Shield header
+        this.ctx.fillStyle = '#4CAF50';
+        this.ctx.font = 'bold 14px Arial';
         this.ctx.textAlign = 'left';
-        this.ctx.fillText(`Shield: ${this.pipeHitsRemaining > 0 ? '🛡️' : '❌'}`, 20, 35);
+        this.ctx.fillText('SHIELDS:', 20, 30);
+        
+        // Draw shield icons
+        this.ctx.font = 'bold 24px Arial';
+        for (let i = 0; i < 3; i++) {
+          this.ctx.fillStyle = i < this.pipeHitsRemaining ? '#4CAF50' : '#666';
+          this.ctx.fillText('🛡️', 20 + (i * 35), 50);
+        }
+        
+        // Shield count text
+        this.ctx.fillStyle = this.pipeHitsRemaining > 0 ? '#4CAF50' : '#f44336';
+        this.ctx.font = 'bold 12px Arial';
+        this.ctx.fillText(`${this.pipeHitsRemaining}/3`, 135, 50);
       }
     }
 
@@ -515,6 +665,10 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
               <Coins className="h-3 w-3 text-yellow-400" />
               <span className="text-white text-xs">{credits}</span>
             </div>
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Shield className="h-3 w-3 text-green-400" />
+              <span className="text-white text-xs">{shieldCount} Shields</span>
+            </div>
             <Button 
               onClick={startGame} 
               disabled={!canPlay || !isInitialized}
@@ -528,9 +682,10 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         )}
 
         {gameState === 'gameOver' && (
-          <Card className="bg-gray-800/90 border-gray-700 p-2 w-28">
+          <Card className="bg-gray-800/90 border-gray-700 p-2 w-32">
             <h3 className="text-xs font-bold text-white mb-1">Game Over!</h3>
             <p className="text-gray-300 text-xs mb-1">Score: {score}</p>
+            <p className="text-gray-300 text-xs mb-2">Shields: {shieldCount}</p>
             <div className="flex flex-col gap-1">
               <Button onClick={resetGame} variant="outline" size="sm" className="w-full text-xs py-1">
                 <RotateCcw className="h-3 w-3 mr-1" />
@@ -544,6 +699,15 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
               >
                 <Play className="h-3 w-3 mr-1" />
                 Again
+              </Button>
+              <Button 
+                onClick={buyShields} 
+                disabled={credits < 5 || spendCredits.isPending}
+                className="bg-blue-600 hover:bg-blue-500 w-full text-xs py-1"
+                size="sm"
+              >
+                <Shield className="h-3 w-3 mr-1" />
+                Buy 3 Shields (5💰)
               </Button>
             </div>
           </Card>
