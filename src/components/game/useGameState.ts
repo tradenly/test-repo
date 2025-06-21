@@ -31,10 +31,12 @@ export const useGameState = () => {
     console.log("🔄 Resetting game to fresh state");
     setGameState('menu');
     setScore(0);
-    setPurchasedShields(0); // Reset purchased shields - back to 3 total
+    // CRITICAL: Reset purchased shields to 0 when resetting game
+    console.log("🔄 Clearing purchased shields from", purchasedShields, "to 0");
+    setPurchasedShields(0);
     // Keep speed setting when resetting
     console.log("🔄 Game reset complete - shields back to 3, speed remains:", gameSpeed);
-  }, [gameSpeed]);
+  }, [gameSpeed, purchasedShields]);
 
   const buyShields = useCallback(() => {
     const newPurchasedShields = purchasedShields + 3;

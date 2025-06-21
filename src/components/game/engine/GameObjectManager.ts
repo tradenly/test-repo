@@ -1,4 +1,5 @@
 
+
 import { Pipe, Missile } from './CollisionDetector';
 
 export class GameObjectManager {
@@ -37,12 +38,12 @@ export class GameObjectManager {
   }
 
   updatePipes(pipes: Pipe[], speedMultiplier: number = 1): Pipe[] {
-    // Remove off-screen pipes - now the movement happens in GameEngine
+    // Remove off-screen pipes - movement now happens in GameEngine with proper speed
     return pipes.filter(pipe => pipe.x > -pipe.width);
   }
 
   updateMissiles(missiles: Missile[], speedMultiplier: number = 1): Missile[] {
-    // Move missiles left with speed adjustment
+    // Move missiles left with speed adjustment (base speed 2.5px)
     missiles.forEach(missile => {
       missile.x -= 2.5 * speedMultiplier;
     });
@@ -55,3 +56,4 @@ export class GameObjectManager {
     return pipes.length === 0 || pipes[pipes.length - 1].x < 400;
   }
 }
+

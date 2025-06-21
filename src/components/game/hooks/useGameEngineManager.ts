@@ -1,4 +1,5 @@
 
+
 import { useEffect, useCallback } from 'react';
 import { GameEngine } from '../GameEngine';
 import type { GameSpeed } from '../useGameState';
@@ -66,6 +67,7 @@ export const useGameEngineManager = ({
   // Update shields when they change
   useEffect(() => {
     if (gameRef.current && isInitialized) {
+      console.log("🛡️ useGameEngineManager: Shield update triggered - totalShields:", totalShields);
       updateGameEngineShields();
     }
   }, [totalShields, isInitialized, updateGameEngineShields]);
@@ -80,14 +82,14 @@ export const useGameEngineManager = ({
 
   const startGame = useCallback(() => {
     if (gameRef.current && isInitialized) {
-      console.log("🎯 Starting game with speed:", gameSpeed, "and shields:", totalShields);
+      console.log("🎯 useGameEngineManager: Starting game with speed:", gameSpeed, "and shields:", totalShields);
       gameRef.current.start();
     }
   }, [isInitialized, gameSpeed, totalShields]);
 
   const resetGame = useCallback(() => {
     if (gameRef.current && isInitialized) {
-      console.log("🔄 Resetting game engine with shields:", totalShields);
+      console.log("🔄 useGameEngineManager: Resetting game engine with shields:", totalShields);
       gameRef.current.reset(totalShields);
     }
   }, [isInitialized, totalShields]);
@@ -108,3 +110,4 @@ export const useGameEngineManager = ({
     resetGame
   };
 };
+

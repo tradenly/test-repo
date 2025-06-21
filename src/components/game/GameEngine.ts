@@ -1,4 +1,5 @@
 
+
 import { GamePhysics, HippoState } from './engine/GamePhysics';
 import { GameRenderer } from './engine/GameRenderer';
 import { CollisionDetector, Pipe, Missile } from './engine/CollisionDetector';
@@ -60,10 +61,10 @@ export class GameEngine {
 
   private getSpeedMultiplier(): number {
     switch (this.gameSpeed) {
-      case 'beginner': return 0.5; // 2px per frame
-      case 'moderate': return 1.0; // 4px per frame (current)
-      case 'advanced': return 1.5; // 6px per frame
-      default: return 1.0;
+      case 'beginner': return 0.75; // 3px per frame (slower than original)
+      case 'moderate': return 1.5; // 6px per frame (original fast pace)
+      case 'advanced': return 2.25; // 9px per frame (very fast)
+      default: return 1.5;
     }
   }
 
@@ -115,7 +116,7 @@ export class GameEngine {
     console.log("🛡️ Game engine: Updating shields from", this.pipeHitsRemaining, "to", newShields);
     this.pipeHitsRemaining = newShields;
     this.maxShields = newShields;
-    console.log("🛡️ Game engine: Updated - pipeHitsRemaining:", this.pipeHitsRemaining, "maxShields:", this.maxShields);
+    console.log("🛡️ Game engine: Post-update - pipeHitsRemaining:", this.pipeHitsRemaining, "maxShields:", this.maxShields);
   }
 
   reset(startingShields = 3) {
@@ -133,8 +134,12 @@ export class GameEngine {
     this.gameRunning = false;
     this.score = 0;
     this.pipesPassedCount = 0;
+    
+    // CRITICAL: Always reset to the provided starting shields
     this.pipeHitsRemaining = startingShields;
     this.maxShields = startingShields;
+    console.log("🔄 Reset complete - shields set to:", this.pipeHitsRemaining, "/", this.maxShields);
+    
     this.invincibilityTime = 0;
     this.hitEffectTime = 0;
     this.gameStartTime = 0;
@@ -147,13 +152,14 @@ export class GameEngine {
   }
 
   start() {
-    console.log("🎯 Game engine starting with shields:", this.pipeHitsRemaining, "/", this.maxShields, "and speed:", this.gameSpeed, "multiplier:", this.getSpeedMultiplier());
+    console.log("🎯 Game engine starting:");
+    console.log("  - Shields:", this.pipeHitsRemaining, "/", this.maxShields);
+    console.log("  - Speed:", this.gameSpeed, "multiplier:", this.getSpeedMultiplier());
     
-    // Ensure shields are properly updated at game start
-    if (this.maxShields !== this.pipeHitsRemaining) {
-      console.log("🛡️ Game start: Syncing shields - setting pipeHitsRemaining to maxShields:", this.maxShields);
-      this.pipeHitsRemaining = this.maxShields;
-    }
+    // CRITICAL: Ensure shields are in sync at start
+    console.log("🛡️ Pre-start shield sync - pipeHitsRemaining:", this.pipeHitsRemaining, "maxShields:", this.maxShields);
+    this.pipeHitsRemaining = this.maxShields;
+    console.log("🛡️ Post-start shield sync - pipeHitsRemaining:", this.pipeHitsRemaining);
     
     this.gameRunning = true;
     this.gameStartTime = Date.now();
@@ -188,7 +194,7 @@ export class GameEngine {
     if (this.hitEffectTime > 0) this.hitEffectTime--;
     if (this.missileWarningTime > 0) this.missileWarningTime--;
 
-    // Missile system - changed to 15 seconds
+    // Missile system - 15 seconds
     this.handleMissileSystem(gameTimeElapsed);
 
     // Update hippo physics
@@ -201,7 +207,7 @@ export class GameEngine {
   }
 
   private handleMissileSystem(gameTimeElapsed: number) {
-    // Spawn missiles every 15 seconds (changed from 45)
+    // Spawn missiles every 15 seconds
     if (gameTimeElapsed >= 15000 && this.lastMissileTime === 0) {
       this.missiles.push(this.objectManager.createMissile());
       this.lastMissileTime = gameTimeElapsed;
@@ -212,7 +218,7 @@ export class GameEngine {
       console.log("🚀 Missile spawned at", gameTimeElapsed / 1000, "seconds, total missiles:", this.missiles.length);
     }
 
-    // Missile warning - 2 seconds before missile (proportional to new timing)
+    // Missile warning - 2 seconds before missile
     const timeSinceLastMissile = gameTimeElapsed - this.lastMissileTime;
     const timeToNextMissile = 15000 - timeSinceLastMissile;
     if (timeToNextMissile <= 2000 && timeToNextMissile > 0 && this.missileWarningTime <= 0) {
@@ -223,9 +229,9 @@ export class GameEngine {
 
   private updateGameObjects() {
     const speedMultiplier = this.getSpeedMultiplier();
-    console.log("🏃 Updating objects with speed multiplier:", speedMultiplier);
+    console.log("🏃 Updating objects with speed multiplier:", speedMultiplier, "for speed:", this.gameSpeed);
     
-    // Update pipes with speed-adjusted movement
+    // Update pipes with speed-adjusted movement (base speed 4px)
     this.pipes.forEach(pipe => {
       pipe.x -= 4 * speedMultiplier;
       
@@ -320,3 +326,4 @@ export class GameEngine {
     }
   }
 }
+
