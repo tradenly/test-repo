@@ -1,15 +1,8 @@
 
 import { DashboardSection } from "@/pages/Dashboard";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { DashboardOverview } from "./sections/DashboardOverview";
-import { ProfileSection } from "./sections/ProfileSection";
-import { FlappyHipposSection } from "./sections/FlappyHipposSection";
-import { WalletsSection } from "./sections/WalletsSection";
-import { StakingSection } from "./sections/StakingSection";
-import { SocialSection } from "./sections/SocialSection";
-import { PortfolioSection } from "./sections/PortfolioSection";
-import { RewardsSection } from "./sections/RewardsSection";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
+import { DashboardLayout } from "./DashboardLayout";
+import { DashboardSectionRenderer } from "./DashboardSectionRenderer";
 
 interface DashboardContentProps {
   activeSection: DashboardSection;
@@ -17,68 +10,9 @@ interface DashboardContentProps {
 }
 
 export const DashboardContent = ({ activeSection, user }: DashboardContentProps) => {
-  const renderSection = () => {
-    switch (activeSection) {
-      case "overview":
-        return (
-          <ErrorBoundary>
-            <DashboardOverview user={user} />
-          </ErrorBoundary>
-        );
-      case "profile":
-        return (
-          <ErrorBoundary>
-            <ProfileSection user={user} />
-          </ErrorBoundary>
-        );
-      case "flappy-hippos":
-        return (
-          <ErrorBoundary>
-            <FlappyHipposSection user={user} />
-          </ErrorBoundary>
-        );
-      case "wallets":
-        return (
-          <ErrorBoundary>
-            <WalletsSection user={user} />
-          </ErrorBoundary>
-        );
-      case "staking":
-        return (
-          <ErrorBoundary>
-            <StakingSection user={user} />
-          </ErrorBoundary>
-        );
-      case "social":
-        return (
-          <ErrorBoundary>
-            <SocialSection user={user} />
-          </ErrorBoundary>
-        );
-      case "portfolio":
-        return (
-          <ErrorBoundary>
-            <PortfolioSection user={user} />
-          </ErrorBoundary>
-        );
-      case "rewards":
-        return (
-          <ErrorBoundary>
-            <RewardsSection user={user} />
-          </ErrorBoundary>
-        );
-      default:
-        return (
-          <ErrorBoundary>
-            <DashboardOverview user={user} />
-          </ErrorBoundary>
-        );
-    }
-  };
-
   return (
-    <div className="max-w-6xl mx-auto">
-      {renderSection()}
-    </div>
+    <DashboardLayout>
+      <DashboardSectionRenderer activeSection={activeSection} user={user} />
+    </DashboardLayout>
   );
 };
