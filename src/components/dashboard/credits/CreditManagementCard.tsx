@@ -73,6 +73,10 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
     }
   };
 
+  const isPositiveTransaction = (type: string) => {
+    return ['purchase', 'earned', 'bonus', 'nft_verification', 'memecoin_verification'].includes(type);
+  };
+
   return (
     <Card className="bg-gray-800/40 border-gray-700">
       <CardHeader>
@@ -169,18 +173,9 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                       </div>
                       <div className="text-right">
                         <div className={`text-sm font-medium ${
-                          transaction.transaction_type === 'purchase' || 
-                          transaction.transaction_type === 'earned' || 
-                          transaction.transaction_type === 'bonus' ||
-                          transaction.transaction_type === 'nft_verification' ||
-                          transaction.transaction_type === 'memecoin_verification'
-                            ? 'text-green-400' : 'text-red-400'
+                          isPositiveTransaction(transaction.transaction_type) ? 'text-green-400' : 'text-red-400'
                         }`}>
-                          {(transaction.transaction_type === 'purchase' || 
-                            transaction.transaction_type === 'earned' || 
-                            transaction.transaction_type === 'bonus' ||
-                            transaction.transaction_type === 'nft_verification' ||
-                            transaction.transaction_type === 'memecoin_verification') ? '+' : '-'}
+                          {isPositiveTransaction(transaction.transaction_type) ? '+' : '-'}
                           {transaction.amount}
                         </div>
                         <Badge className={`text-xs ${getStatusBadgeColor(transaction.status)}`}>

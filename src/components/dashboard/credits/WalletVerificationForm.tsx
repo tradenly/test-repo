@@ -258,7 +258,7 @@ export const WalletVerificationForm = ({ user }: WalletVerificationFormProps) =>
               <Checkbox
                 id="verify-nfts"
                 checked={verifyNFTs}
-                onCheckedChange={setVerifyNFTs}
+                onCheckedChange={(checked) => setVerifyNFTs(checked === true)}
                 className="border-gray-600"
               />
               <Label htmlFor="verify-nfts" className="text-gray-300">
@@ -269,7 +269,7 @@ export const WalletVerificationForm = ({ user }: WalletVerificationFormProps) =>
               <Checkbox
                 id="verify-memecoins"
                 checked={verifyMemecoins}
-                onCheckedChange={setVerifyMemecoins}
+                onCheckedChange={(checked) => setVerifyMemecoins(checked === true)}
                 className="border-gray-600"
               />
               <Label htmlFor="verify-memecoins" className="text-gray-300">
