@@ -64,8 +64,11 @@ export class TetrisEngine {
     this.dropInterval = this.baseDropInterval;
     
     this.gameState = this.createInitialState();
+    
+    // Properly initialize both current and next pieces
+    this.gameState.nextPiece = createPiece(getRandomPieceType());
     this.spawnNewPiece();
-    this.spawnNewPiece(); // Get next piece ready
+    
     this.dropTimer = 0;
     this.lastTime = performance.now();
     this.gameLoop();
@@ -197,6 +200,8 @@ export class TetrisEngine {
   private placePiece(): void {
     if (!this.gameState.currentPiece) return;
 
+    console.log("🔧 Placing piece, current score:", this.gameState.score, "lines:", this.gameState.lines);
+
     // Place piece on board
     for (let y = 0; y < this.gameState.currentPiece.shape.length; y++) {
       for (let x = 0; x < this.gameState.currentPiece.shape[y].length; x++) {
@@ -212,9 +217,11 @@ export class TetrisEngine {
 
     // Clear completed lines
     const linesCleared = this.clearLines();
+    console.log("🧹 Lines cleared:", linesCleared);
     
     // Update score and level
     this.updateScore(linesCleared);
+    console.log("📊 After update - score:", this.gameState.score, "lines:", this.gameState.lines, "level:", this.gameState.level);
     
     // Spawn next piece
     this.spawnNewPiece();
@@ -223,6 +230,7 @@ export class TetrisEngine {
     if (this.gameState.currentPiece && !this.isValidPosition(this.gameState.currentPiece)) {
       this.gameState.isGameOver = true;
       this.stop();
+      console.log("🏁 Game Over! Final score:", this.gameState.score, "lines:", this.gameState.lines);
       this.onGameOver?.(this.gameState.score, this.gameState.level, this.gameState.lines);
     }
   }
@@ -245,33 +253,41 @@ export class TetrisEngine {
   }
 
   private updateScore(linesCleared: number): void {
-    // Tetris scoring system
-    const linePoints = [0, 40, 100, 300, 1200];
-    const points = linePoints[Math.min(linesCleared, 4)] * this.gameState.level;
-    
-    this.gameState.score += points;
-    this.gameState.lines += linesCleared;
-    
-    // Level up every 10 lines
-    const newLevel = Math.floor(this.gameState.lines / 10) + 1;
-    if (newLevel > this.gameState.level) {
-      this.gameState.level = newLevel;
-      // Increase drop speed
-      this.dropInterval = Math.max(50, this.baseDropInterval - (this.gameState.level - 1) * this.levelDecrease);
+    if (linesCleared > 0) {
+      // Tetris scoring system
+      const linePoints = [0, 40, 100, 300, 1200];
+      const points = linePoints[Math.min(linesCleared, 4)] * this.gameState.level;
+      
+      this.gameState.score += points;
+      this.gameState.lines += linesCleared;
+      
+      console.log("💯 Score update - added:", points, "total score:", this.gameState.score, "total lines:", this.gameState.lines);
+      
+      // Level up every 10 lines
+      const newLevel = Math.floor(this.gameState.lines / 10) + 1;
+      if (newLevel > this.gameState.level) {
+        this.gameState.level = newLevel;
+        // Increase drop speed
+        this.dropInterval = Math.max(50, this.baseDropInterval - (this.gameState.level - 1) * this.levelDecrease);
+        console.log("🆙 Level up! New level:", this.gameState.level, "new drop interval:", this.dropInterval);
+      }
     }
   }
 
   private spawnNewPiece(): void {
-    if (this.gameState.nextPiece) {
-      this.gameState.currentPiece = this.gameState.nextPiece;
-    } else {
-      this.gameState.currentPiece = createPiece(getRandomPieceType());
-    }
+    console.log("🚀 Spawning new piece. Current piece type:", this.gameState.currentPiece?.type, "Next piece type:", this.gameState.nextPiece?.type);
     
+    // Move next piece to current
+    this.gameState.currentPiece = this.gameState.nextPiece;
+    
+    // Generate new next piece
     this.gameState.nextPiece = createPiece(getRandomPieceType());
+    
+    console.log("✅ New pieces set. Current piece type:", this.gameState.currentPiece?.type, "Next piece type:", this.gameState.nextPiece?.type);
   }
 
   private notifyStateChange(): void {
+    console.log("🔄 State change notification - score:", this.gameState.score, "lines:", this.gameState.lines, "level:", this.gameState.level);
     this.onStateChange?.(this.gameState);
   }
 

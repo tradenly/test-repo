@@ -11,11 +11,11 @@ export const TetrisGameStats = ({ gameState }: TetrisGameStatsProps) => {
   if (!gameState) {
     return (
       <Card className="bg-gray-800/40 border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-white text-lg">Game Stats</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-white text-sm">Game Stats</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center text-gray-400">
+        <CardContent className="pt-0">
+          <div className="text-center text-gray-400 text-sm">
             Start a game to see stats
           </div>
         </CardContent>
@@ -25,40 +25,40 @@ export const TetrisGameStats = ({ gameState }: TetrisGameStatsProps) => {
 
   return (
     <Card className="bg-gray-800/40 border-gray-700">
-      <CardHeader>
-        <CardTitle className="text-white text-lg">Game Stats</CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-white text-sm">Game Stats</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-4 gap-2">
           <div className="text-center">
             <div className="flex items-center justify-center mb-1">
-              <Trophy className="h-4 w-4 text-yellow-400 mr-1" />
+              <Trophy className="h-3 w-3 text-yellow-400" />
             </div>
-            <div className="text-2xl font-bold text-white">{gameState.score.toLocaleString()}</div>
+            <div className="text-lg font-bold text-white">{gameState.score.toLocaleString()}</div>
             <div className="text-xs text-gray-400">Score</div>
           </div>
           
           <div className="text-center">
             <div className="flex items-center justify-center mb-1">
-              <Zap className="h-4 w-4 text-purple-400 mr-1" />
+              <Zap className="h-3 w-3 text-purple-400" />
             </div>
-            <div className="text-2xl font-bold text-white">{gameState.level}</div>
+            <div className="text-lg font-bold text-white">{gameState.level}</div>
             <div className="text-xs text-gray-400">Level</div>
           </div>
           
           <div className="text-center">
             <div className="flex items-center justify-center mb-1">
-              <Hash className="h-4 w-4 text-green-400 mr-1" />
+              <Hash className="h-3 w-3 text-green-400" />
             </div>
-            <div className="text-2xl font-bold text-white">{gameState.lines}</div>
+            <div className="text-lg font-bold text-white">{gameState.lines}</div>
             <div className="text-xs text-gray-400">Lines</div>
           </div>
           
           <div className="text-center">
             <div className="flex items-center justify-center mb-1">
-              <Target className="h-4 w-4 text-blue-400 mr-1" />
+              <Target className="h-3 w-3 text-blue-400" />
             </div>
-            <div className="text-2xl font-bold text-white">{Math.max(0, 10 - (gameState.lines % 10))}</div>
+            <div className="text-lg font-bold text-white">{Math.max(0, 10 - (gameState.lines % 10))}</div>
             <div className="text-xs text-gray-400">To Next</div>
           </div>
         </div>

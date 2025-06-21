@@ -32,7 +32,8 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
       
       engineRef.current.setCallbacks(
         (state) => {
-          setGameState(state);
+          console.log("🔄 Game state updated:", { score: state.score, lines: state.lines, level: state.level });
+          setGameState({ ...state }); // Create new object to ensure React re-renders
           rendererRef.current?.render(state);
         },
         handleGameOver
@@ -47,7 +48,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         const container = canvasRef.current.parentElement;
         if (container) {
           const rect = container.getBoundingClientRect();
-          const size = Math.min(rect.width - 32, rect.height - 32); // Account for padding
+          const size = Math.min(rect.width - 32, rect.height - 32);
           rendererRef.current.setCanvasSize(size, size);
           if (gameState) {
             rendererRef.current.render(gameState);
@@ -100,10 +101,12 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
   };
 
   const pauseGame = () => {
+    console.log("⏸️ Pausing/resuming game");
     engineRef.current?.pause();
   };
 
   const resetGame = () => {
+    console.log("🔄 Resetting game");
     engineRef.current?.stop();
     setGameState(null);
     setGameStartTime(0);
@@ -162,7 +165,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
   }, []);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
       {/* Main Gameplay Area */}
       <div className="lg:col-span-2">
         <Card className="bg-gray-800/40 border-gray-700 h-full">
@@ -177,7 +180,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
       </div>
 
       {/* Side Panel with Stats and Controls */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         <TetrisGameControls
           isPlaying={!!gameState && !gameState.isGameOver}
           isPaused={gameState?.isPaused || false}
