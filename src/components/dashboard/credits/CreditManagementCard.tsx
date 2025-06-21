@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Gift, TrendingUp, History } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Coins, Gift, TrendingUp, History, HelpCircle } from "lucide-react";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { useCredits, useCreditTransactions, type CreditTransaction } from "@/hooks/useCredits";
 import { useToast } from "@/hooks/use-toast";
@@ -146,9 +147,27 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                   Cash Out
                 </Button>
               </div>
-              <p className="text-xs text-gray-400 mt-2">
-                Minimum cashout: 25 Credits. Funds will be sent to your primary wallet.
-              </p>
+              <div className="flex items-center gap-1 mt-2">
+                <p className="text-xs text-gray-400">
+                  Minimum cashout: 25 Credits. Funds will be sent to your primary wallet.
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 text-gray-400 hover:text-gray-300 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-900 border-gray-700 text-white max-w-xs">
+                    <div className="space-y-2">
+                      <p className="font-medium">Cashout Details:</p>
+                      <ul className="text-sm space-y-1">
+                        <li>• Minimum cashout amount: 25 credits</li>
+                        <li>• Exchange rate: 5 credits = 1 USDC</li>
+                        <li>• Example: 25 credits = 5 USDC</li>
+                        <li>• Funds can only be sent to wallets listed in the "Add Wallet" section above</li>
+                      </ul>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
           </TabsContent>
 
