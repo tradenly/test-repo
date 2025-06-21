@@ -126,6 +126,36 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         console.log("Game engine initialized successfully");
       }
 
+      bindEvents() {
+        const handleKeyPress = (e: KeyboardEvent) => {
+          if (e.code === 'Space' || e.key === ' ') {
+            e.preventDefault();
+            this.flap();
+          }
+        };
+
+        const handleClick = (e: MouseEvent) => {
+          e.preventDefault();
+          this.flap();
+        };
+
+        document.addEventListener('keydown', handleKeyPress);
+        this.canvas.addEventListener('click', handleClick);
+
+        // Store cleanup functions
+        this.eventListeners.push(() => {
+          document.removeEventListener('keydown', handleKeyPress);
+          this.canvas.removeEventListener('click', handleClick);
+        });
+      }
+
+      flap() {
+        if (this.gameRunning) {
+          this.hippo.velocity = -12;
+          this.hippo.rotation = -0.3;
+        }
+      }
+
       cleanup() {
         console.log("Cleaning up game engine...");
         this.gameRunning = false;
@@ -442,7 +472,6 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx.restore();
       }
 
-      // ... keep existing code (drawEnhancedClouds, drawEnhancedPipe, drawEnhancedGround, drawEnhancedHippo, drawEnhancedScore methods)
       drawEnhancedClouds() {
         this.ctx.fillStyle = 'white';
         this.ctx.globalAlpha = 0.8;
@@ -561,7 +590,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         const shieldWidth = 25;
         const padding = 20;
         const labelWidth = 70;
-        const counterWidth = 30;
+        const counterWidth = 40;
         const totalWidth = labelWidth + (maxShieldsToShow * shieldWidth) + counterWidth + (padding * 2);
         
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
@@ -578,6 +607,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           this.ctx.fillText('🛡️', 20 + labelWidth + (i * shieldWidth), 45);
         }
         
+        // Fix the shield counter display to show current/max format
         this.ctx.fillStyle = this.pipeHitsRemaining > 0 ? '#4CAF50' : '#f44336';
         this.ctx.font = 'bold 12px Arial';
         this.ctx.fillText(`${this.pipeHitsRemaining}/${this.maxShields}`, 20 + labelWidth + (maxShieldsToShow * shieldWidth), 50);
