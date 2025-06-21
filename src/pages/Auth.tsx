@@ -22,19 +22,24 @@ const Auth = () => {
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
+        console.log('🔐 User already authenticated, redirecting to dashboard');
         navigate('/');
       }
     });
 
-    // Listen for OAuth redirect
+    // Listen for OAuth redirect and other auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change:', event, !!session);
+      console.log('🔐 Auth state change:', event, !!session);
+      
       if (event === 'SIGNED_IN' && session) {
+        console.log('✅ User signed in successfully');
         toast({
-          title: "Success",
+          title: "Welcome!",
           description: "Successfully signed in!",
         });
         navigate('/');
+      } else if (event === 'SIGNED_OUT') {
+        console.log('👋 User signed out');
       }
     });
 
@@ -45,83 +50,109 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: {
-          username,
-          full_name: fullName,
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            username,
+            full_name: fullName,
+          }
         }
-      }
-    });
+      });
 
-    if (error) {
+      if (error) {
+        console.error('❌ Sign up error:', error);
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Check your email for verification link!",
+        });
+      }
+    } catch (err) {
+      console.error('❌ Unexpected sign up error:', err);
       toast({
         title: "Error",
-        description: error.message,
+        description: "An unexpected error occurred during sign up",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Success",
-        description: "Check your email for verification link!",
-      });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
+      if (error) {
+        console.error('❌ Sign in error:', error);
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error('❌ Unexpected sign in error:', err);
       toast({
         title: "Error",
-        description: error.message,
+        description: "An unexpected error occurred during sign in",
         variant: "destructive",
       });
-    } else {
-      navigate('/');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
-    console.log('Starting Google OAuth flow');
+    console.log('🚀 Starting Google OAuth flow');
     setGoogleLoading(true);
 
     try {
+      // Get the current origin to ensure proper redirect
+      const currentOrigin = window.location.origin;
+      console.log('🌐 Current origin:', currentOrigin);
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${currentOrigin}/`,
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent',
+            prompt: 'select_account',
           },
+          skipBrowserRedirect: false,
         }
       });
 
       if (error) {
-        console.error('Google OAuth error:', error);
+        console.error('❌ Google OAuth error:', error);
         toast({
           title: "Error",
           description: error.message || "Failed to sign in with Google",
           variant: "destructive",
         });
         setGoogleLoading(false);
+      } else {
+        console.log('✅ Google OAuth initiated successfully');
+        // Don't set loading to false here as user will be redirected
       }
-      // Note: Don't set googleLoading to false here if successful, 
-      // as the user will be redirected away
     } catch (err) {
-      console.error('Unexpected Google OAuth error:', err);
+      console.error('❌ Unexpected Google OAuth error:', err);
       toast({
         title: "Error",
         description: "An unexpected error occurred during Google sign in",
@@ -149,7 +180,8 @@ const Auth = () => {
             <Button
               onClick={handleGoogleSignIn}
               disabled={googleLoading || loading}
-              className="w-full bg-white hover:bg-gray-100 text-gray-900 border border-gray-300 flex items-center justify-center gap-3"
+              className="w-full bg-white hover:bg-gray-100 text-gray-900 border border-gray-300 flex items-center justify-center gap-3 transition-colors"
+              type="button"
             >
               {googleLoading ? (
                 <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
@@ -161,7 +193,7 @@ const Auth = () => {
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
               )}
-              {googleLoading ? "Signing in..." : "Continue with Google"}
+              {googleLoading ? "Signing in with Google..." : "Continue with Google"}
             </Button>
           </div>
 
@@ -185,7 +217,7 @@ const Auth = () => {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
                 />
                 <Input
                   type="text"
@@ -193,7 +225,7 @@ const Auth = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
                 />
               </>
             )}
@@ -203,7 +235,7 @@ const Auth = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="bg-gray-700 border-gray-600 text-white"
+              className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
             />
             <Input
               type="password"
@@ -211,11 +243,11 @@ const Auth = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="bg-gray-700 border-gray-600 text-white"
+              className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
             />
             <Button 
               type="submit" 
-              className="w-full bg-purple-600 hover:bg-purple-700"
+              className="w-full bg-purple-600 hover:bg-purple-700 transition-colors"
               disabled={loading || googleLoading}
             >
               {loading ? "Loading..." : (isSignUp ? "Sign Up" : "Sign In")}
@@ -224,8 +256,9 @@ const Auth = () => {
           
           <div className="mt-4 text-center">
             <button
+              type="button"
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-purple-400 hover:text-purple-300 text-sm"
+              className="text-purple-400 hover:text-purple-300 text-sm transition-colors"
               disabled={loading || googleLoading}
             >
               {isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
@@ -236,8 +269,9 @@ const Auth = () => {
             <Button
               onClick={() => navigate('/')}
               variant="ghost"
-              className="text-gray-400 hover:text-white"
+              className="text-gray-400 hover:text-white transition-colors"
               disabled={loading || googleLoading}
+              type="button"
             >
               Back to Home
             </Button>
