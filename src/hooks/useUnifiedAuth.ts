@@ -15,50 +15,65 @@ export const useUnifiedAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
       try {
-        // Check Supabase auth
+        // Immediately check for existing session
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (session?.user) {
+        if (mounted && session?.user) {
+          console.log('UnifiedAuth: Found existing session, setting user immediately');
           setUnifiedUser({
             id: session.user.id,
             email: session.user.email,
             authType: 'supabase',
             supabaseUser: session.user,
           });
-        } else {
+        } else if (mounted) {
+          console.log('UnifiedAuth: No existing session found');
           setUnifiedUser(null);
         }
         
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       } catch (error) {
-        console.error('Auth check failed:', error);
-        setUnifiedUser(null);
-        setLoading(false);
+        console.error('UnifiedAuth: Session check failed:', error);
+        if (mounted) {
+          setUnifiedUser(null);
+          setLoading(false);
+        }
       }
     };
 
-    // Listen for Supabase auth changes
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Supabase auth state changed:', event, !!session);
-        if (session?.user) {
-          setUnifiedUser({
-            id: session.user.id,
-            email: session.user.email,
-            authType: 'supabase',
-            supabaseUser: session.user,
-          });
-        } else {
-          setUnifiedUser(null);
+        console.log('UnifiedAuth: Auth state changed:', event, !!session);
+        if (mounted) {
+          if (session?.user) {
+            setUnifiedUser({
+              id: session.user.id,
+              email: session.user.email,
+              authType: 'supabase',
+              supabaseUser: session.user,
+            });
+          } else {
+            setUnifiedUser(null);
+          }
+          setLoading(false);
         }
       }
     );
 
-    checkAuth();
+    // Initialize auth state
+    initializeAuth();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const logout = async () => {

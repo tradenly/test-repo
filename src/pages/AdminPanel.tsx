@@ -20,15 +20,9 @@ const AdminPanel = () => {
 
   console.log('🏛️ AdminPanel: Render - isAdmin:', isAdmin, 'isLoading:', isLoading, 'user exists:', !!user);
 
-  // If no user at all, redirect to auth
-  if (!user && !isLoading) {
-    console.log('🚫 AdminPanel: No user and not loading, redirecting to auth');
-    return <Navigate to="/auth" replace />;
-  }
-
-  // Show loading while we're checking authentication OR admin status
-  if (isLoading || !user) {
-    console.log('⏳ AdminPanel: Loading state - isLoading:', isLoading, 'user exists:', !!user);
+  // Show loading while checking auth
+  if (isLoading) {
+    console.log('⏳ AdminPanel: Loading admin status');
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-xl">Checking admin access...</div>
@@ -36,15 +30,20 @@ const AdminPanel = () => {
     );
   }
 
-  // Only redirect if we have a user AND we're NOT loading AND they're NOT an admin
-  if (user && !isLoading && !isAdmin) {
-    console.log('🚫 AdminPanel: User confirmed NOT admin, redirecting to dashboard');
+  // Redirect if no user
+  if (!user) {
+    console.log('🚫 AdminPanel: No user, redirecting to auth');
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Redirect if not admin
+  if (!isAdmin) {
+    console.log('🚫 AdminPanel: Not admin, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
-  // If we get here, render the admin panel
-  console.log('✅ AdminPanel: Rendering admin panel for admin user');
-
+  // Render admin panel
+  console.log('✅ AdminPanel: Rendering admin panel');
   return (
     <div className="min-h-screen bg-black">
       <Navigation />
