@@ -42,7 +42,7 @@ export const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-gray-800">
       <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
         <div 
-          className="text-2xl font-bold cursor-pointer"
+          className="text-2xl font-bold cursor-pointer text-white"
           onClick={() => navigate('/')}
         >
           💩 POOPEE 🦛
