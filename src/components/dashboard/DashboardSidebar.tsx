@@ -10,7 +10,8 @@ import {
   LayoutDashboard,
   Gamepad2,
   Trophy,
-  FileText
+  FileText,
+  TreePine
 } from "lucide-react";
 import { DashboardSection } from "@/pages/Dashboard";
 
@@ -24,6 +25,7 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
     { id: "overview" as DashboardSection, label: "Overview", icon: LayoutDashboard },
     { id: "profile" as DashboardSection, label: "Profile", icon: User },
     { id: "flappy-hippos" as DashboardSection, label: "Flappy Hippos", icon: Gamepad2 },
+    { id: "falling-logs" as DashboardSection, label: "Falling Logs", icon: TreePine },
     { id: "leaderboard" as DashboardSection, label: "Leaderboard", icon: Trophy },
     { id: "documents" as DashboardSection, label: "Documents", icon: FileText },
     { id: "wallets" as DashboardSection, label: "Wallets", icon: Wallet },

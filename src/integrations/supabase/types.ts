@@ -166,6 +166,7 @@ export type Database = {
           duration_seconds: number
           game_type: string
           id: string
+          metadata: Json | null
           pipes_passed: number
           score: number
           user_id: string
@@ -178,6 +179,7 @@ export type Database = {
           duration_seconds?: number
           game_type?: string
           id?: string
+          metadata?: Json | null
           pipes_passed?: number
           score?: number
           user_id: string
@@ -190,6 +192,7 @@ export type Database = {
           duration_seconds?: number
           game_type?: string
           id?: string
+          metadata?: Json | null
           pipes_passed?: number
           score?: number
           user_id?: string
@@ -563,11 +566,14 @@ export type Database = {
         Row: {
           average_score: number | null
           full_name: string | null
+          highest_level: number | null
           highest_score: number | null
           last_played: string | null
           longest_survival: number | null
           total_credits_earned: number | null
           total_games: number | null
+          total_lines_cleared: number | null
+          total_pipes_passed: number | null
           user_id: string | null
           username: string | null
         }

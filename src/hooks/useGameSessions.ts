@@ -13,6 +13,7 @@ export interface GameSession {
   pipes_passed: number;
   created_at: string;
   completed_at?: string;
+  metadata?: any;
 }
 
 export const useGameSessions = (userId: string) => {
@@ -51,6 +52,7 @@ export const useCreateGameSession = () => {
       credits_spent: number;
       credits_earned: number;
       pipes_passed: number;
+      metadata?: any;
     }) => {
       console.log("Creating game session:", sessionData);
       
@@ -58,6 +60,7 @@ export const useCreateGameSession = () => {
         .from("game_sessions")
         .insert([{
           ...sessionData,
+          game_type: sessionData.metadata?.game_type || 'flappy_hippos',
           completed_at: new Date().toISOString()
         }])
         .select()
@@ -73,6 +76,7 @@ export const useCreateGameSession = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["game-sessions", data.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard-data"] });
     },
   });
 };

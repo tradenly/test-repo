@@ -10,6 +10,7 @@ export type DashboardSection =
   | "overview" 
   | "profile" 
   | "flappy-hippos"
+  | "falling-logs"
   | "leaderboard"
   | "documents"
   | "wallets" 
