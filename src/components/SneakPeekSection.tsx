@@ -48,7 +48,7 @@ export const SneakPeekSection = () => {
           What is POOPEE? 🦛
         </h2>
         <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
-          POOPEE is a meme coin and NFT collection with no use case, no promises, and no future. Basically, what all of them are anyway, but we're just more upfront and forthcoming about it.
+          POOPEE is a meme coin and NFT collection with no use case, no promises, and no future. Basically, what all of them are anyway, but we're just more upfront and forthcoming about it. Who really knows we made all this up and by the way we have some pretty cool P2E games for you to check out and if you don't, who cares
         </p>
         
         <div className="mb-16">
