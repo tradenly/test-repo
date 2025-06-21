@@ -1,6 +1,7 @@
 
 import { WalletManagement } from "../wallets/WalletManagement";
 import { CreditManagementCard } from "../credits/CreditManagementCard";
+import { PhantomCreditPurchaseCard } from "../credits/PhantomCreditPurchaseCard";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 
 interface WalletsSectionProps {
@@ -25,7 +26,11 @@ export const WalletsSection = ({ user }: WalletsSectionProps) => {
         <p className="text-gray-400 mb-6">
           Buy credits to play games, earn rewards, and cash out your winnings.
         </p>
-        <CreditManagementCard user={user} />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CreditManagementCard user={user} />
+          <PhantomCreditPurchaseCard />
+        </div>
       </div>
     </div>
   );
