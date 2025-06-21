@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { GameMenu, GameOver } from '../GameUI';
-import type { GameState } from '../useGameState';
+import type { GameState, GameSpeed } from '../useGameState';
 import type { GameEngine } from '../GameEngine';
 
 interface GameControlsProps {
@@ -11,10 +11,12 @@ interface GameControlsProps {
   credits: number;
   canPlay: boolean;
   isInitialized: boolean;
+  gameSpeed: GameSpeed;
   gameRef: React.MutableRefObject<GameEngine | null>;
   onStartGame: () => void;
   onResetGame: () => void;
   onBuyShields: () => void;
+  onSpeedChange: (speed: GameSpeed) => void;
   isPurchasing: boolean;
 }
 
@@ -25,10 +27,12 @@ export const GameControls = ({
   credits,
   canPlay,
   isInitialized,
+  gameSpeed,
   gameRef,
   onStartGame,
   onResetGame,
   onBuyShields,
+  onSpeedChange,
   isPurchasing
 }: GameControlsProps) => {
   if (gameState === 'menu') {
@@ -38,8 +42,10 @@ export const GameControls = ({
         totalShields={totalShields}
         canPlay={canPlay}
         isInitialized={isInitialized}
+        gameSpeed={gameSpeed}
         onStartGame={onStartGame}
         onBuyShields={onBuyShields}
+        onSpeedChange={onSpeedChange}
         isPurchasing={isPurchasing}
       />
     );
@@ -54,9 +60,11 @@ export const GameControls = ({
         credits={credits}
         canPlay={canPlay}
         isInitialized={isInitialized}
+        gameSpeed={gameSpeed}
         onResetGame={onResetGame}
         onStartGame={onStartGame}
         onBuyShields={onBuyShields}
+        onSpeedChange={onSpeedChange}
         isPurchasing={isPurchasing}
       />
     );

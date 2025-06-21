@@ -1,13 +1,14 @@
-
 import { useState, useCallback, useEffect } from 'react';
 
 export type GameState = 'menu' | 'playing' | 'gameOver';
+export type GameSpeed = 'beginner' | 'moderate' | 'advanced';
 
 export const useGameState = () => {
   const [gameState, setGameState] = useState<GameState>('menu');
   const [score, setScore] = useState(0);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
   const [purchasedShields, setPurchasedShields] = useState(0);
+  const [gameSpeed, setGameSpeed] = useState<GameSpeed>('moderate');
 
   // Always start with 3 base shields + any purchased shields
   const totalShields = 3 + purchasedShields;
@@ -15,11 +16,11 @@ export const useGameState = () => {
   console.log("🛡️ useGameState: totalShields calculated as:", totalShields, "(base: 3 + purchased:", purchasedShields, ")");
 
   const startGame = useCallback(() => {
-    console.log("🎮 Starting game with shields:", totalShields);
+    console.log("🎮 Starting game with shields:", totalShields, "and speed:", gameSpeed);
     setGameState('playing');
     setScore(0);
     setGameStartTime(Date.now());
-  }, [totalShields]);
+  }, [totalShields, gameSpeed]);
 
   const endGame = useCallback(() => {
     console.log("🏁 Game ended");
@@ -31,14 +32,20 @@ export const useGameState = () => {
     setGameState('menu');
     setScore(0);
     setPurchasedShields(0); // Reset purchased shields - back to 3 total
-    console.log("🔄 Game reset complete - shields back to 3");
-  }, []);
+    // Keep speed setting when resetting
+    console.log("🔄 Game reset complete - shields back to 3, speed remains:", gameSpeed);
+  }, [gameSpeed]);
 
   const buyShields = useCallback(() => {
     const newPurchasedShields = purchasedShields + 3;
     console.log("💰 useGameState: Shields purchased - updating from", totalShields, "to", 3 + newPurchasedShields);
     setPurchasedShields(newPurchasedShields);
   }, [purchasedShields, totalShields]);
+
+  const changeSpeed = useCallback((newSpeed: GameSpeed) => {
+    console.log("🏃 Speed changed from", gameSpeed, "to", newSpeed);
+    setGameSpeed(newSpeed);
+  }, [gameSpeed]);
 
   return {
     gameState,
@@ -47,9 +54,11 @@ export const useGameState = () => {
     gameStartTime,
     purchasedShields,
     totalShields,
+    gameSpeed,
     startGame,
     endGame,
     resetGame,
-    buyShields
+    buyShields,
+    changeSpeed
   };
 };

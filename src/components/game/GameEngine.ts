@@ -1,8 +1,8 @@
-
 import { GamePhysics, HippoState } from './engine/GamePhysics';
 import { GameRenderer } from './engine/GameRenderer';
 import { CollisionDetector, Pipe, Missile } from './engine/CollisionDetector';
 import { GameObjectManager } from './engine/GameObjectManager';
+import type { GameSpeed } from './useGameState';
 
 export class GameEngine {
   private ctx: CanvasRenderingContext2D;
@@ -29,6 +29,7 @@ export class GameEngine {
   private gameStartTime = 0;
   private lastMissileTime = 0;
   private missileWarningTime = 0;
+  private gameSpeed: GameSpeed = 'moderate';
   
   private onGameEnd: (score: number, pipesPassedCount: number, duration: number) => void;
   private onScoreUpdate: (score: number) => void;
@@ -54,6 +55,20 @@ export class GameEngine {
     this.bindEvents();
     this.render();
     console.log("🎮 Game engine initialized successfully");
+  }
+
+  private getSpeedMultiplier(): number {
+    switch (this.gameSpeed) {
+      case 'beginner': return 0.5; // 2px per frame
+      case 'moderate': return 1.0; // 4px per frame (current)
+      case 'advanced': return 1.5; // 6px per frame
+      default: return 1.0;
+    }
+  }
+
+  setGameSpeed(speed: GameSpeed) {
+    console.log("🏃 Game engine: Speed changed to", speed);
+    this.gameSpeed = speed;
   }
 
   bindEvents() {
@@ -131,7 +146,7 @@ export class GameEngine {
   }
 
   start() {
-    console.log("🎯 Game engine starting with shields:", this.pipeHitsRemaining, "/", this.maxShields);
+    console.log("🎯 Game engine starting with shields:", this.pipeHitsRemaining, "/", this.maxShields, "and speed:", this.gameSpeed);
     this.gameRunning = true;
     this.gameStartTime = Date.now();
     this.lastMissileTime = 0;
@@ -165,7 +180,7 @@ export class GameEngine {
     if (this.hitEffectTime > 0) this.hitEffectTime--;
     if (this.missileWarningTime > 0) this.missileWarningTime--;
 
-    // Missile system
+    // Missile system - changed to 15 seconds
     this.handleMissileSystem(gameTimeElapsed);
 
     // Update hippo physics
@@ -178,30 +193,32 @@ export class GameEngine {
   }
 
   private handleMissileSystem(gameTimeElapsed: number) {
-    // Spawn missiles every 45 seconds
-    if (gameTimeElapsed >= 45000 && this.lastMissileTime === 0) {
+    // Spawn missiles every 15 seconds (changed from 45)
+    if (gameTimeElapsed >= 15000 && this.lastMissileTime === 0) {
       this.missiles.push(this.objectManager.createMissile());
       this.lastMissileTime = gameTimeElapsed;
-      console.log("🚀 First missile spawned at 45 seconds");
-    } else if (this.lastMissileTime > 0 && gameTimeElapsed - this.lastMissileTime >= 45000) {
+      console.log("🚀 First missile spawned at 15 seconds");
+    } else if (this.lastMissileTime > 0 && gameTimeElapsed - this.lastMissileTime >= 15000) {
       this.missiles.push(this.objectManager.createMissile());
       this.lastMissileTime = gameTimeElapsed;
       console.log("🚀 Missile spawned at", gameTimeElapsed / 1000, "seconds");
     }
 
-    // Missile warning
+    // Missile warning - 2 seconds before missile (proportional to new timing)
     const timeSinceLastMissile = gameTimeElapsed - this.lastMissileTime;
-    const timeToNextMissile = 45000 - timeSinceLastMissile;
-    if (timeToNextMissile <= 5000 && timeToNextMissile > 0 && this.missileWarningTime <= 0) {
-      this.missileWarningTime = 300;
+    const timeToNextMissile = 15000 - timeSinceLastMissile;
+    if (timeToNextMissile <= 2000 && timeToNextMissile > 0 && this.missileWarningTime <= 0) {
+      this.missileWarningTime = 120; // 2 seconds at 60fps
       console.log("⚠️ Missile warning activated");
     }
   }
 
   private updateGameObjects() {
-    // Update pipes
+    const speedMultiplier = this.getSpeedMultiplier();
+    
+    // Update pipes with speed-adjusted movement
     this.pipes.forEach(pipe => {
-      pipe.x -= 4;
+      pipe.x -= 4 * speedMultiplier;
       
       if (this.collisionDetector.checkPipeScored(this.hippo, pipe) && !pipe.hit) {
         this.score += 1;
@@ -212,8 +229,8 @@ export class GameEngine {
       }
     });
 
-    this.pipes = this.objectManager.updatePipes(this.pipes);
-    this.missiles = this.objectManager.updateMissiles(this.missiles);
+    this.pipes = this.objectManager.updatePipes(this.pipes, speedMultiplier);
+    this.missiles = this.objectManager.updateMissiles(this.missiles, speedMultiplier);
     
     if (this.objectManager.shouldAddPipe(this.pipes)) {
       this.pipes.push(this.objectManager.createPipe());

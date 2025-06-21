@@ -28,10 +28,12 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     score,
     setScore,
     totalShields,
+    gameSpeed,
     startGame: startGameState,
     endGame,
     resetGame: resetGameState,
-    buyShields: buyShieldsState
+    buyShields: buyShieldsState,
+    changeSpeed
   } = useGameState();
 
   // Shield management
@@ -50,6 +52,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     setIsInitialized,
     initializationRef,
     totalShields,
+    gameSpeed,
     onGameEnd: (finalScore: number, pipesPassedCount: number, duration: number) => {
       endGame();
       onGameEnd(finalScore, pipesPassedCount, duration);
@@ -90,10 +93,12 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           credits={credits}
           canPlay={canPlay}
           isInitialized={isInitialized}
+          gameSpeed={gameSpeed}
           gameRef={gameRef}
           onStartGame={handleStartGame}
           onResetGame={handleResetGame}
           onBuyShields={buyShields}
+          onSpeedChange={changeSpeed}
           isPurchasing={isPurchasing}
         />
       </div>

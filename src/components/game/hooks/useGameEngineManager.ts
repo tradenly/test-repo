@@ -1,6 +1,7 @@
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { GameEngine } from '../GameEngine';
+import type { GameSpeed } from '../useGameState';
 
 interface UseGameEngineManagerProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
@@ -9,9 +10,10 @@ interface UseGameEngineManagerProps {
   setIsInitialized: (value: boolean) => void;
   initializationRef: React.MutableRefObject<boolean>;
   totalShields: number;
+  gameSpeed: GameSpeed;
   onGameEnd: (score: number, pipesPassedCount: number, duration: number) => void;
   setScore: (score: number) => void;
-  updateGameEngineShields: (shields: number) => void;
+  updateGameEngineShields: () => void;
 }
 
 export const useGameEngineManager = ({
@@ -21,104 +23,85 @@ export const useGameEngineManager = ({
   setIsInitialized,
   initializationRef,
   totalShields,
+  gameSpeed,
   onGameEnd,
   setScore,
   updateGameEngineShields
 }: UseGameEngineManagerProps) => {
-  
-  // Stable callback references
-  const handleGameEndRef = useRef<(finalScore: number, pipesPassedCount: number, duration: number) => void>();
-  const setScoreRef = useRef<(score: number) => void>();
 
-  // Update refs when callbacks change
+  // Initialize game engine
   useEffect(() => {
-    handleGameEndRef.current = (finalScore: number, pipesPassedCount: number, duration: number) => {
-      onGameEnd(finalScore, pipesPassedCount, duration);
-    };
-  }, [onGameEnd]);
+    if (!canvasRef.current || initializationRef.current) return;
 
-  useEffect(() => {
-    setScoreRef.current = setScore;
-  }, [setScore]);
-
-  // Game engine initialization - only create once and prevent multiple initializations
-  useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || initializationRef.current) {
-      return;
-    }
-
+    canvas.width = 800;
+    canvas.height = 600;
+    
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-      console.log("Canvas context not found");
+      console.error("❌ Failed to get canvas context");
       return;
     }
 
-    console.log("🎮 useGameEngineManager: Initializing game engine...");
+    console.log("🎮 Initializing game engine...");
     initializationRef.current = true;
 
-    // Set canvas size
-    canvas.width = 800;
-    canvas.height = 570;
-
     try {
-      if (gameRef.current) {
-        gameRef.current.cleanup();
-      }
-      
-      gameRef.current = new GameEngine(
-        ctx, 
-        canvas, 
-        (score, pipes, duration) => handleGameEndRef.current?.(score, pipes, duration),
-        (score) => setScoreRef.current?.(score)
+      const gameEngine = new GameEngine(
+        ctx,
+        canvas,
+        onGameEnd,
+        setScore
       );
+
+      gameRef.current = gameEngine;
       setIsInitialized(true);
-      console.log("🎮 useGameEngineManager: Game engine created and initialized");
+      console.log("✅ Game engine initialized successfully");
     } catch (error) {
-      console.error("❌ Error creating game engine:", error);
+      console.error("❌ Failed to initialize game engine:", error);
       initializationRef.current = false;
     }
+  }, [canvasRef, gameRef, onGameEnd, setScore, setIsInitialized, initializationRef]);
 
-    return () => {
-      console.log("🧹 useGameEngineManager: Component unmounting, cleaning up...");
-      if (gameRef.current) {
-        gameRef.current.cleanup();
-        gameRef.current = null;
-      }
-      initializationRef.current = false;
-      setIsInitialized(false);
-    };
-  }, []); // Empty dependency array to prevent recreation
-
-  // Critical fix: Update game engine shields whenever totalShields changes
+  // Update shields when they change
   useEffect(() => {
-    console.log("🛡️ useGameEngineManager: totalShields changed to:", totalShields);
-    if (isInitialized && gameRef.current) {
-      console.log("🛡️ useGameEngineManager: Syncing shields with game engine");
-      updateGameEngineShields(totalShields);
+    if (gameRef.current && isInitialized) {
+      updateGameEngineShields();
     }
   }, [totalShields, isInitialized, updateGameEngineShields]);
 
-  const startGame = useCallback(() => {
-    if (!isInitialized || !gameRef.current) {
-      console.log("❌ useGameEngineManager: Cannot start game - conditions not met:", { isInitialized, gameRef: !!gameRef.current });
-      return false;
+  // Update speed when it changes
+  useEffect(() => {
+    if (gameRef.current && isInitialized) {
+      console.log("🏃 Updating game speed to:", gameSpeed);
+      gameRef.current.setGameSpeed(gameSpeed);
     }
-    
-    console.log("🎯 useGameEngineManager: Starting game with shields:", totalShields);
-    // Immediately update game engine with current shields and start
-    updateGameEngineShields(totalShields);
-    gameRef.current.start();
-    return true;
-  }, [isInitialized, totalShields, updateGameEngineShields]);
+  }, [gameSpeed, isInitialized]);
+
+  const startGame = useCallback(() => {
+    if (gameRef.current && isInitialized) {
+      console.log("🎯 Starting game with speed:", gameSpeed, "and shields:", totalShields);
+      gameRef.current.start();
+    }
+  }, [isInitialized, gameSpeed, totalShields]);
 
   const resetGame = useCallback(() => {
-    console.log("🔄 useGameEngineManager: Resetting game engine to 3 shields");
-    // Reset game engine to 3 shields
-    if (gameRef.current) {
-      gameRef.current.reset(3);
+    if (gameRef.current && isInitialized) {
+      console.log("🔄 Resetting game engine with shields:", totalShields);
+      gameRef.current.reset(totalShields);
     }
-  }, []);
+  }, [isInitialized, totalShields]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (gameRef.current) {
+        console.log("🧹 Cleaning up game engine");
+        gameRef.current.cleanup();
+        gameRef.current = null;
+      }
+    };
+  }, [gameRef]);
 
   return {
     startGame,

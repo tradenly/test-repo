@@ -36,20 +36,15 @@ export class GameObjectManager {
     };
   }
 
-  updatePipes(pipes: Pipe[]): Pipe[] {
-    // Move pipes left
-    pipes.forEach(pipe => {
-      pipe.x -= 4;
-    });
-
+  updatePipes(pipes: Pipe[], speedMultiplier: number = 1): Pipe[] {
     // Remove off-screen pipes
     return pipes.filter(pipe => pipe.x > -pipe.width);
   }
 
-  updateMissiles(missiles: Missile[]): Missile[] {
-    // Move missiles left
+  updateMissiles(missiles: Missile[], speedMultiplier: number = 1): Missile[] {
+    // Move missiles left with speed adjustment
     missiles.forEach(missile => {
-      missile.x -= 2.5;
+      missile.x -= 2.5 * speedMultiplier;
     });
 
     // Remove off-screen missiles
