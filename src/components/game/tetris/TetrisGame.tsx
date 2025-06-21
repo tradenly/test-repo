@@ -1,22 +1,27 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { TetrisEngine, TetrisGameState } from './TetrisEngine';
+import { TetrisEngine, TetrisGameState, GameSpeed } from './TetrisEngine';
 import { TetrisRenderer } from './TetrisRenderer';
-import { Button } from '@/components/ui/button';
+import { TetrisGameStats } from './TetrisGameStats';
+import { TetrisNextPiece } from './TetrisNextPiece';
+import { TetrisGameControls } from './TetrisGameControls';
+import { Card, CardContent } from '@/components/ui/card';
 import { useCreateGameSession } from '@/hooks/useGameSessions';
 import { UnifiedUser } from '@/hooks/useUnifiedAuth';
 
 interface TetrisGameProps {
   user: UnifiedUser;
   onGameEnd?: () => void;
+  creditsBalance: number;
 }
 
-export const TetrisGame = ({ user, onGameEnd }: TetrisGameProps) => {
+export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<TetrisEngine | null>(null);
   const rendererRef = useRef<TetrisRenderer | null>(null);
   const [gameState, setGameState] = useState<TetrisGameState | null>(null);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
+  const [selectedSpeed, setSelectedSpeed] = useState<GameSpeed>('moderate');
   const createGameSession = useCreateGameSession();
 
   // Initialize game engine and renderer
@@ -35,6 +40,27 @@ export const TetrisGame = ({ user, onGameEnd }: TetrisGameProps) => {
     }
   }, []);
 
+  // Resize canvas when container changes
+  useEffect(() => {
+    const resizeCanvas = () => {
+      if (canvasRef.current && rendererRef.current) {
+        const container = canvasRef.current.parentElement;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          const size = Math.min(rect.width - 32, rect.height - 32); // Account for padding
+          rendererRef.current.setCanvasSize(size, size);
+          if (gameState) {
+            rendererRef.current.render(gameState);
+          }
+        }
+      }
+    };
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    return () => window.removeEventListener('resize', resizeCanvas);
+  }, [gameState]);
+
   const handleGameOver = useCallback(async (score: number, level: number, lines: number) => {
     if (!gameStartTime) return;
 
@@ -49,11 +75,12 @@ export const TetrisGame = ({ user, onGameEnd }: TetrisGameProps) => {
         duration_seconds: duration,
         credits_spent: 1,
         credits_earned: Math.floor(score / 1000),
-        pipes_passed: 0, // Not applicable for Tetris
+        pipes_passed: 0,
         metadata: {
           game_type: 'falling_logs',
           level,
-          lines_cleared: lines
+          lines_cleared: lines,
+          speed: selectedSpeed
         }
       });
       
@@ -63,12 +90,13 @@ export const TetrisGame = ({ user, onGameEnd }: TetrisGameProps) => {
     }
     
     onGameEnd?.();
-  }, [gameStartTime, user.id, createGameSession, onGameEnd]);
+  }, [gameStartTime, user.id, createGameSession, onGameEnd, selectedSpeed]);
 
-  const startGame = () => {
-    console.log("🎯 Starting new Tetris game");
+  const startGame = (speed: GameSpeed) => {
+    console.log("🎯 Starting new Tetris game with speed:", speed);
     setGameStartTime(Date.now());
-    engineRef.current?.start();
+    setSelectedSpeed(speed);
+    engineRef.current?.start(speed);
   };
 
   const pauseGame = () => {
@@ -116,7 +144,7 @@ export const TetrisGame = ({ user, onGameEnd }: TetrisGameProps) => {
         case 'R':
           if (gameState.isGameOver) {
             event.preventDefault();
-            startGame();
+            startGame(selectedSpeed);
           }
           break;
       }
@@ -124,7 +152,7 @@ export const TetrisGame = ({ user, onGameEnd }: TetrisGameProps) => {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameState]);
+  }, [gameState, selectedSpeed]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -134,58 +162,37 @@ export const TetrisGame = ({ user, onGameEnd }: TetrisGameProps) => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center space-y-4">
-      <div className="flex gap-4 mb-4">
-        {!gameState || gameState.isGameOver ? (
-          <Button onClick={startGame} className="bg-green-600 hover:bg-green-700">
-            {gameState?.isGameOver ? 'Restart Game' : 'Start Game'}
-          </Button>
-        ) : (
-          <>
-            <Button 
-              onClick={pauseGame} 
-              variant="outline"
-              className="border-yellow-600 text-yellow-600 hover:bg-yellow-600 hover:text-white"
-            >
-              {gameState.isPaused ? 'Resume' : 'Pause'}
-            </Button>
-            <Button 
-              onClick={resetGame} 
-              variant="outline"
-              className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
-            >
-              Reset
-            </Button>
-          </>
-        )}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+      {/* Main Gameplay Area */}
+      <div className="lg:col-span-2">
+        <Card className="bg-gray-800/40 border-gray-700 h-full">
+          <CardContent className="p-4 h-full flex items-center justify-center">
+            <canvas
+              ref={canvasRef}
+              className="border-2 border-gray-600 rounded-lg bg-black max-w-full max-h-full"
+              style={{ imageRendering: 'pixelated' }}
+            />
+          </CardContent>
+        </Card>
       </div>
 
-      <canvas
-        ref={canvasRef}
-        className="border-2 border-gray-600 rounded-lg bg-black"
-        style={{ imageRendering: 'pixelated' }}
-      />
-
-      {gameState && (
-        <div className="grid grid-cols-3 gap-6 text-center text-white mt-4">
-          <div>
-            <div className="text-2xl font-bold text-yellow-400">{gameState.score}</div>
-            <div className="text-sm text-gray-400">Score</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-blue-400">{gameState.level}</div>
-            <div className="text-sm text-gray-400">Level</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-green-400">{gameState.lines}</div>
-            <div className="text-sm text-gray-400">Lines</div>
-          </div>
-        </div>
-      )}
-
-      <div className="text-center text-gray-400 text-sm mt-4">
-        <p>Use arrow keys to move and rotate pieces</p>
-        <p>Spacebar for hard drop • P to pause • R to restart (when game over)</p>
+      {/* Side Panel with Stats and Controls */}
+      <div className="space-y-4">
+        <TetrisGameControls
+          isPlaying={!!gameState && !gameState.isGameOver}
+          isPaused={gameState?.isPaused || false}
+          isGameOver={gameState?.isGameOver || false}
+          selectedSpeed={selectedSpeed}
+          creditsBalance={creditsBalance}
+          onStart={startGame}
+          onPause={pauseGame}
+          onReset={resetGame}
+          onSpeedChange={setSelectedSpeed}
+        />
+        
+        <TetrisGameStats gameState={gameState} />
+        
+        <TetrisNextPiece gameState={gameState} />
       </div>
     </div>
   );

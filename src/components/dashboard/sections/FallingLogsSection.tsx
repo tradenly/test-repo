@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { TetrisGame } from "@/components/game/tetris/TetrisGame";
@@ -6,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGameSessions } from "@/hooks/useGameSessions";
 import { useCredits } from "@/hooks/useCredits";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Trophy, Target, Clock, Zap } from "lucide-react";
 
 interface FallingLogsSectionProps {
@@ -35,17 +33,9 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
     setIsPlaying(false);
   };
 
-  const startGame = () => {
-    if ((credits?.balance || 0) < 1) {
-      alert("You need at least 1 credit to play!");
-      return;
-    }
-    setIsPlaying(true);
-  };
-
   if (isPlaying) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 h-full">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">🪵 Falling Logs</h1>
           <p className="text-gray-400">
@@ -53,7 +43,13 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
           </p>
         </div>
         
-        <TetrisGame user={user} onGameEnd={handleGameEnd} />
+        <div className="flex-1">
+          <TetrisGame 
+            user={user} 
+            onGameEnd={handleGameEnd} 
+            creditsBalance={credits?.balance || 0}
+          />
+        </div>
       </div>
     );
   }

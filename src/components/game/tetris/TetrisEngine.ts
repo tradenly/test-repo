@@ -12,10 +12,20 @@ export interface TetrisGameState {
   isPaused: boolean;
 }
 
+export type GameSpeed = 'beginner' | 'moderate' | 'advanced';
+
+const SPEED_SETTINGS = {
+  beginner: { baseInterval: 1500, levelDecrease: 80 },
+  moderate: { baseInterval: 1000, levelDecrease: 60 },
+  advanced: { baseInterval: 600, levelDecrease: 40 }
+};
+
 export class TetrisEngine {
   private gameState: TetrisGameState;
   private dropTimer: number = 0;
-  private dropInterval: number = 1000; // milliseconds
+  private dropInterval: number = 1000;
+  private baseDropInterval: number = 1000;
+  private levelDecrease: number = 60;
   private lastTime: number = 0;
   private animationId: number | null = null;
   private onStateChange?: (state: TetrisGameState) => void;
@@ -46,8 +56,13 @@ export class TetrisEngine {
     this.onGameOver = onGameOver;
   }
 
-  public start(): void {
-    console.log("🎯 Starting Tetris game");
+  public start(speed: GameSpeed = 'moderate'): void {
+    console.log("🎯 Starting Tetris game with speed:", speed);
+    const speedSetting = SPEED_SETTINGS[speed];
+    this.baseDropInterval = speedSetting.baseInterval;
+    this.levelDecrease = speedSetting.levelDecrease;
+    this.dropInterval = this.baseDropInterval;
+    
     this.gameState = this.createInitialState();
     this.spawnNewPiece();
     this.spawnNewPiece(); // Get next piece ready
@@ -242,7 +257,7 @@ export class TetrisEngine {
     if (newLevel > this.gameState.level) {
       this.gameState.level = newLevel;
       // Increase drop speed
-      this.dropInterval = Math.max(50, 1000 - (this.gameState.level - 1) * 50);
+      this.dropInterval = Math.max(50, this.baseDropInterval - (this.gameState.level - 1) * this.levelDecrease);
     }
   }
 

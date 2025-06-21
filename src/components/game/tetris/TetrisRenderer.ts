@@ -1,4 +1,3 @@
-
 import { TetrisGameState } from './TetrisEngine';
 import { TetrisPiece, BOARD_WIDTH, BOARD_HEIGHT, CELL_SIZE } from './TetrisPieces';
 
@@ -9,10 +8,11 @@ export class TetrisRenderer {
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
-    
-    // Set canvas size
-    this.canvas.width = BOARD_WIDTH * CELL_SIZE + 200; // Extra space for UI
-    this.canvas.height = BOARD_HEIGHT * CELL_SIZE + 100;
+  }
+
+  public setCanvasSize(width: number, height: number): void {
+    this.canvas.width = width;
+    this.canvas.height = height;
   }
 
   public render(gameState: TetrisGameState): void {
@@ -22,8 +22,6 @@ export class TetrisRenderer {
     if (gameState.currentPiece) {
       this.drawPiece(gameState.currentPiece);
     }
-    
-    this.drawUI(gameState);
     
     if (gameState.isPaused) {
       this.drawPauseOverlay();
@@ -40,9 +38,20 @@ export class TetrisRenderer {
   }
 
   private drawBoard(board: number[][]): void {
+    // Calculate scale to fit canvas
+    const scaleX = this.canvas.width / (BOARD_WIDTH * CELL_SIZE);
+    const scaleY = this.canvas.height / (BOARD_HEIGHT * CELL_SIZE);
+    const scale = Math.min(scaleX, scaleY);
+    
+    const scaledCellSize = CELL_SIZE * scale;
+    const boardWidth = BOARD_WIDTH * scaledCellSize;
+    const boardHeight = BOARD_HEIGHT * scaledCellSize;
+    const offsetX = (this.canvas.width - boardWidth) / 2;
+    const offsetY = (this.canvas.height - boardHeight) / 2;
+
     // Draw board background
     this.ctx.fillStyle = '#111';
-    this.ctx.fillRect(0, 0, BOARD_WIDTH * CELL_SIZE, BOARD_HEIGHT * CELL_SIZE);
+    this.ctx.fillRect(offsetX, offsetY, boardWidth, boardHeight);
     
     // Draw grid lines
     this.ctx.strokeStyle = '#333';
@@ -50,15 +59,15 @@ export class TetrisRenderer {
     
     for (let x = 0; x <= BOARD_WIDTH; x++) {
       this.ctx.beginPath();
-      this.ctx.moveTo(x * CELL_SIZE, 0);
-      this.ctx.lineTo(x * CELL_SIZE, BOARD_HEIGHT * CELL_SIZE);
+      this.ctx.moveTo(offsetX + x * scaledCellSize, offsetY);
+      this.ctx.lineTo(offsetX + x * scaledCellSize, offsetY + boardHeight);
       this.ctx.stroke();
     }
     
     for (let y = 0; y <= BOARD_HEIGHT; y++) {
       this.ctx.beginPath();
-      this.ctx.moveTo(0, y * CELL_SIZE);
-      this.ctx.lineTo(BOARD_WIDTH * CELL_SIZE, y * CELL_SIZE);
+      this.ctx.moveTo(offsetX, offsetY + y * scaledCellSize);
+      this.ctx.lineTo(offsetX + boardWidth, offsetY + y * scaledCellSize);
       this.ctx.stroke();
     }
     
@@ -66,80 +75,52 @@ export class TetrisRenderer {
     for (let y = 0; y < BOARD_HEIGHT; y++) {
       for (let x = 0; x < BOARD_WIDTH; x++) {
         if (board[y][x]) {
-          this.drawCell(x * CELL_SIZE, y * CELL_SIZE, '#666');
+          this.drawCell(
+            offsetX + x * scaledCellSize, 
+            offsetY + y * scaledCellSize, 
+            scaledCellSize,
+            '#666'
+          );
         }
       }
     }
   }
 
   private drawPiece(piece: TetrisPiece): void {
+    const scaleX = this.canvas.width / (BOARD_WIDTH * CELL_SIZE);
+    const scaleY = this.canvas.height / (BOARD_HEIGHT * CELL_SIZE);
+    const scale = Math.min(scaleX, scaleY);
+    
+    const scaledCellSize = CELL_SIZE * scale;
+    const boardWidth = BOARD_WIDTH * scaledCellSize;
+    const boardHeight = BOARD_HEIGHT * scaledCellSize;
+    const offsetX = (this.canvas.width - boardWidth) / 2;
+    const offsetY = (this.canvas.height - boardHeight) / 2;
+
     for (let y = 0; y < piece.shape.length; y++) {
       for (let x = 0; x < piece.shape[y].length; x++) {
         if (piece.shape[y][x]) {
-          const pixelX = (piece.x + x) * CELL_SIZE;
-          const pixelY = (piece.y + y) * CELL_SIZE;
-          this.drawCell(pixelX, pixelY, piece.color);
+          const pixelX = offsetX + (piece.x + x) * scaledCellSize;
+          const pixelY = offsetY + (piece.y + y) * scaledCellSize;
+          this.drawCell(pixelX, pixelY, scaledCellSize, piece.color);
         }
       }
     }
   }
 
-  private drawCell(x: number, y: number, color: string): void {
+  private drawCell(x: number, y: number, size: number, color: string): void {
     this.ctx.fillStyle = color;
-    this.ctx.fillRect(x + 1, y + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+    this.ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
     
     // Add highlight for 3D effect
     this.ctx.fillStyle = this.lightenColor(color, 0.3);
-    this.ctx.fillRect(x + 1, y + 1, CELL_SIZE - 2, 4);
-    this.ctx.fillRect(x + 1, y + 1, 4, CELL_SIZE - 2);
+    this.ctx.fillRect(x + 1, y + 1, size - 2, 4);
+    this.ctx.fillRect(x + 1, y + 1, 4, size - 2);
     
     // Add shadow
     this.ctx.fillStyle = this.darkenColor(color, 0.3);
-    this.ctx.fillRect(x + CELL_SIZE - 5, y + 1, 4, CELL_SIZE - 2);
-    this.ctx.fillRect(x + 1, y + CELL_SIZE - 5, CELL_SIZE - 2, 4);
-  }
-
-  private drawUI(gameState: TetrisGameState): void {
-    const uiX = BOARD_WIDTH * CELL_SIZE + 20;
-    
-    this.ctx.fillStyle = '#fff';
-    this.ctx.font = '20px Arial';
-    
-    this.ctx.fillText(`Score: ${gameState.score}`, uiX, 30);
-    this.ctx.fillText(`Level: ${gameState.level}`, uiX, 60);
-    this.ctx.fillText(`Lines: ${gameState.lines}`, uiX, 90);
-    
-    // Draw next piece
-    if (gameState.nextPiece) {
-      this.ctx.fillText('Next:', uiX, 130);
-      this.drawNextPiece(gameState.nextPiece, uiX, 150);
-    }
-    
-    // Draw controls
-    this.ctx.font = '14px Arial';
-    this.ctx.fillText('Controls:', uiX, 250);
-    this.ctx.fillText('←→ Move', uiX, 270);
-    this.ctx.fillText('↑ Rotate', uiX, 290);
-    this.ctx.fillText('↓ Soft Drop', uiX, 310);
-    this.ctx.fillText('Space Hard Drop', uiX, 330);
-    this.ctx.fillText('P Pause', uiX, 350);
-  }
-
-  private drawNextPiece(piece: TetrisPiece, x: number, y: number): void {
-    const scale = 0.7;
-    for (let py = 0; py < piece.shape.length; py++) {
-      for (let px = 0; px < piece.shape[py].length; px++) {
-        if (piece.shape[py][px]) {
-          this.ctx.fillStyle = piece.color;
-          this.ctx.fillRect(
-            x + px * CELL_SIZE * scale,
-            y + py * CELL_SIZE * scale,
-            CELL_SIZE * scale - 1,
-            CELL_SIZE * scale - 1
-          );
-        }
-      }
-    }
+    this.ctx.fillRect(x + size - 5, y + 1, 4, size - 2);
+    this.ctx.fillRect(x + 1, y + size - 5, size - 2, 4);
   }
 
   private drawPauseOverlay(): void {
