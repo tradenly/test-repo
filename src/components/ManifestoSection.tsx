@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 
 export const ManifestoSection = () => {
@@ -39,7 +38,13 @@ export const ManifestoSection = () => {
         
         <div className="grid md:grid-cols-2 gap-8 mb-16">
           <div className="bg-gray-800 rounded-xl p-8 border border-gray-700">
-            <div className="text-6xl mb-4">📱</div>
+            <div className="mb-4">
+              <img 
+                src="/lovable-uploads/939c08ad-e2a2-44c8-9c1a-82b7e77eb316.png" 
+                alt="Hippo with gold chain and sunglasses on beach" 
+                className="w-16 h-16 mx-auto rounded-lg"
+              />
+            </div>
             <h3 className="text-2xl font-bold text-white mb-4">Mint Your Fatty</h3>
             <p className="text-gray-300 mb-6">
               Connect your wallet, pay the gas, and receive your digital disappointment.
@@ -50,7 +55,13 @@ export const ManifestoSection = () => {
           </div>
 
           <div className="bg-gray-800 rounded-xl p-8 border border-gray-700">
-            <div className="text-6xl mb-4">💰</div>
+            <div className="mb-4">
+              <img 
+                src="/lovable-uploads/a77a6ec7-9f62-4b46-b710-2febddca76f2.png" 
+                alt="Hippo with gold chain and sunglasses in water" 
+                className="w-16 h-16 mx-auto rounded-lg"
+              />
+            </div>
             <h3 className="text-2xl font-bold text-white mb-4">Buy $POOPEE</h3>
             <p className="text-gray-300 mb-6">
               Trade your valuable tokens for our worthless ones. Modern alchemy!
