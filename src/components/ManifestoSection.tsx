@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 
 export const ManifestoSection = () => {
@@ -40,8 +41,8 @@ export const ManifestoSection = () => {
           <div className="bg-gray-800 rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/939c08ad-e2a2-44c8-9c1a-82b7e77eb316.png" 
-                alt="Hippo with gold chain and sunglasses on beach" 
+                src="/lovable-uploads/c0b71020-c9b3-45d6-ab9e-6039d6dd8bb4.png" 
+                alt="Hippo with sunglasses" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
@@ -57,8 +58,8 @@ export const ManifestoSection = () => {
           <div className="bg-gray-800 rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/a77a6ec7-9f62-4b46-b710-2febddca76f2.png" 
-                alt="Hippo with gold chain and sunglasses in water" 
+                src="/lovable-uploads/b896f4cd-250a-4f3c-b051-0128831d13f0.png" 
+                alt="Happy hippo with gold chain" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
