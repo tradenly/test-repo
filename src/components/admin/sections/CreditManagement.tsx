@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Minus, Search } from "lucide-react";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
+import { CreditReceiptsCard } from "./CreditReceiptsCard";
 
 export const CreditManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,7 +24,6 @@ export const CreditManagement = () => {
     queryFn: async () => {
       console.log('🔍 CreditManagement: Fetching users for credit management');
       
-      // Ensure we have a session before making queries
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No authenticated session found');
@@ -32,7 +31,6 @@ export const CreditManagement = () => {
       
       console.log('🔐 CreditManagement: Using session:', !!session);
 
-      // Get profiles first
       let profileQuery = supabase
         .from('profiles')
         .select('id, username, full_name');
@@ -51,7 +49,6 @@ export const CreditManagement = () => {
 
       const userIds = profiles.map(p => p.id);
 
-      // Get user credits
       const { data: userCredits, error: creditsError } = await supabase
         .from('user_credits')
         .select('user_id, balance')
@@ -61,7 +58,6 @@ export const CreditManagement = () => {
         console.error('❌ CreditManagement: Credits fetch error:', creditsError);
       }
 
-      // Merge data
       return profiles.map(profile => ({
         ...profile,
         user_credits: userCredits?.filter(credit => credit.user_id === profile.id) || [],
@@ -79,13 +75,11 @@ export const CreditManagement = () => {
     }) => {
       console.log('🔧 CreditManagement: Adjusting credits:', { userId, amount, type, description });
       
-      // Ensure we have a session
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No authenticated session found');
       }
 
-      // Get current balance
       const { data: currentCredits, error: fetchError } = await supabase
         .from('user_credits')
         .select('balance')
@@ -102,9 +96,7 @@ export const CreditManagement = () => {
 
       console.log('📊 CreditManagement: Balance change:', { currentBalance, newBalance });
 
-      // Update credits using UPDATE instead of UPSERT
       if (currentCredits) {
-        // Record exists, update it
         const { error: updateError } = await supabase
           .from('user_credits')
           .update({
@@ -118,7 +110,6 @@ export const CreditManagement = () => {
           throw updateError;
         }
       } else {
-        // Record doesn't exist, create it
         const { error: insertError } = await supabase
           .from('user_credits')
           .insert({
@@ -134,10 +125,8 @@ export const CreditManagement = () => {
         }
       }
 
-      // Record transaction using valid transaction types from the database schema
-      // Valid types: 'purchase', 'earned', 'spent', 'cashout', 'bonus', 'refund'
-      const transactionType = type === 'add' ? 'earned' : 'spent'; // Use 'earned' for add, 'spent' for subtract
-      const transactionAmount = type === 'add' ? amount : amount; // Always positive amount, type determines credit/debit
+      const transactionType = type === 'add' ? 'earned' : 'spent';
+      const transactionAmount = type === 'add' ? amount : amount;
       
       const { error: transactionError } = await supabase
         .from('credit_transactions')
@@ -209,7 +198,7 @@ export const CreditManagement = () => {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Credit Management</h1>
-        <p className="text-gray-400">Adjust user credits and manage transactions</p>
+        <p className="text-gray-400">Adjust user credits and monitor automated payments</p>
       </div>
 
       <Card className="bg-gray-800/40 border-gray-700">
@@ -294,6 +283,8 @@ export const CreditManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      <CreditReceiptsCard />
     </div>
   );
 };

@@ -9,6 +9,104 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      blockchain_transactions: {
+        Row: {
+          amount: number
+          block_number: number | null
+          blockchain: string
+          confirmations: number | null
+          confirmed_at: string | null
+          detected_at: string
+          from_address: string
+          id: string
+          payment_order_id: string | null
+          to_address: string
+          transaction_hash: string
+        }
+        Insert: {
+          amount: number
+          block_number?: number | null
+          blockchain: string
+          confirmations?: number | null
+          confirmed_at?: string | null
+          detected_at?: string
+          from_address: string
+          id?: string
+          payment_order_id?: string | null
+          to_address: string
+          transaction_hash: string
+        }
+        Update: {
+          amount?: number
+          block_number?: number | null
+          blockchain?: string
+          confirmations?: number | null
+          confirmed_at?: string | null
+          detected_at?: string
+          from_address?: string
+          id?: string
+          payment_order_id?: string | null
+          to_address?: string
+          transaction_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blockchain_transactions_payment_order_id_fkey"
+            columns: ["payment_order_id"]
+            isOneToOne: false
+            referencedRelation: "credit_payment_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_payment_orders: {
+        Row: {
+          blockchain: string
+          confirmed_at: string | null
+          created_at: string
+          credit_amount: number
+          expires_at: string
+          id: string
+          payment_address: string
+          status: string
+          transaction_hash: string | null
+          updated_at: string
+          usdc_amount: number
+          user_id: string
+          wallet_address: string
+        }
+        Insert: {
+          blockchain: string
+          confirmed_at?: string | null
+          created_at?: string
+          credit_amount: number
+          expires_at?: string
+          id?: string
+          payment_address: string
+          status?: string
+          transaction_hash?: string | null
+          updated_at?: string
+          usdc_amount: number
+          user_id: string
+          wallet_address: string
+        }
+        Update: {
+          blockchain?: string
+          confirmed_at?: string | null
+          created_at?: string
+          credit_amount?: number
+          expires_at?: string
+          id?: string
+          payment_address?: string
+          status?: string
+          transaction_hash?: string | null
+          updated_at?: string
+          usdc_amount?: number
+          user_id?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
       credit_transactions: {
         Row: {
           amount: number
@@ -486,6 +584,10 @@ export type Database = {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
+        Returns: boolean
+      }
+      process_confirmed_payment: {
+        Args: { payment_order_id: string; transaction_hash: string }
         Returns: boolean
       }
     }

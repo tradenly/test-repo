@@ -6,6 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Wallet, CreditCard } from "lucide-react";
 import { PaymentAddressModal } from "./PaymentAddressModal";
+import { useCreatePaymentOrder } from "@/hooks/usePaymentOrders";
+import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface PhantomCreditPurchaseCardProps {
   className?: string;
@@ -18,6 +21,11 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
   const [usdcAmount, setUsdcAmount] = useState<string>("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [currentPaymentOrder, setCurrentPaymentOrder] = useState<any>(null);
+
+  const { user } = useUnifiedAuth();
+  const { toast } = useToast();
+  const createPaymentOrderMutation = useCreatePaymentOrder();
 
   const blockchains = [
     { value: "solana", label: "Solana", symbol: "USDC" },
@@ -34,14 +42,12 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
   const handleConnectWallet = async () => {
     setIsConnecting(true);
     try {
-      // Check if Phantom is installed
       if (!window.solana || !window.solana.isPhantom) {
         alert("Phantom wallet is not installed. Please install it from phantom.app");
         setIsConnecting(false);
         return;
       }
 
-      // Connect to Phantom
       const response = await window.solana.connect();
       setWalletAddress(response.publicKey.toString());
       setIsWalletConnected(true);
@@ -61,8 +67,8 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
     setWalletAddress("");
   };
 
-  const handleSubmit = () => {
-    if (!selectedBlockchain || !isWalletConnected || !usdcAmount) {
+  const handleSubmit = async () => {
+    if (!selectedBlockchain || !isWalletConnected || !usdcAmount || !user) {
       alert("Please select a blockchain, connect your wallet, and enter a USDC amount");
       return;
     }
@@ -78,7 +84,34 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
       return;
     }
 
-    setShowPaymentModal(true);
+    try {
+      const paymentAddress = usdcAddresses[selectedBlockchain as keyof typeof usdcAddresses];
+      const creditAmount = Math.floor(usdcValue * 5);
+
+      const paymentOrder = await createPaymentOrderMutation.mutateAsync({
+        userId: user.id,
+        walletAddress,
+        blockchain: selectedBlockchain,
+        usdcAmount: usdcValue,
+        creditAmount,
+        paymentAddress,
+      });
+
+      setCurrentPaymentOrder(paymentOrder);
+      setShowPaymentModal(true);
+
+      toast({
+        title: "Payment Order Created",
+        description: `Send ${usdcValue} USDC to receive ${creditAmount} credits. Order expires in 24 hours.`,
+      });
+    } catch (error: any) {
+      console.error("Error creating payment order:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create payment order",
+        variant: "destructive",
+      });
+    }
   };
 
   const creditAmount = usdcAmount ? Math.floor(parseFloat(usdcAmount) * 5) : 0;
@@ -189,10 +222,10 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
 
           <Button
             onClick={handleSubmit}
-            disabled={!selectedBlockchain || !isWalletConnected || !usdcAmount || parseFloat(usdcAmount) < 5}
+            disabled={!selectedBlockchain || !isWalletConnected || !usdcAmount || parseFloat(usdcAmount) < 5 || createPaymentOrderMutation.isPending}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
           >
-            Generate Payment Address
+            {createPaymentOrderMutation.isPending ? "Creating Order..." : "Generate Payment Address"}
           </Button>
         </CardContent>
       </Card>
