@@ -18,6 +18,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<GameEngine | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const initializationRef = useRef(false);
   
   const { user } = useUnifiedAuth();
   const spendCredits = useSpendCredits();
@@ -33,6 +34,22 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     resetGame: resetGameState,
     buyShields: buyShieldsState
   } = useGameState();
+
+  // Stable callback references
+  const handleGameEndRef = useRef<(finalScore: number, pipesPassedCount: number, duration: number) => void>();
+  const setScoreRef = useRef<(score: number) => void>();
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    handleGameEndRef.current = (finalScore: number, pipesPassedCount: number, duration: number) => {
+      endGame();
+      onGameEnd(finalScore, pipesPassedCount, duration);
+    };
+  }, [endGame, onGameEnd]);
+
+  useEffect(() => {
+    setScoreRef.current = setScore;
+  }, [setScore]);
 
   // Centralized shield management function
   const updateGameEngineShields = useCallback((newTotalShields: number) => {
@@ -93,16 +110,10 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     }
   }, [user?.id, credits, spendCredits, buyShieldsState, totalShields, updateGameEngineShields]);
 
-  const handleGameEnd = useCallback((finalScore: number, pipesPassedCount: number, duration: number) => {
-    endGame();
-    onGameEnd(finalScore, pipesPassedCount, duration);
-  }, [endGame, onGameEnd]);
-
-  // Game engine initialization - only create once
+  // Game engine initialization - only create once and prevent multiple initializations
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) {
-      console.log("Canvas not found");
+    if (!canvas || initializationRef.current) {
       return;
     }
 
@@ -113,6 +124,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     }
 
     console.log("🎮 Initializing game engine...");
+    initializationRef.current = true;
 
     // Set canvas size
     canvas.width = 800;
@@ -123,20 +135,29 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         gameRef.current.cleanup();
       }
       
-      gameRef.current = new GameEngine(ctx, canvas, handleGameEnd, setScore);
+      gameRef.current = new GameEngine(
+        ctx, 
+        canvas, 
+        (score, pipes, duration) => handleGameEndRef.current?.(score, pipes, duration),
+        (score) => setScoreRef.current?.(score)
+      );
       setIsInitialized(true);
       console.log("🎮 Game engine created and initialized");
     } catch (error) {
       console.error("❌ Error creating game engine:", error);
+      initializationRef.current = false;
     }
 
     return () => {
       console.log("🧹 Component unmounting, cleaning up...");
       if (gameRef.current) {
         gameRef.current.cleanup();
+        gameRef.current = null;
       }
+      initializationRef.current = false;
+      setIsInitialized(false);
     };
-  }, [handleGameEnd, setScore]);
+  }, []); // Empty dependency array to prevent recreation
 
   // Update game engine shields whenever totalShields changes
   useEffect(() => {
