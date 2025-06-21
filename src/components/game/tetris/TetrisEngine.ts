@@ -140,14 +140,14 @@ export class TetrisEngine {
     this.dropTimer += deltaTime;
     
     if (this.dropTimer >= this.dropInterval) {
-      this.moveDown();
+      this.automaticDrop();
       this.dropTimer = 0;
     }
 
     this.animationId = requestAnimationFrame(() => this.gameLoop());
   }
 
-  private moveDown(): void {
+  private automaticDrop(): void {
     if (!this.gameState.currentPiece) return;
 
     const newPiece = { ...this.gameState.currentPiece, y: this.gameState.currentPiece.y + 1 };

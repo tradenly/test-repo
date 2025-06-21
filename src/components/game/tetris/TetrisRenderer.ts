@@ -1,6 +1,6 @@
 
-import { TetrisGameState, TetrisPiece } from './TetrisEngine';
-import { BOARD_WIDTH, BOARD_HEIGHT, CELL_SIZE } from './TetrisPieces';
+import { TetrisGameState } from './TetrisEngine';
+import { TetrisPiece, BOARD_WIDTH, BOARD_HEIGHT, CELL_SIZE } from './TetrisPieces';
 
 export class TetrisRenderer {
   private canvas: HTMLCanvasElement;
