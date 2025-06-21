@@ -1,4 +1,3 @@
-
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 export const SneakPeekSection = () => {
@@ -44,8 +43,13 @@ export const SneakPeekSection = () => {
   return (
     <section id="sneak-peek" className="py-20 px-4 bg-gradient-to-b from-gray-800 via-black to-gray-900">
       <div className="max-w-6xl mx-auto text-center">
-        <h2 className="text-5xl md:text-6xl font-bold text-white mb-4">
-          What is POOPEE? 🦛
+        <h2 className="text-5xl md:text-6xl font-bold text-white mb-4 flex items-center justify-center gap-4">
+          What is POOPEE?
+          <img 
+            src="/lovable-uploads/d1dd9d64-7718-4b7e-aa7b-90db7bede0c1.png" 
+            alt="Hippo character" 
+            className="w-16 h-16 md:w-20 md:h-20"
+          />
         </h2>
         <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
           POOPEE is a meme coin and NFT collection with no use case, no promises, and no future. Basically, what all of them are anyway, but we're just more upfront and forthcoming about it. Who really knows we made all this up and by the way we have some pretty cool P2E games for you to check out and if you don't, who cares
