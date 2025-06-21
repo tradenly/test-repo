@@ -1,7 +1,9 @@
+
 import { useState } from "react";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { TetrisGame } from "@/components/game/tetris/TetrisGame";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useGameSessions } from "@/hooks/useGameSessions";
 import { useCredits } from "@/hooks/useCredits";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +29,10 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
     totalGames: tetrisGames.length,
     highestLevel: Math.max(0, ...tetrisGames.map(g => (g.metadata as any)?.level || 0)),
     totalLinesCleared: tetrisGames.reduce((sum, g) => sum + ((g.metadata as any)?.lines_cleared || 0), 0)
+  };
+
+  const startGame = () => {
+    setIsPlaying(true);
   };
 
   const handleGameEnd = () => {
