@@ -1,3 +1,4 @@
+
 import { GamePhysics, HippoState } from './engine/GamePhysics';
 import { GameRenderer } from './engine/GameRenderer';
 import { CollisionDetector, Pipe, Missile } from './engine/CollisionDetector';
@@ -67,7 +68,7 @@ export class GameEngine {
   }
 
   setGameSpeed(speed: GameSpeed) {
-    console.log("🏃 Game engine: Speed changed to", speed);
+    console.log("🏃 Game engine: Speed changed to", speed, "multiplier:", this.getSpeedMultiplier());
     this.gameSpeed = speed;
   }
 
@@ -111,7 +112,7 @@ export class GameEngine {
   }
 
   updateShields(newShields: number) {
-    console.log("🛡️ Game engine: Updating shields to", newShields);
+    console.log("🛡️ Game engine: Updating shields from", this.pipeHitsRemaining, "to", newShields);
     this.pipeHitsRemaining = newShields;
     this.maxShields = newShields;
     console.log("🛡️ Game engine: Updated - pipeHitsRemaining:", this.pipeHitsRemaining, "maxShields:", this.maxShields);
@@ -146,7 +147,14 @@ export class GameEngine {
   }
 
   start() {
-    console.log("🎯 Game engine starting with shields:", this.pipeHitsRemaining, "/", this.maxShields, "and speed:", this.gameSpeed);
+    console.log("🎯 Game engine starting with shields:", this.pipeHitsRemaining, "/", this.maxShields, "and speed:", this.gameSpeed, "multiplier:", this.getSpeedMultiplier());
+    
+    // Ensure shields are properly updated at game start
+    if (this.maxShields !== this.pipeHitsRemaining) {
+      console.log("🛡️ Game start: Syncing shields - setting pipeHitsRemaining to maxShields:", this.maxShields);
+      this.pipeHitsRemaining = this.maxShields;
+    }
+    
     this.gameRunning = true;
     this.gameStartTime = Date.now();
     this.lastMissileTime = 0;
@@ -197,11 +205,11 @@ export class GameEngine {
     if (gameTimeElapsed >= 15000 && this.lastMissileTime === 0) {
       this.missiles.push(this.objectManager.createMissile());
       this.lastMissileTime = gameTimeElapsed;
-      console.log("🚀 First missile spawned at 15 seconds");
+      console.log("🚀 First missile spawned at 15 seconds, gameTime:", gameTimeElapsed / 1000, "s");
     } else if (this.lastMissileTime > 0 && gameTimeElapsed - this.lastMissileTime >= 15000) {
       this.missiles.push(this.objectManager.createMissile());
       this.lastMissileTime = gameTimeElapsed;
-      console.log("🚀 Missile spawned at", gameTimeElapsed / 1000, "seconds");
+      console.log("🚀 Missile spawned at", gameTimeElapsed / 1000, "seconds, total missiles:", this.missiles.length);
     }
 
     // Missile warning - 2 seconds before missile (proportional to new timing)
@@ -209,12 +217,13 @@ export class GameEngine {
     const timeToNextMissile = 15000 - timeSinceLastMissile;
     if (timeToNextMissile <= 2000 && timeToNextMissile > 0 && this.missileWarningTime <= 0) {
       this.missileWarningTime = 120; // 2 seconds at 60fps
-      console.log("⚠️ Missile warning activated");
+      console.log("⚠️ Missile warning activated - next missile in", timeToNextMissile / 1000, "seconds");
     }
   }
 
   private updateGameObjects() {
     const speedMultiplier = this.getSpeedMultiplier();
+    console.log("🏃 Updating objects with speed multiplier:", speedMultiplier);
     
     // Update pipes with speed-adjusted movement
     this.pipes.forEach(pipe => {

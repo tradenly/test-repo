@@ -37,7 +37,7 @@ export class GameObjectManager {
   }
 
   updatePipes(pipes: Pipe[], speedMultiplier: number = 1): Pipe[] {
-    // Remove off-screen pipes
+    // Remove off-screen pipes - now the movement happens in GameEngine
     return pipes.filter(pipe => pipe.x > -pipe.width);
   }
 
