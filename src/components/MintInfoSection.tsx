@@ -13,8 +13,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/1b2b8e90-5d58-42db-b73f-5dd406333bf1.png" 
-                alt="SUI Network Icon" 
+                src="/lovable-uploads/d2021028-4b2b-43e2-9e12-caa067f79f85.png" 
+                alt="Cute hippo character" 
                 className="w-16 h-16 mx-auto"
               />
             </div>
@@ -36,8 +36,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/94398dd3-8fbc-453f-a517-4ba31ec9e3d5.png" 
-                alt="Cardano Icon" 
+                src="/lovable-uploads/7ec41366-0c16-45a1-a11c-1c0daa447f04.png" 
+                alt="Hippo with open mouth" 
                 className="w-16 h-16 mx-auto"
               />
             </div>
