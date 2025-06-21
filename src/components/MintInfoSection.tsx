@@ -8,7 +8,7 @@ export const MintInfoSection = () => {
         <h2 className="text-5xl font-bold text-white mb-16 flex items-center justify-center gap-4">
           The MEMENOMICS 
           <img 
-            src="/lovable-uploads/7cba9b17-9d4d-4744-ab76-55d4d596df79.png" 
+            src="/lovable-uploads/d3145382-6f7a-4a7f-8a28-2bbdd2c3bb1f.png" 
             alt="Teal gauge icon" 
             className="w-12 h-12"
           />
