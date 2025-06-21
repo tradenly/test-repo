@@ -585,13 +585,11 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       }
 
       drawEnhancedShieldCounter() {
-        // Dynamic width based on shield count
-        const maxShieldsToShow = Math.max(6, this.maxShields);
         const shieldWidth = 25;
         const padding = 20;
         const labelWidth = 70;
         const counterWidth = 40;
-        const totalWidth = labelWidth + (maxShieldsToShow * shieldWidth) + counterWidth + (padding * 2);
+        const totalWidth = labelWidth + (this.maxShields * shieldWidth) + counterWidth + (padding * 2);
         
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         this.ctx.fillRect(10, 10, totalWidth, 50);
@@ -602,7 +600,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         this.ctx.fillText('SHIELDS:', 20, 30);
         
         this.ctx.font = 'bold 20px Arial';
-        for (let i = 0; i < maxShieldsToShow; i++) {
+        for (let i = 0; i < this.maxShields; i++) {
           this.ctx.fillStyle = i < this.pipeHitsRemaining ? '#4CAF50' : '#666';
           this.ctx.fillText('🛡️', 20 + labelWidth + (i * shieldWidth), 45);
         }
@@ -610,7 +608,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         // Show current/max format
         this.ctx.fillStyle = this.pipeHitsRemaining > 0 ? '#4CAF50' : '#f44336';
         this.ctx.font = 'bold 12px Arial';
-        this.ctx.fillText(`${this.pipeHitsRemaining}/${this.maxShields}`, 20 + labelWidth + (maxShieldsToShow * shieldWidth), 50);
+        this.ctx.fillText(`${this.pipeHitsRemaining}/${this.maxShields}`, 20 + labelWidth + (this.maxShields * shieldWidth), 50);
       }
     }
 
