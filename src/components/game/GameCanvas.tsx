@@ -28,30 +28,44 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
 
   const totalShields = 3 + purchasedShields;
 
+  // Helper function to update game engine shields
+  const updateGameShields = useCallback((newTotalShields: number) => {
+    if (gameRef.current) {
+      gameRef.current.pipeHitsRemaining = newTotalShields;
+      gameRef.current.maxShields = newTotalShields;
+      setShieldCount(newTotalShields);
+      console.log("Updated game shields to:", newTotalShields);
+    }
+  }, []);
+
   const startGame = useCallback(() => {
     if (!canPlay || !isInitialized || !gameRef.current) {
       console.log("Cannot start game - conditions not met:", { canPlay, isInitialized, gameRef: !!gameRef.current });
       return;
     }
     
-    console.log("Starting game...");
+    console.log("Starting game with total shields:", totalShields);
     onGameStart();
     setGameState('playing');
     setScore(0);
     setGameStartTime(Date.now());
     
+    // Ensure game starts with correct shield count
+    updateGameShields(totalShields);
     gameRef.current.start();
-  }, [canPlay, onGameStart, isInitialized]);
+  }, [canPlay, onGameStart, isInitialized, totalShields, updateGameShields]);
 
   const resetGame = useCallback(() => {
     console.log("Resetting game...");
     setGameState('menu');
     setScore(0);
     setPurchasedShields(0); // Reset purchased shields when restarting
-    setShieldCount(3); // Always start with 3 shields
+    
+    // Reset to 3 shields
     if (gameRef.current) {
-      gameRef.current.reset(3); // Always reset to 3 shields, not totalShields
+      gameRef.current.reset(3);
     }
+    setShieldCount(3);
   }, []);
 
   const buyShields = useCallback(async () => {
@@ -68,15 +82,21 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       });
       
       // Add to purchased shields count for current game only
-      setPurchasedShields(prev => prev + 3);
+      const newPurchasedShields = purchasedShields + 3;
+      setPurchasedShields(newPurchasedShields);
+      
+      // Immediately update the game engine with new shield count
+      const newTotalShields = 3 + newPurchasedShields;
+      updateGameShields(newTotalShields);
       
       toast.success("3 shields purchased! They are added to your current game.");
     } catch (error) {
       console.error("Error purchasing shields:", error);
       toast.error("Failed to purchase shields");
     }
-  }, [user?.id, credits, spendCredits]);
+  }, [user?.id, credits, spendCredits, purchasedShields, updateGameShields]);
 
+  // Game engine initialization - removed totalShields dependency to prevent recreation
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
@@ -630,17 +650,15 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         gameRef.current.cleanup();
       }
     };
-  }, [totalShields]);
+  }, []); // Removed totalShields dependency
 
-  // Update shield count when purchased shields change and we're in a game
+  // Update shields whenever totalShields changes - removed gameState condition
   useEffect(() => {
-    if (gameRef.current && gameState === 'playing') {
-      const newTotalShields = 3 + purchasedShields;
-      gameRef.current.pipeHitsRemaining = newTotalShields;
-      gameRef.current.maxShields = newTotalShields;
-      setShieldCount(newTotalShields);
+    if (gameRef.current && isInitialized) {
+      console.log("Updating shields to:", totalShields);
+      updateGameShields(totalShields);
     }
-  }, [purchasedShields, gameState]);
+  }, [totalShields, isInitialized, updateGameShields]);
 
   return (
     <div className="flex flex-col lg:flex-row items-start gap-3">
