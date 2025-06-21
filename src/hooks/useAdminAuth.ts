@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnifiedAuth } from './useUnifiedAuth';
@@ -10,9 +11,6 @@ export const useAdminAuth = () => {
   useEffect(() => {
     const checkAdminStatus = async () => {
       console.log('🔍 useAdminAuth: Starting admin check, user:', user?.id, 'isAuthenticated:', isAuthenticated);
-      
-      // Keep loading until we have a definitive answer
-      setIsLoading(true);
       
       if (!user?.id || !isAuthenticated) {
         console.log('❌ useAdminAuth: No user or not authenticated, setting isAdmin to false');
@@ -47,7 +45,6 @@ export const useAdminAuth = () => {
         console.error('💥 useAdminAuth: Exception during admin check:', error);
         setIsAdmin(false);
       } finally {
-        // Only set loading to false AFTER we have a definitive answer
         console.log('🏁 useAdminAuth: Admin check complete, setting isLoading to false');
         setIsLoading(false);
       }

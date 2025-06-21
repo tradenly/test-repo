@@ -20,9 +20,15 @@ const AdminPanel = () => {
 
   console.log('🏛️ AdminPanel: Render - isAdmin:', isAdmin, 'isLoading:', isLoading, 'user exists:', !!user);
 
-  // Show loading screen while checking authentication
-  if (isLoading) {
-    console.log('⏳ AdminPanel: Still loading admin status, showing loading screen');
+  // If no user at all, redirect to auth
+  if (!user && !isLoading) {
+    console.log('🚫 AdminPanel: No user and not loading, redirecting to auth');
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Show loading while we're checking authentication OR admin status
+  if (isLoading || !user) {
+    console.log('⏳ AdminPanel: Loading state - isLoading:', isLoading, 'user exists:', !!user);
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-xl">Checking admin access...</div>
@@ -30,24 +36,14 @@ const AdminPanel = () => {
     );
   }
 
-  // Only redirect if we're certain the user is not an admin AND we're not loading
-  if (!user) {
-    console.log('🚫 AdminPanel: No user found, redirecting to auth');
-    return <Navigate to="/auth" replace />;
-  }
-
-  // CRITICAL: Only redirect if we're absolutely certain the user is NOT an admin
-  if (!isLoading && !isAdmin) {
-    console.log('🚫 AdminPanel: User is confirmed NOT an admin, redirecting to dashboard');
+  // Only redirect if we have a user AND we're NOT loading AND they're NOT an admin
+  if (user && !isLoading && !isAdmin) {
+    console.log('🚫 AdminPanel: User confirmed NOT admin, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
-  // If we get here, either we're still loading OR the user is an admin
-  if (isAdmin) {
-    console.log('✅ AdminPanel: User is confirmed admin, rendering admin panel');
-  } else {
-    console.log('⚠️ AdminPanel: Rendering admin panel while status uncertain (this should not happen)');
-  }
+  // If we get here, render the admin panel
+  console.log('✅ AdminPanel: Rendering admin panel for admin user');
 
   return (
     <div className="min-h-screen bg-black">
