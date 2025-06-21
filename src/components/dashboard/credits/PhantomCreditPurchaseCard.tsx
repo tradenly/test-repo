@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -145,9 +144,8 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
                 </div>
                 <Button
                   onClick={handleDisconnectWallet}
-                  variant="outline"
                   size="sm"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className="bg-blue-600 hover:bg-blue-700 text-white hover:text-black"
                 >
                   Disconnect
                 </Button>
@@ -180,10 +178,9 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
             {[5, 10, 25].map((amount) => (
               <Button
                 key={amount}
-                variant="outline"
                 size="sm"
                 onClick={() => setUsdcAmount(amount.toString())}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                className="bg-blue-600 hover:bg-blue-700 text-white hover:text-black"
               >
                 {amount} USDC
               </Button>

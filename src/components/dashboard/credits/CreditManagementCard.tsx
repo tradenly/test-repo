@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -98,7 +97,6 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Current Balance */}
           <div className="bg-gray-900/40 rounded-lg p-4 text-center">
             <div className="text-3xl font-bold text-white mb-2">
               {creditsLoading ? "..." : (credits?.balance?.toFixed(2) || "0.00")}
@@ -106,7 +104,6 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
             <div className="text-gray-400">Current Balance</div>
           </div>
 
-          {/* Quick Stats */}
           <div className="lg:col-span-2 grid grid-cols-2 gap-4">
             <div className="bg-gray-900/40 rounded-lg p-4 text-center">
               <div className="text-xl font-bold text-green-400 mb-1">
@@ -163,10 +160,9 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                 {[5, 10, 25].map((amount) => (
                   <Button
                     key={amount}
-                    variant="outline"
                     size="sm"
                     onClick={() => setPurchaseAmount(amount.toString())}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    className="bg-blue-600 hover:bg-blue-700 text-white hover:text-black"
                   >
                     {amount} USDC
                   </Button>
@@ -190,7 +186,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                   className="bg-gray-700 border-gray-600 text-white"
                   max={credits?.balance || 0}
                 />
-                <Button onClick={handleCashoutCredits} className="bg-green-600 hover:bg-green-700">
+                <Button onClick={handleCashoutCredits} className="bg-blue-600 hover:bg-blue-700 text-white hover:text-black">
                   Cash Out
                 </Button>
               </div>

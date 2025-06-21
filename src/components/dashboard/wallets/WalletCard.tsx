@@ -66,10 +66,9 @@ export const WalletCard = ({ wallet, onEdit, onDelete, onSetPrimary }: WalletCar
         
         <div className="flex gap-2">
           <Button
-            variant="outline"
             size="sm"
             onClick={() => onEdit(wallet)}
-            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+            className="bg-blue-600 hover:bg-blue-700 text-white hover:text-black"
           >
             <Edit className="h-4 w-4 mr-1" />
             Edit
@@ -77,10 +76,9 @@ export const WalletCard = ({ wallet, onEdit, onDelete, onSetPrimary }: WalletCar
           
           {!wallet.is_primary && (
             <Button
-              variant="outline"
               size="sm"
               onClick={() => onSetPrimary(wallet.id)}
-              className="border-yellow-600 text-yellow-300 hover:bg-yellow-700/20"
+              className="bg-blue-600 hover:bg-blue-700 text-white hover:text-black"
             >
               <Star className="h-4 w-4 mr-1" />
               Set Primary
@@ -88,11 +86,10 @@ export const WalletCard = ({ wallet, onEdit, onDelete, onSetPrimary }: WalletCar
           )}
           
           <Button
-            variant="outline"
             size="sm"
             onClick={handleDelete}
             disabled={isDeleting}
-            className="border-red-600 text-red-300 hover:bg-red-700/20"
+            className="bg-blue-600 hover:bg-blue-700 text-white hover:text-black disabled:bg-gray-600 disabled:text-gray-300"
           >
             <Trash2 className="h-4 w-4 mr-1" />
             {isDeleting ? "Deleting..." : "Delete"}
