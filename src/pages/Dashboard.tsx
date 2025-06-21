@@ -10,6 +10,7 @@ export type DashboardSection =
   | "overview" 
   | "profile" 
   | "flappy-hippos"
+  | "leaderboard"
   | "wallets" 
   | "staking" 
   | "social" 

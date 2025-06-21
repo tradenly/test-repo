@@ -8,7 +8,8 @@ import {
   TrendingUp, 
   Gift,
   LayoutDashboard,
-  Gamepad2
+  Gamepad2,
+  Trophy
 } from "lucide-react";
 import { DashboardSection } from "@/pages/Dashboard";
 
@@ -22,6 +23,7 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
     { id: "overview" as DashboardSection, label: "Overview", icon: LayoutDashboard },
     { id: "profile" as DashboardSection, label: "Profile", icon: User },
     { id: "flappy-hippos" as DashboardSection, label: "Flappy Hippos", icon: Gamepad2 },
+    { id: "leaderboard" as DashboardSection, label: "Leaderboard", icon: Trophy },
     { id: "wallets" as DashboardSection, label: "Wallets", icon: Wallet },
     { id: "staking" as DashboardSection, label: "Staking", icon: PiggyBank },
     { id: "social" as DashboardSection, label: "Social", icon: Users },

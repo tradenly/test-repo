@@ -422,7 +422,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      leaderboard_stats: {
+        Row: {
+          average_score: number | null
+          full_name: string | null
+          highest_score: number | null
+          last_played: string | null
+          longest_survival: number | null
+          total_credits_earned: number | null
+          total_games: number | null
+          user_id: string | null
+          username: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_role: {
