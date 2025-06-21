@@ -35,7 +35,7 @@ export const PaymentAddressModal = ({
       <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-white">
-            Payment Instructions
+            USDC Payment Instructions
           </DialogTitle>
         </DialogHeader>
         
@@ -49,13 +49,13 @@ export const PaymentAddressModal = ({
               <span className="font-medium">Blockchain:</span> {blockchain}
             </p>
             <p className="text-sm text-gray-300">
-              <span className="font-medium">Amount Required:</span> {requiredAmount}
+              <span className="font-medium">USDC Amount Required:</span> {requiredAmount}
             </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Send payment to this address:
+              Send USDC to this address:
             </label>
             <div className="flex gap-2">
               <Input
@@ -81,10 +81,18 @@ export const PaymentAddressModal = ({
             )}
           </div>
 
-          <div className="bg-yellow-900/30 border border-yellow-700 p-3 rounded-lg">
-            <p className="text-yellow-200 text-xs">
-              <strong>Important:</strong> Send exactly the required amount to the address above. 
+          <div className="bg-red-900/30 border border-red-700 p-3 rounded-lg">
+            <p className="text-red-200 text-xs">
+              <strong>⚠️ IMPORTANT:</strong> Send exactly {requiredAmount} to the address above. 
+              Only send USDC tokens on the {blockchain} network. 
               Your credits will be added to your account once the transaction is confirmed.
+            </p>
+          </div>
+
+          <div className="bg-blue-900/30 border border-blue-700 p-3 rounded-lg">
+            <p className="text-blue-200 text-xs">
+              <strong>💡 Note:</strong> Make sure you're sending USDC (USD Coin) and not native tokens. 
+              Double-check the network matches your selected blockchain.
             </p>
           </div>
 

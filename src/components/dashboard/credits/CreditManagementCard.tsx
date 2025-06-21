@@ -24,19 +24,18 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
 
   const handlePurchaseCredits = async () => {
     const amount = parseFloat(purchaseAmount);
-    if (!amount || amount <= 0) {
+    if (!amount || amount < 5) {
       toast({
         title: "Invalid Amount",
-        description: "Please enter a valid amount to purchase.",
+        description: "Minimum purchase is 5 USDC (25 credits). Please use the crypto purchase option.",
         variant: "destructive",
       });
       return;
     }
 
-    // TODO: Implement Stripe payment integration
     toast({
-      title: "Feature Coming Soon",
-      description: "Credit purchases will be available soon!",
+      title: "Use Crypto Purchase",
+      description: "Please use the 'Purchase Credits with USDC' card to buy credits with cryptocurrency.",
     });
   };
 
@@ -142,11 +141,16 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
 
           <TabsContent value="buy" className="space-y-4">
             <div className="bg-gray-900/40 rounded-lg p-4">
-              <Label className="text-gray-300">Purchase Amount (USD)</Label>
+              <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-3 mb-4">
+                <p className="text-blue-200 text-sm">
+                  <strong>💰 New Rate:</strong> 1 USDC = 5 Credits | <strong>Minimum:</strong> 5 USDC (25 Credits)
+                </p>
+              </div>
+              <Label className="text-gray-300">Purchase Amount (USDC)</Label>
               <div className="flex gap-2 mt-2">
                 <Input
                   type="number"
-                  placeholder="10.00"
+                  placeholder="5.00"
                   value={purchaseAmount}
                   onChange={(e) => setPurchaseAmount(e.target.value)}
                   className="bg-gray-700 border-gray-600 text-white"
@@ -156,7 +160,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                 </Button>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2">
-                {[10, 25, 50].map((amount) => (
+                {[5, 10, 25].map((amount) => (
                   <Button
                     key={amount}
                     variant="outline"
@@ -164,12 +168,12 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                     onClick={() => setPurchaseAmount(amount.toString())}
                     className="border-gray-600 text-gray-300 hover:bg-gray-700"
                   >
-                    ${amount}
+                    {amount} USDC
                   </Button>
                 ))}
               </div>
               <p className="text-xs text-gray-400 mt-2">
-                1 USD = 1 Credit. Credits are used to play games and earn rewards.
+                1 USDC = 5 Credits. Use the crypto purchase card to buy with USDC.
               </p>
             </div>
           </TabsContent>
@@ -180,7 +184,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
               <div className="flex gap-2 mt-2">
                 <Input
                   type="number"
-                  placeholder="5.00"
+                  placeholder="25.00"
                   value={cashoutAmount}
                   onChange={(e) => setCashoutAmount(e.target.value)}
                   className="bg-gray-700 border-gray-600 text-white"
@@ -191,7 +195,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                 </Button>
               </div>
               <p className="text-xs text-gray-400 mt-2">
-                Minimum cashout: $5.00. Funds will be sent to your primary wallet.
+                Minimum cashout: 25 Credits. Funds will be sent to your primary wallet.
               </p>
             </div>
           </TabsContent>
@@ -232,7 +236,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                 </div>
               ) : (
                 <div className="text-gray-400 text-center py-4">
-                  No transactions yet. Start by purchasing some credits!
+                  No transactions yet. Start by purchasing some credits with USDC!
                 </div>
               )}
             </div>

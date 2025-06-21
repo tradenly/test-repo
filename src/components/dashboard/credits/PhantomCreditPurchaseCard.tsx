@@ -16,16 +16,21 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
   const [selectedBlockchain, setSelectedBlockchain] = useState<string>("");
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string>("");
-  const [creditAmount, setCreditAmount] = useState<string>("");
+  const [usdcAmount, setUsdcAmount] = useState<string>("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
 
   const blockchains = [
-    { value: "solana", label: "Solana", symbol: "SOL" },
-    { value: "ethereum", label: "Ethereum", symbol: "ETH" },
-    { value: "bitcoin", label: "Bitcoin", symbol: "BTC" },
-    { value: "sui", label: "SUI", symbol: "SUI" }
+    { value: "solana", label: "Solana", symbol: "USDC" },
+    { value: "ethereum", label: "Ethereum", symbol: "USDC" },
+    { value: "sui", label: "SUI", symbol: "USDC" }
   ];
+
+  const usdcAddresses = {
+    solana: "qinTdo2EZwmN2BShG8aoUXhQvAsmng2FmCsLuouKDaG",
+    ethereum: "0xc5307D99C42C90C9519432403081Bf0B1D772EC6",
+    sui: "0xe74dc24dc72e5f1aa5ff0cd2af2f2a2d55a5dd51c0536a25d62beed64b5ac5d6"
+  };
 
   const handleConnectWallet = async () => {
     setIsConnecting(true);
@@ -58,57 +63,28 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
   };
 
   const handleSubmit = () => {
-    if (!selectedBlockchain || !isWalletConnected || !creditAmount) {
-      alert("Please select a blockchain, connect your wallet, and enter a credit amount");
+    if (!selectedBlockchain || !isWalletConnected || !usdcAmount) {
+      alert("Please select a blockchain, connect your wallet, and enter a USDC amount");
       return;
     }
 
-    const credits = parseInt(creditAmount);
-    if (credits <= 0) {
-      alert("Please enter a valid credit amount");
+    const usdcValue = parseFloat(usdcAmount);
+    if (usdcValue < 5) {
+      alert("Minimum purchase is 5 USDC (25 credits)");
       return;
     }
 
-    // Generate payment address and required amount based on blockchain
-    const getPaymentInfo = (blockchain: string) => {
-      const baseAddresses = {
-        solana: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
-        ethereum: "0x742d35Cc6634C0532925a3b8D3aC6b4B4e0a47",
-        bitcoin: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-        sui: "0x123456789abcdef123456789abcdef123456789abcdef"
-      };
-      
-      const rates = {
-        solana: 0.001,
-        ethereum: 0.0001,
-        bitcoin: 0.000001,
-        sui: 0.01
-      };
+    if (usdcValue <= 0) {
+      alert("Please enter a valid USDC amount");
+      return;
+    }
 
-      const selectedChain = blockchains.find(b => b.value === blockchain);
-      const rate = rates[blockchain as keyof typeof rates];
-      const requiredAmount = (credits * rate).toFixed(6);
-      
-      return {
-        address: baseAddresses[blockchain as keyof typeof baseAddresses],
-        amount: `${requiredAmount} ${selectedChain?.symbol}`
-      };
-    };
-
-    const paymentInfo = getPaymentInfo(selectedBlockchain);
     setShowPaymentModal(true);
   };
 
+  const creditAmount = usdcAmount ? Math.floor(parseFloat(usdcAmount) * 5) : 0;
   const selectedChain = blockchains.find(b => b.value === selectedBlockchain);
-  const paymentInfo = selectedChain ? {
-    address: {
-      solana: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
-      ethereum: "0x742d35Cc6634C0532925a3b8D3aC6b4B4e0a47",
-      bitcoin: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-      sui: "0x123456789abcdef123456789abcdef123456789abcdef"
-    }[selectedBlockchain as keyof typeof Object],
-    amount: creditAmount ? `${(parseInt(creditAmount) * 0.001).toFixed(6)} ${selectedChain.symbol}` : "0"
-  } : { address: "", amount: "0" };
+  const paymentAddress = selectedBlockchain ? usdcAddresses[selectedBlockchain as keyof typeof usdcAddresses] : "";
 
   return (
     <>
@@ -116,13 +92,19 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            Purchase Credits with Crypto
+            Purchase Credits with USDC
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-3">
+            <p className="text-blue-200 text-sm">
+              <strong>💰 Rate:</strong> 1 USDC = 5 Credits | <strong>Minimum:</strong> 5 USDC (25 Credits)
+            </p>
+          </div>
+
           <div>
             <Label htmlFor="blockchain" className="text-gray-300">
-              Select Blockchain
+              Select Blockchain for USDC
             </Label>
             <Select value={selectedBlockchain} onValueChange={setSelectedBlockchain}>
               <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
@@ -174,23 +156,43 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
           </div>
 
           <div>
-            <Label htmlFor="credits" className="text-gray-300">
-              Credits to Purchase
+            <Label htmlFor="usdc" className="text-gray-300">
+              USDC Amount (Min: 5 USDC)
             </Label>
             <Input
-              id="credits"
+              id="usdc"
               type="number"
-              placeholder="Enter amount..."
-              value={creditAmount}
-              onChange={(e) => setCreditAmount(e.target.value)}
+              placeholder="5.00"
+              value={usdcAmount}
+              onChange={(e) => setUsdcAmount(e.target.value)}
               className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-              min="1"
+              min="5"
+              step="0.1"
             />
+            {usdcAmount && (
+              <p className="text-sm text-green-400 mt-1">
+                Will receive: {creditAmount} Credits
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {[5, 10, 25].map((amount) => (
+              <Button
+                key={amount}
+                variant="outline"
+                size="sm"
+                onClick={() => setUsdcAmount(amount.toString())}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                {amount} USDC
+              </Button>
+            ))}
           </div>
 
           <Button
             onClick={handleSubmit}
-            disabled={!selectedBlockchain || !isWalletConnected || !creditAmount}
+            disabled={!selectedBlockchain || !isWalletConnected || !usdcAmount || parseFloat(usdcAmount) < 5}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
           >
             Generate Payment Address
@@ -202,9 +204,9 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         blockchain={selectedChain?.label || ""}
-        creditAmount={parseInt(creditAmount) || 0}
-        paymentAddress={paymentInfo.address}
-        requiredAmount={paymentInfo.amount}
+        creditAmount={creditAmount}
+        paymentAddress={paymentAddress}
+        requiredAmount={`${usdcAmount} USDC`}
       />
     </>
   );
