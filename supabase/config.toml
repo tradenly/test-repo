@@ -33,7 +33,7 @@ enable_signup = true
 [auth.external.google]
 enabled = true
 client_id = "env(GOOGLE_OAUTH_CLIENT_ID)"
-secret = "env(GOOGLE_OAUTH_CLIENT_SECRET)"
+secret = "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"
 redirect_uri = "https://csdrraabfbrzteezkqkm.supabase.co/auth/v1/callback"
 
 [functions.monitor-blockchain-payments]

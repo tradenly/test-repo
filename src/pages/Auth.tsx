@@ -123,27 +123,22 @@ const Auth = () => {
     setGoogleLoading(true);
 
     try {
-      // Get the current origin to ensure proper redirect
-      const currentOrigin = window.location.origin;
-      console.log('🌐 Current origin:', currentOrigin);
-
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${currentOrigin}/`,
+          redirectTo: `${window.location.origin}/`,
           queryParams: {
             access_type: 'offline',
             prompt: 'select_account',
           },
-          skipBrowserRedirect: false,
         }
       });
 
       if (error) {
         console.error('❌ Google OAuth error:', error);
         toast({
-          title: "Error",
-          description: error.message || "Failed to sign in with Google",
+          title: "Google Sign In Error",
+          description: error.message || "Failed to sign in with Google. Please check your Google OAuth configuration.",
           variant: "destructive",
         });
         setGoogleLoading(false);
