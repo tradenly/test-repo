@@ -59,37 +59,73 @@ export const MintInfoSection = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
-            <div className="text-4xl mb-2">💾</div>
+            <div className="mb-2">
+              <img 
+                src="/lovable-uploads/c0b71020-c9b3-45d6-ab9e-6039d6dd8bb4.png" 
+                alt="Hippo with sunglasses" 
+                className="w-16 h-16 mx-auto rounded-lg"
+              />
+            </div>
             <p className="text-white font-bold">RGS Diary</p>
             <p className="text-sm text-gray-300">What was Lost</p>
           </div>
           
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
-            <div className="text-4xl mb-2">🎯</div>
+            <div className="mb-2">
+              <img 
+                src="/lovable-uploads/623aca37-1cc9-4d34-9467-be60a163841a.png" 
+                alt="Cool hippo character" 
+                className="w-16 h-16 mx-auto rounded-lg"
+              />
+            </div>
             <p className="text-white font-bold">2K</p>
             <p className="text-sm text-gray-300">What we Bought</p>
           </div>
           
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
-            <div className="text-4xl mb-2">🧻</div>
+            <div className="mb-2">
+              <img 
+                src="/lovable-uploads/b896f4cd-250a-4f3c-b051-0128831d13f0.png" 
+                alt="Happy hippo with gold chain" 
+                className="w-16 h-16 mx-auto rounded-lg"
+              />
+            </div>
             <p className="text-white font-bold">Unlimited Ptoper</p>
             <p className="text-sm text-gray-300">What Forever</p>
           </div>
 
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
-            <div className="text-4xl mb-2">🏆</div>
+            <div className="mb-2">
+              <img 
+                src="/lovable-uploads/a17135f5-f44e-47e3-b35e-98de0b61ee4a.png" 
+                alt="Blue hippo with chain" 
+                className="w-16 h-16 mx-auto rounded-lg"
+              />
+            </div>
             <p className="text-white font-bold">Lost All Ash</p>
             <p className="text-sm text-gray-300">What's at Ash</p>
           </div>
 
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
-            <div className="text-4xl mb-2">❌</div>
+            <div className="mb-2">
+              <img 
+                src="/lovable-uploads/83e7733d-c474-4f7a-b360-e8287b5e0bb5.png" 
+                alt="Purple hippo with sunglasses" 
+                className="w-16 h-16 mx-auto rounded-lg"
+              />
+            </div>
             <p className="text-white font-bold">Moon</p>
             <p className="text-sm text-gray-300">What'd</p>
           </div>
 
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
-            <div className="text-4xl mb-2">🎭</div>
+            <div className="mb-2">
+              <img 
+                src="/lovable-uploads/fa61c441-9bb0-472b-852c-909b43d82890.png" 
+                alt="Stylish hippo character" 
+                className="w-16 h-16 mx-auto rounded-lg"
+              />
+            </div>
             <p className="text-white font-bold">Regret</p>
             <p className="text-sm text-gray-300">What's</p>
           </div>
