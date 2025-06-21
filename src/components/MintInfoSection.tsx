@@ -1,17 +1,11 @@
-
 import { Button } from "@/components/ui/button";
 
 export const MintInfoSection = () => {
   return (
     <section className="py-20 px-4 bg-gradient-to-b from-black via-gray-900 to-gray-800">
       <div className="max-w-4xl mx-auto text-center">
-        <h2 className="text-5xl font-bold text-white mb-16 flex items-center justify-center gap-4">
-          The MEMENOMICS 
-          <img 
-            src="/lovable-uploads/d3145382-6f7a-4a7f-8a28-2bbdd2c3bb1f.png" 
-            alt="Teal gauge icon" 
-            className="w-12 h-12"
-          />
+        <h2 className="text-5xl font-bold text-white mb-16">
+          The MEMENOMICS
         </h2>
         
         <div className="grid md:grid-cols-2 gap-8 mb-16">
