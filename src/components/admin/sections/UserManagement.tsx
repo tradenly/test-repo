@@ -7,15 +7,27 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Crown, Shield, Ban, Search } from "lucide-react";
+import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 
 export const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { user } = useUnifiedAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['adminUsers', searchTerm],
     queryFn: async () => {
+      console.log('🔍 UserManagement: Fetching users, current user:', user?.id);
+      
+      // Ensure we have a session before making queries
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authenticated session found');
+      }
+      
+      console.log('🔐 UserManagement: Using session:', !!session);
+
       // Get profiles first
       let profileQuery = supabase
         .from('profiles')
@@ -27,23 +39,34 @@ export const UserManagement = () => {
 
       const { data: profiles, error: profileError } = await profileQuery.order('created_at', { ascending: false });
       
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('❌ UserManagement: Profile fetch error:', profileError);
+        throw profileError;
+      }
 
       if (!profiles || profiles.length === 0) return [];
 
       const userIds = profiles.map(p => p.id);
 
       // Get user roles
-      const { data: userRoles } = await supabase
+      const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role')
         .in('user_id', userIds);
 
+      if (rolesError) {
+        console.error('❌ UserManagement: Roles fetch error:', rolesError);
+      }
+
       // Get user credits
-      const { data: userCredits } = await supabase
+      const { data: userCredits, error: creditsError } = await supabase
         .from('user_credits')
         .select('user_id, balance')
         .in('user_id', userIds);
+
+      if (creditsError) {
+        console.error('❌ UserManagement: Credits fetch error:', creditsError);
+      }
 
       // Merge data
       return profiles.map(profile => ({
@@ -52,15 +75,29 @@ export const UserManagement = () => {
         user_credits: userCredits?.filter(credit => credit.user_id === profile.id) || [],
       }));
     },
+    enabled: !!user,
   });
 
   const makeAdminMutation = useMutation({
     mutationFn: async (userId: string) => {
+      console.log('🔧 UserManagement: Making user admin:', userId);
+      
+      // Ensure we have a session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authenticated session found');
+      }
+
       const { error } = await supabase
         .from('user_roles')
         .upsert({ user_id: userId, role: 'admin' });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ UserManagement: Make admin error:', error);
+        throw error;
+      }
+      
+      console.log('✅ UserManagement: Successfully made user admin');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
@@ -69,10 +106,11 @@ export const UserManagement = () => {
         description: "User has been made an admin.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('💥 UserManagement: Make admin mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to make user admin.",
+        description: error.message || "Failed to make user admin.",
         variant: "destructive",
       });
     },
@@ -80,13 +118,26 @@ export const UserManagement = () => {
 
   const removeAdminMutation = useMutation({
     mutationFn: async (userId: string) => {
+      console.log('🔧 UserManagement: Removing admin from user:', userId);
+      
+      // Ensure we have a session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authenticated session found');
+      }
+
       const { error } = await supabase
         .from('user_roles')
         .delete()
         .eq('user_id', userId)
         .eq('role', 'admin');
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ UserManagement: Remove admin error:', error);
+        throw error;
+      }
+      
+      console.log('✅ UserManagement: Successfully removed admin privileges');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
@@ -95,10 +146,11 @@ export const UserManagement = () => {
         description: "Admin privileges removed.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('💥 UserManagement: Remove admin mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to remove admin privileges.",
+        description: error.message || "Failed to remove admin privileges.",
         variant: "destructive",
       });
     },

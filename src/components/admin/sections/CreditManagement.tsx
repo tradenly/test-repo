@@ -8,18 +8,30 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Minus, Search } from "lucide-react";
+import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 
 export const CreditManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUserId, setSelectedUserId] = useState("");
   const [creditAmount, setCreditAmount] = useState("");
   const [description, setDescription] = useState("");
+  const { user } = useUnifiedAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['adminCreditUsers', searchTerm],
     queryFn: async () => {
+      console.log('🔍 CreditManagement: Fetching users for credit management');
+      
+      // Ensure we have a session before making queries
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authenticated session found');
+      }
+      
+      console.log('🔐 CreditManagement: Using session:', !!session);
+
       // Get profiles first
       let profileQuery = supabase
         .from('profiles')
@@ -30,17 +42,24 @@ export const CreditManagement = () => {
       }
 
       const { data: profiles, error } = await profileQuery;
-      if (error) throw error;
+      if (error) {
+        console.error('❌ CreditManagement: Profile fetch error:', error);
+        throw error;
+      }
 
       if (!profiles || profiles.length === 0) return [];
 
       const userIds = profiles.map(p => p.id);
 
       // Get user credits
-      const { data: userCredits } = await supabase
+      const { data: userCredits, error: creditsError } = await supabase
         .from('user_credits')
         .select('user_id, balance')
         .in('user_id', userIds);
+
+      if (creditsError) {
+        console.error('❌ CreditManagement: Credits fetch error:', creditsError);
+      }
 
       // Merge data
       return profiles.map(profile => ({
@@ -48,6 +67,7 @@ export const CreditManagement = () => {
         user_credits: userCredits?.filter(credit => credit.user_id === profile.id) || [],
       }));
     },
+    enabled: !!user,
   });
 
   const adjustCreditsMutation = useMutation({
@@ -57,26 +77,44 @@ export const CreditManagement = () => {
       type: 'add' | 'subtract';
       description: string;
     }) => {
+      console.log('🔧 CreditManagement: Adjusting credits:', { userId, amount, type, description });
+      
+      // Ensure we have a session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authenticated session found');
+      }
+
       // Get current balance
-      const { data: currentCredits } = await supabase
+      const { data: currentCredits, error: fetchError } = await supabase
         .from('user_credits')
         .select('balance')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('❌ CreditManagement: Error fetching current credits:', fetchError);
+        throw fetchError;
+      }
 
       const currentBalance = currentCredits?.balance || 0;
-      const newBalance = type === 'add' ? currentBalance + amount : currentBalance - amount;
+      const newBalance = type === 'add' ? currentBalance + amount : Math.max(0, currentBalance - amount);
+
+      console.log('📊 CreditManagement: Balance change:', { currentBalance, newBalance });
 
       // Update credits
       const { error: updateError } = await supabase
         .from('user_credits')
         .upsert({
           user_id: userId,
-          balance: Math.max(0, newBalance),
+          balance: newBalance,
           updated_at: new Date().toISOString(),
         });
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ CreditManagement: Error updating credits:', updateError);
+        throw updateError;
+      }
 
       // Record transaction
       const { error: transactionError } = await supabase
@@ -90,7 +128,12 @@ export const CreditManagement = () => {
           completed_at: new Date().toISOString(),
         });
 
-      if (transactionError) throw transactionError;
+      if (transactionError) {
+        console.error('❌ CreditManagement: Error recording transaction:', transactionError);
+        throw transactionError;
+      }
+      
+      console.log('✅ CreditManagement: Successfully adjusted credits');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminCreditUsers'] });
@@ -102,10 +145,11 @@ export const CreditManagement = () => {
         description: "Credits adjusted successfully.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('💥 CreditManagement: Credit adjustment error:', error);
       toast({
         title: "Error",
-        description: "Failed to adjust credits.",
+        description: error.message || "Failed to adjust credits.",
         variant: "destructive",
       });
     },
