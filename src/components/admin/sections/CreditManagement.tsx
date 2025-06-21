@@ -134,13 +134,16 @@ export const CreditManagement = () => {
         }
       }
 
-      // Record transaction
+      // Record transaction using valid transaction types
+      const transactionType = type === 'add' ? 'bonus' : 'refund'; // Use 'bonus' for add, 'refund' for subtract (as negative amount)
+      const transactionAmount = type === 'add' ? amount : -amount;
+      
       const { error: transactionError } = await supabase
         .from('credit_transactions')
         .insert({
           user_id: userId,
-          transaction_type: type === 'add' ? 'admin_bonus' : 'admin_deduction',
-          amount: type === 'add' ? amount : -amount,
+          transaction_type: transactionType,
+          amount: transactionAmount,
           description: description || `Admin ${type === 'add' ? 'credit grant' : 'credit deduction'}`,
           status: 'completed',
           completed_at: new Date().toISOString(),
