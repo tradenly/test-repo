@@ -20,14 +20,24 @@ export class GameEngine {
     this.boardSize = boardSize;
     this.board = [];
     this.score = 0;
-    this.initializeBoard();
+    // Don't auto-initialize - let the calling code manage this
   }
 
-  private initializeBoard(): void {
-    this.board = this.generateInitialBoard();
+  // Set the board from external state (for resuming games)
+  public setBoard(board: TileType[][]): void {
+    console.log("🎮 GameEngine: Setting board from external state");
+    this.board = board.map(row => [...row]); // Deep copy
+    console.log("🎮 GameEngine: Board set, size:", this.board.length, "x", this.board[0]?.length);
+  }
+
+  // Set the score from external state (for resuming games)
+  public setScore(score: number): void {
+    console.log("🎮 GameEngine: Setting score to", score);
+    this.score = score;
   }
 
   public generateInitialBoard(): TileType[][] {
+    console.log("🎮 GameEngine: Generating new initial board");
     const board: TileType[][] = [];
     
     // Generate random board
@@ -40,6 +50,10 @@ export class GameEngine {
 
     // Ensure no initial matches
     this.removeInitialMatches(board);
+    
+    // Set this as our internal board
+    this.board = board.map(row => [...row]); // Deep copy
+    console.log("🎮 GameEngine: Initial board generated and set");
     
     return board;
   }
@@ -79,11 +93,20 @@ export class GameEngine {
   public areAdjacent(row1: number, col1: number, row2: number, col2: number): boolean {
     const rowDiff = Math.abs(row1 - row2);
     const colDiff = Math.abs(col1 - col2);
-    return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+    const isAdjacent = (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+    console.log(`🎮 Checking adjacency: (${row1},${col1}) -> (${row2},${col2}): ${isAdjacent}`);
+    return isAdjacent;
   }
 
   public makeMove(row1: number, col1: number, row2: number, col2: number): boolean {
-    console.log(`🎮 Attempting move: (${row1},${col1}) -> (${row2},${col2})`);
+    console.log(`🎮 GameEngine: Attempting move: (${row1},${col1}) -> (${row2},${col2})`);
+    console.log(`🎮 Current board state:`, this.board.map(row => row.join(' ')));
+    
+    // Validate coordinates
+    if (!this.isValidPosition(row1, col1) || !this.isValidPosition(row2, col2)) {
+      console.log(`❌ Invalid coordinates`);
+      return false;
+    }
     
     // Add swap animation
     this.addAnimation({
@@ -95,6 +118,7 @@ export class GameEngine {
 
     // Swap tiles
     this.swapTiles(row1, col1, row2, col2);
+    console.log(`🔄 Tiles swapped, new board:`, this.board.map(row => row.join(' ')));
     
     // Check for matches
     const matches = this.findMatches();
@@ -120,6 +144,7 @@ export class GameEngine {
       return true;
     } else {
       // No matches, revert swap and add invalid animation
+      console.log(`❌ No matches found, reverting swap`);
       this.swapTiles(row1, col1, row2, col2);
       this.addAnimation({
         type: 'invalid',
@@ -127,9 +152,12 @@ export class GameEngine {
         toTile: {row: row2, col: col2},
         id: `invalid-${this.currentAnimationId++}`
       });
-      console.log(`❌ No matches found, move reverted`);
       return false;
     }
+  }
+
+  private isValidPosition(row: number, col: number): boolean {
+    return row >= 0 && row < this.boardSize && col >= 0 && col < this.boardSize;
   }
 
   private addAnimation(animation: AnimationEvent): void {
@@ -146,6 +174,7 @@ export class GameEngine {
     const temp = this.board[row1][col1];
     this.board[row1][col1] = this.board[row2][col2];
     this.board[row2][col2] = temp;
+    console.log(`🔄 Swapped (${row1},${col1}) with (${row2},${col2})`);
   }
 
   private findMatches(): {row: number, col: number}[] {
@@ -281,7 +310,8 @@ export class GameEngine {
   }
 
   public getBoard(): TileType[][] {
-    return this.board;
+    // Return a deep copy to prevent external mutations
+    return this.board.map(row => [...row]);
   }
 
   public getScore(): number {

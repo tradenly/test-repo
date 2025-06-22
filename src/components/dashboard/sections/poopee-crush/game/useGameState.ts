@@ -27,6 +27,7 @@ export const useGameState = (onGameEnd: (score: number, moves: number) => void) 
   // Initialize game engine
   useEffect(() => {
     if (!gameEngineRef.current) {
+      console.log("🎮 Initializing new GameEngine");
       gameEngineRef.current = new GameEngine();
     }
   }, []);
@@ -35,6 +36,7 @@ export const useGameState = (onGameEnd: (score: number, moves: number) => void) 
   const saveGameState = (state: GameState) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      console.log("💾 Game state saved to localStorage");
     } catch (error) {
       console.warn("Failed to save game state:", error);
     }
@@ -48,6 +50,7 @@ export const useGameState = (onGameEnd: (score: number, moves: number) => void) 
         const state = JSON.parse(saved);
         // Only restore if game was active and has moves left
         if (state.gameActive && state.moves > 0) {
+          console.log("📂 Loaded saved game state:", state);
           return state;
         }
       }
@@ -61,15 +64,22 @@ export const useGameState = (onGameEnd: (score: number, moves: number) => void) 
   const clearGameState = () => {
     try {
       localStorage.removeItem(STORAGE_KEY);
+      console.log("🗑️ Cleared saved game state");
     } catch (error) {
       console.warn("Failed to clear game state:", error);
     }
   };
 
   const startNewGame = () => {
-    if (!gameEngineRef.current) return;
+    if (!gameEngineRef.current) {
+      console.error("❌ GameEngine not initialized");
+      return;
+    }
 
+    console.log("🎮 Starting new POOPEE Crush game");
     const engine = gameEngineRef.current;
+    
+    // Generate a new board using the engine
     const newBoard = engine.generateInitialBoard();
     
     const newState: GameState = {
@@ -84,25 +94,49 @@ export const useGameState = (onGameEnd: (score: number, moves: number) => void) 
     saveGameState(newState);
     setAnimations([]);
     
-    console.log("🎮 New POOPEE Crush game started!");
+    console.log("🎮 New game started with board:", newBoard);
   };
 
   const resumeGame = () => {
     const savedState = loadGameState();
     if (savedState && gameEngineRef.current) {
-      // Restore the board state in the engine
-      gameEngineRef.current = new GameEngine();
+      console.log("🔄 Resuming saved game");
+      const engine = gameEngineRef.current;
+      
+      // Restore the engine state to match the saved state
+      engine.setBoard(savedState.board);
+      engine.setScore(savedState.score);
+      
+      // Set the component state
       setGameState(savedState);
-      console.log("🔄 POOPEE Crush game resumed!");
+      console.log("🔄 Game resumed successfully");
       return true;
     }
     return false;
   };
 
+  const syncStateWithEngine = () => {
+    if (!gameEngineRef.current) return gameState;
+    
+    const engine = gameEngineRef.current;
+    const updatedState = {
+      ...gameState,
+      board: engine.getBoard(),
+      score: engine.getScore()
+    };
+    
+    console.log("🔄 Syncing state with engine - Score:", updatedState.score);
+    return updatedState;
+  };
+
   const handleTileClick = (row: number, col: number) => {
-    if (!gameState.gameActive || gameState.moves <= 0 || !gameEngineRef.current) return;
+    if (!gameState.gameActive || gameState.moves <= 0 || !gameEngineRef.current) {
+      console.log("🚫 Cannot handle tile click - game not active or no moves left");
+      return;
+    }
 
     const engine = gameEngineRef.current;
+    console.log(`🎯 Tile clicked: (${row}, ${col})`);
 
     if (!gameState.selectedTile) {
       // Select tile
@@ -134,6 +168,8 @@ export const useGameState = (onGameEnd: (score: number, moves: number) => void) 
       );
 
       if (isAdjacent) {
+        console.log(`🔄 Attempting move from (${gameState.selectedTile.row}, ${gameState.selectedTile.col}) to (${row}, ${col})`);
+        
         // Attempt move
         const moveSuccessful = engine.makeMove(
           gameState.selectedTile.row, gameState.selectedTile.col,
@@ -141,10 +177,13 @@ export const useGameState = (onGameEnd: (score: number, moves: number) => void) 
         );
 
         if (moveSuccessful) {
+          console.log("✅ Move successful!");
           const newMoves = gameState.moves - 1;
+          
+          // Get updated state from engine
+          const syncedState = syncStateWithEngine();
           const newState: GameState = {
-            board: [...engine.getBoard()],
-            score: engine.getScore(),
+            ...syncedState,
             moves: newMoves,
             gameActive: newMoves > 0,
             selectedTile: null
@@ -156,13 +195,18 @@ export const useGameState = (onGameEnd: (score: number, moves: number) => void) 
             saveGameState(newState);
           } else {
             clearGameState();
+            console.log("🏁 Game ended - no moves left");
             onGameEnd(newState.score, 30 - newMoves);
           }
 
           // Get and display animations
           const newAnimations = engine.getAnimations();
-          setAnimations(newAnimations);
+          if (newAnimations.length > 0) {
+            console.log("🎬 Setting animations:", newAnimations);
+            setAnimations(newAnimations);
+          }
         } else {
+          console.log("❌ Move failed - no valid matches");
           // Invalid move - just deselect
           const newState = {
             ...gameState,
@@ -173,7 +217,9 @@ export const useGameState = (onGameEnd: (score: number, moves: number) => void) 
 
           // Show invalid move animation
           const invalidAnimations = engine.getAnimations();
-          setAnimations(invalidAnimations);
+          if (invalidAnimations.length > 0) {
+            setAnimations(invalidAnimations);
+          }
         }
       } else {
         // Not adjacent - select new tile instead
@@ -190,6 +236,7 @@ export const useGameState = (onGameEnd: (score: number, moves: number) => void) 
 
   const quitGame = () => {
     if (gameState.gameActive) {
+      console.log("🏁 Player quit the game");
       clearGameState();
       onGameEnd(gameState.score, 30 - gameState.moves);
       
