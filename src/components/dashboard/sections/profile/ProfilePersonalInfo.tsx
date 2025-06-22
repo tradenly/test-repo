@@ -56,7 +56,7 @@ export const ProfilePersonalInfo = ({
           <Button
             type="submit"
             disabled={isUpdating}
-            className="bg-gray-700 hover:bg-gray-600"
+            className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
           >
             {isUpdating ? "Updating..." : "Update Profile"}
           </Button>

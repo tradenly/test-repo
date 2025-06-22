@@ -53,8 +53,7 @@ export const ProfileEmailSettings = ({
         <Button
           onClick={onEmailUpdate}
           disabled={isUpdatingEmail || isUpdating}
-          variant="outline"
-          className="border-gray-600 text-gray-300"
+          className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
         >
           {isUpdatingEmail || isUpdating ? "Updating..." : "Update Email"}
         </Button>
