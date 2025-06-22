@@ -1,3 +1,4 @@
+
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 export const SneakPeekSection = () => {
@@ -51,8 +52,8 @@ export const SneakPeekSection = () => {
         </p>
         
         <div className="mb-16">
-          <h3 className="text-3xl font-bold text-gray-300 mb-8 italic">
-            "We are not here to moon. We're here to float." 🌙
+          <h3 className="text-3xl font-bold text-gray-300 mb-8 italic text-center">
+            "We are not here to moon. We're here to float."
           </h3>
         </div>
 
