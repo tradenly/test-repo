@@ -1,3 +1,4 @@
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -23,12 +24,13 @@ export const useAdminCashoutRequests = () => {
     queryFn: async (): Promise<CashoutRequestWithUser[]> => {
       console.log("Fetching admin cashout requests");
       
+      // Use proper JOIN syntax instead of foreign key constraint references
       const { data, error } = await supabase
         .from("credit_cashout_requests")
         .select(`
           *,
-          user_profile:profiles!credit_cashout_requests_user_id_fkey(id, username, full_name),
-          user_wallet:user_wallets!credit_cashout_requests_selected_wallet_id_fkey(id, wallet_address, blockchain, wallet_name)
+          profiles!inner(id, username, full_name),
+          user_wallets!inner(id, wallet_address, blockchain, wallet_name)
         `)
         .order("requested_at", { ascending: false });
       
@@ -41,23 +43,31 @@ export const useAdminCashoutRequests = () => {
       
       // Safely map and cast the response data
       return (data || []).map(item => {
-        // Handle potential query errors in related tables with proper null checking
+        // Handle profiles data
         let userProfile = null;
-        if (item.user_profile && 
-            typeof item.user_profile === 'object' && 
-            !Array.isArray(item.user_profile) &&
-            !('error' in item.user_profile) &&
-            'id' in item.user_profile) {
-          userProfile = item.user_profile as { id: string; username?: string | null; full_name?: string | null; };
+        if (item.profiles && 
+            typeof item.profiles === 'object' && 
+            !Array.isArray(item.profiles) &&
+            'id' in item.profiles) {
+          userProfile = {
+            id: item.profiles.id,
+            username: item.profiles.username,
+            full_name: item.profiles.full_name,
+          };
         }
           
+        // Handle user_wallets data
         let userWallet = null;
-        if (item.user_wallet && 
-            typeof item.user_wallet === 'object' && 
-            !Array.isArray(item.user_wallet) &&
-            !('error' in item.user_wallet) &&
-            'id' in item.user_wallet) {
-          userWallet = item.user_wallet as { id: string; wallet_address: string; blockchain: string; wallet_name?: string | null; };
+        if (item.user_wallets && 
+            typeof item.user_wallets === 'object' && 
+            !Array.isArray(item.user_wallets) &&
+            'id' in item.user_wallets) {
+          userWallet = {
+            id: item.user_wallets.id,
+            wallet_address: item.user_wallets.wallet_address,
+            blockchain: item.user_wallets.blockchain,
+            wallet_name: item.user_wallets.wallet_name,
+          };
         }
 
         return {
