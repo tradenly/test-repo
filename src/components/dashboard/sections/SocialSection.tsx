@@ -38,7 +38,6 @@ export const SocialSection = ({ user }: SocialSectionProps) => {
         </div>
         <Button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="bg-gray-700 hover:bg-gray-600"
         >
           <Plus className="mr-2 h-4 w-4" />
           Add Account
