@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 
 export const WhatYouGetSection = () => {
@@ -73,7 +72,7 @@ export const WhatYouGetSection = () => {
         </div>
 
         <div className="bg-gray-800 rounded-xl p-8 mb-12 border border-gray-700">
-          <div className="text-6xl mb-4">🎯</div>
+          <div className="text-6xl mb-4">🎮</div>
           <h3 className="text-2xl font-bold text-white mb-6">
             Future Games: Maybe. Depends on How We Feel.
           </h3>
