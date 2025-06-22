@@ -1,10 +1,20 @@
 
 import { TileType, TILE_TYPES } from "./TileTypes";
 
+export interface AnimationEvent {
+  type: 'match' | 'drop' | 'swap' | 'invalid';
+  tiles?: {row: number, col: number}[];
+  fromTile?: {row: number, col: number};
+  toTile?: {row: number, col: number};
+  id: string;
+}
+
 export class GameEngine {
   private board: TileType[][];
   private score: number;
   private boardSize: number;
+  private animationQueue: AnimationEvent[] = [];
+  private currentAnimationId = 0;
 
   constructor(boardSize: number = 8) {
     this.boardSize = boardSize;
@@ -73,13 +83,31 @@ export class GameEngine {
   }
 
   public makeMove(row1: number, col1: number, row2: number, col2: number): boolean {
+    console.log(`🎮 Attempting move: (${row1},${col1}) -> (${row2},${col2})`);
+    
+    // Add swap animation
+    this.addAnimation({
+      type: 'swap',
+      fromTile: {row: row1, col: col1},
+      toTile: {row: row2, col: col2},
+      id: `swap-${this.currentAnimationId++}`
+    });
+
     // Swap tiles
     this.swapTiles(row1, col1, row2, col2);
     
     // Check for matches
     const matches = this.findMatches();
+    console.log(`🔍 Found ${matches.length} matches:`, matches);
     
     if (matches.length > 0) {
+      // Add match animation
+      this.addAnimation({
+        type: 'match',
+        tiles: matches,
+        id: `match-${this.currentAnimationId++}`
+      });
+
       // Process matches and cascade
       this.processMatches(matches);
       this.dropTiles();
@@ -88,12 +116,30 @@ export class GameEngine {
       // Continue processing cascading matches
       this.processCascadingMatches();
       
+      console.log(`✅ Move successful! New score: ${this.score}`);
       return true;
     } else {
-      // No matches, revert swap
+      // No matches, revert swap and add invalid animation
       this.swapTiles(row1, col1, row2, col2);
+      this.addAnimation({
+        type: 'invalid',
+        fromTile: {row: row1, col: col1},
+        toTile: {row: row2, col: col2},
+        id: `invalid-${this.currentAnimationId++}`
+      });
+      console.log(`❌ No matches found, move reverted`);
       return false;
     }
+  }
+
+  private addAnimation(animation: AnimationEvent): void {
+    this.animationQueue.push(animation);
+  }
+
+  public getAnimations(): AnimationEvent[] {
+    const animations = [...this.animationQueue];
+    this.animationQueue = [];
+    return animations;
   }
 
   private swapTiles(row1: number, col1: number, row2: number, col2: number): void {
@@ -106,9 +152,12 @@ export class GameEngine {
     const matches: {row: number, col: number}[] = [];
     const checked: boolean[][] = Array(this.boardSize).fill(null).map(() => Array(this.boardSize).fill(false));
 
-    // Check horizontal matches
+    // Check horizontal matches (3 or more)
     for (let row = 0; row < this.boardSize; row++) {
       for (let col = 0; col < this.boardSize - 2; col++) {
+        const currentTile = this.board[row][col];
+        if (currentTile === TileType.EMPTY) continue;
+        
         if (this.board[row][col] === this.board[row][col + 1] && 
             this.board[row][col] === this.board[row][col + 2]) {
           
@@ -128,9 +177,12 @@ export class GameEngine {
       }
     }
 
-    // Check vertical matches
+    // Check vertical matches (3 or more)
     for (let col = 0; col < this.boardSize; col++) {
       for (let row = 0; row < this.boardSize - 2; row++) {
+        const currentTile = this.board[row][col];
+        if (currentTile === TileType.EMPTY) continue;
+        
         if (this.board[row][col] === this.board[row + 1][col] && 
             this.board[row][col] === this.board[row + 2][col]) {
           
@@ -157,7 +209,10 @@ export class GameEngine {
     // Award points based on match count
     const basePoints = 100;
     const matchBonus = matches.length > 3 ? (matches.length - 3) * 50 : 0;
-    this.score += basePoints * matches.length + matchBonus;
+    const scoreIncrease = basePoints * matches.length + matchBonus;
+    this.score += scoreIncrease;
+
+    console.log(`💰 Score increased by ${scoreIncrease} (${matches.length} tiles matched)`);
 
     // Remove matched tiles (set to empty)
     matches.forEach(match => {
@@ -166,18 +221,30 @@ export class GameEngine {
   }
 
   private dropTiles(): void {
+    const droppedTiles: {row: number, col: number}[] = [];
+    
     for (let col = 0; col < this.boardSize; col++) {
       let writeIndex = this.boardSize - 1;
       
       for (let row = this.boardSize - 1; row >= 0; row--) {
         if (this.board[row][col] !== TileType.EMPTY) {
-          this.board[writeIndex][col] = this.board[row][col];
           if (writeIndex !== row) {
+            this.board[writeIndex][col] = this.board[row][col];
             this.board[row][col] = TileType.EMPTY;
+            droppedTiles.push({row: writeIndex, col});
           }
           writeIndex--;
         }
       }
+    }
+
+    // Add drop animation if tiles moved
+    if (droppedTiles.length > 0) {
+      this.addAnimation({
+        type: 'drop',
+        tiles: droppedTiles,
+        id: `drop-${this.currentAnimationId++}`
+      });
     }
   }
 
@@ -196,6 +263,14 @@ export class GameEngine {
     while (hasMatches) {
       const matches = this.findMatches();
       if (matches.length > 0) {
+        console.log(`🔄 Cascading matches found: ${matches.length}`);
+        
+        this.addAnimation({
+          type: 'match',
+          tiles: matches,
+          id: `cascade-${this.currentAnimationId++}`
+        });
+        
         this.processMatches(matches);
         this.dropTiles();
         this.fillEmptySpaces();
