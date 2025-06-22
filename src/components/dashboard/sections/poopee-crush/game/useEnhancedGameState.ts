@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { EnhancedGameEngine, AnimationEvent, GameProgress } from "./EnhancedGameEngine";
 import { TileType } from "./EnhancedTileTypes";
@@ -38,9 +37,9 @@ export const useEnhancedGameState = (onLevelComplete: (level: number, score: num
       moves: 25,
       objectives: [],
       requiredScore: 1000,
-      difficulty: 'easy',
       availableTileTypes: 4,
-      specialTileSpawnRate: 0.1
+      specialTileSpawnRate: 0.1,
+      difficulty: 'easy'
     },
     gameActive: false,
     selectedTile: null,
@@ -351,9 +350,9 @@ export const useEnhancedGameState = (onLevelComplete: (level: number, score: num
           moves: 25,
           objectives: [],
           requiredScore: 1000,
-          difficulty: 'easy',
           availableTileTypes: 4,
-          specialTileSpawnRate: 0.1
+          specialTileSpawnRate: 0.1,
+          difficulty: 'easy'
         },
         gameActive: false,
         selectedTile: null,
