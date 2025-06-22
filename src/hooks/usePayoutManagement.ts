@@ -1,4 +1,3 @@
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -42,12 +41,20 @@ export const useAdminCashoutRequests = () => {
       
       // Safely map and cast the response data
       return (data || []).map(item => {
-        // Handle potential query errors in related tables
-        const userProfile = item.user_profile && typeof item.user_profile === 'object' && !('error' in item.user_profile)
+        // Handle potential query errors in related tables with proper null checking
+        const userProfile = item.user_profile && 
+          typeof item.user_profile === 'object' && 
+          !('error' in item.user_profile) &&
+          item.user_profile !== null &&
+          'id' in item.user_profile
           ? item.user_profile as { id: string; username?: string | null; full_name?: string | null; }
           : null;
           
-        const userWallet = item.user_wallet && typeof item.user_wallet === 'object' && !('error' in item.user_wallet)
+        const userWallet = item.user_wallet && 
+          typeof item.user_wallet === 'object' && 
+          !('error' in item.user_wallet) &&
+          item.user_wallet !== null &&
+          'id' in item.user_wallet
           ? item.user_wallet as { id: string; wallet_address: string; blockchain: string; wallet_name?: string | null; }
           : null;
 
