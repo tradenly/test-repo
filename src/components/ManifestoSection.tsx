@@ -33,8 +33,8 @@ export const ManifestoSection = () => {
   return (
     <section className="py-20 px-4 bg-gray-900">
       <div className="max-w-4xl mx-auto text-center">
-        <h2 className="text-5xl font-bold text-white mb-4">
-          How to Join the Regret 😭
+        <h2 className="text-5xl font-bold text-white mb-4 text-center">
+          How to Join the Regret
         </h2>
         
         <div className="grid md:grid-cols-2 gap-8 mb-16">
