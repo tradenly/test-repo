@@ -225,10 +225,12 @@ export class EnhancedGameEngine {
       targetScore: this.levelConfig.requiredScore,
       maxMoves: this.levelConfig.moves,
       levelObjectives: {
-        description: "Reach the target score!",
-        requirements: [
-          { type: 'score', target: this.levelConfig.requiredScore, current: 0 }
-        ]
+        description: "Complete all objectives!",
+        requirements: this.levelConfig.objectives.map(obj => ({
+          type: obj.type,
+          target: obj.target,
+          current: 0
+        }))
       }
     };
     this.boosterManager.resetForNewLevel();
@@ -442,8 +444,8 @@ export class EnhancedGameEngine {
       this.wrappedStripedCombination(row1, col1, isHorizontal);
     }
     
-    // DRAMATICALLY INCREASED SCORING: Much higher combination bonus
-    this.score += 500 * this.gameProgress.comboMultiplier; // Increased from 100
+    // FIXED SCORING: Much lower combination bonus
+    this.score += 10 * this.gameProgress.comboMultiplier;
     this.gameProgress.score = this.score;
   }
 
@@ -481,8 +483,8 @@ export class EnhancedGameEngine {
         clearedCount++;
       }
     }
-    // DRAMATICALLY INCREASED SCORING: Much higher per-tile bonus
-    this.score += clearedCount * 75 * this.gameProgress.comboMultiplier; // Increased from 15
+    // FIXED SCORING: Much lower per-tile bonus
+    this.score += clearedCount * 5 * this.gameProgress.comboMultiplier;
     this.gameProgress.score = this.score;
   }
 
@@ -495,15 +497,15 @@ export class EnhancedGameEngine {
         clearedCount++;
       }
     }
-    // DRAMATICALLY INCREASED SCORING: Much higher per-tile bonus
-    this.score += clearedCount * 75 * this.gameProgress.comboMultiplier; // Increased from 15
+    // FIXED SCORING: Much lower per-tile bonus
+    this.score += clearedCount * 5 * this.gameProgress.comboMultiplier;
     this.gameProgress.score = this.score;
   }
 
   private clearRowAndColumn(row: number, col: number): void {
     this.clearRow(row);
     this.clearColumn(col);
-    this.score += 500; // Large bonus for combination
+    this.score += 15; // Small bonus for combination
   }
 
   private wrappedExplosion(centerRow: number, centerCol: number): void {
@@ -519,8 +521,8 @@ export class EnhancedGameEngine {
       }
     }
     
-    // DRAMATICALLY INCREASED SCORING: Much higher per-tile bonus
-    this.score += affected.length * 60 * this.gameProgress.comboMultiplier; // Increased from 12
+    // FIXED SCORING: Much lower per-tile bonus
+    this.score += affected.length * 3 * this.gameProgress.comboMultiplier;
     this.gameProgress.score = this.score;
   }
 
@@ -549,8 +551,8 @@ export class EnhancedGameEngine {
         }
       }
     }
-    // DRAMATICALLY INCREASED SCORING: Much higher per-tile bonus
-    this.score += clearedCount * 100 * this.gameProgress.comboMultiplier; // Increased from 20
+    // FIXED SCORING: Much lower per-tile bonus
+    this.score += clearedCount * 7 * this.gameProgress.comboMultiplier;
     this.gameProgress.score = this.score;
   }
 
@@ -574,8 +576,8 @@ export class EnhancedGameEngine {
         }
       }
     }
-    // DRAMATICALLY INCREASED SCORING: Much higher board-clear bonus
-    this.score += 3000; // Increased from 800
+    // FIXED SCORING: Much lower board-clear bonus
+    this.score += 50;
     this.gameProgress.score = this.score;
   }
 
@@ -693,11 +695,11 @@ export class EnhancedGameEngine {
     let totalTilesCleared = 0;
     
     matches.forEach(match => {
-      // DRAMATICALLY INCREASED SCORING: Much higher points for longer games
-      const basePoints = 100; // Increased from 20
-      const lengthBonus = (match.length - 3) * 50; // Increased from 10
-      const comboBonus = basePoints * (this.gameProgress.comboMultiplier - 1) * 0.5; // Increased multiplier
-      const totalPoints = (basePoints + lengthBonus + comboBonus) * match.length; // Removed reduction factor
+      // FIXED SCORING: Much lower points for matches (5-10 points per match as requested)
+      const basePoints = 5; // Base points per match
+      const lengthBonus = (match.length - 3) * 2; // Small bonus for longer matches
+      const comboBonus = basePoints * (this.gameProgress.comboMultiplier - 1) * 0.1; // Minimal combo bonus
+      const totalPoints = basePoints + lengthBonus + comboBonus;
       
       this.score += totalPoints;
       totalTilesCleared += match.tiles.length;
@@ -737,7 +739,8 @@ export class EnhancedGameEngine {
       if (matches.length > 0) {
         cascadeCount++;
         this.gameProgress.cascades++;
-        this.gameProgress.comboMultiplier = 1 + (cascadeCount * 0.5); // Increased from 0.15
+        // FIXED CASCADING: Much lower multiplier increase
+        this.gameProgress.comboMultiplier = 1 + (cascadeCount * 0.1);
         
         console.log(`🔄 Cascade ${cascadeCount} found: ${matches.length} matches, multiplier: ${this.gameProgress.comboMultiplier}`);
         
@@ -788,7 +791,7 @@ export class EnhancedGameEngine {
         if (targetTile && this.isValidPosition(targetTile.row, targetTile.col)) {
           this.board[targetTile.row][targetTile.col] = TileType.EMPTY;
           this.gameProgress.clearedTiles++;
-          this.score += 25; // Small bonus for using hammer
+          this.score += 5; // Small bonus for using hammer
           this.gameProgress.score = this.score;
           this.dropTiles();
           this.fillEmptySpaces();
@@ -908,13 +911,6 @@ export class EnhancedGameEngine {
   }
 
   public checkLevelComplete(): boolean {
-    // Add minimum moves protection - don't end too early
-    const minMovesPlayed = this.levelConfig.moves - this.gameProgress.moves;
-    if (minMovesPlayed < 5) {
-      console.log(`🛡️ Minimum moves protection: only ${minMovesPlayed} moves played`);
-      return false;
-    }
-
     return this.levelConfig.objectives.every(objective => {
       switch (objective.type) {
         case 'score':
@@ -932,13 +928,7 @@ export class EnhancedGameEngine {
   }
 
   public isGameOver(): boolean {
-    // Add minimum moves protection - ensure at least 10 moves are played
-    const minMovesPlayed = this.levelConfig.moves - this.gameProgress.moves;
-    if (minMovesPlayed < 10) {
-      console.log(`🛡️ Game over protection: only ${minMovesPlayed} moves played, continuing...`);
-      return false;
-    }
-
+    // Game is over only when moves are exhausted and level is not complete
     return this.gameProgress.moves <= 0 && !this.checkLevelComplete();
   }
 

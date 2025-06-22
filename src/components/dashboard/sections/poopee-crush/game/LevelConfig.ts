@@ -28,9 +28,9 @@ const calculateDifficulty = (level: number, moves: number, requiredScore: number
   else if (moves >= 15) difficultyScore += 15;
   else difficultyScore += 25;
   
-  if (requiredScore >= 15000) difficultyScore += 20;
-  else if (requiredScore >= 10000) difficultyScore += 15;
-  else if (requiredScore >= 6000) difficultyScore += 8;
+  if (requiredScore >= 800) difficultyScore += 20;
+  else if (requiredScore >= 600) difficultyScore += 15;
+  else if (requiredScore >= 400) difficultyScore += 8;
   else difficultyScore += 0;
   
   difficultyScore += Math.min((objectives.length - 1) * 5, 15);
@@ -50,9 +50,9 @@ const applyDifficultyMultiplier = (baseScore: number, baseMoves: number, difficu
     case 'easy':
       return { score: baseScore, moves: baseMoves };
     case 'medium':
-      return { score: Math.floor(baseScore * 1.5), moves: Math.max(baseMoves - 2, 15) };
+      return { score: Math.floor(baseScore * 1.5), moves: Math.max(baseMoves - 2, 20) };
     case 'advanced':
-      return { score: baseScore * 2, moves: Math.max(baseMoves - 4, 12) };
+      return { score: baseScore * 2, moves: Math.max(baseMoves - 4, 18) };
     default:
       return { score: baseScore, moves: baseMoves };
   }
@@ -66,12 +66,12 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
       baseConfig = {
         level: 1,
         moves: 30,
-        requiredScore: 4000,
+        requiredScore: 250, // FIXED: Much lower score requirement (was 4000)
         objectives: [
           {
             type: 'score',
-            target: 4000,
-            description: 'Reach 4000 points'
+            target: 250,
+            description: 'Reach 250 points'
           },
           {
             type: 'clear_tiles',
@@ -89,12 +89,12 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
       baseConfig = {
         level: 2,
         moves: 28,
-        requiredScore: 6000,
+        requiredScore: 400, // FIXED: Much lower score requirement (was 6000)
         objectives: [
           {
             type: 'score',
-            target: 6000,
-            description: 'Reach 6000 points'
+            target: 400,
+            description: 'Reach 400 points'
           },
           {
             type: 'special_tiles',
@@ -117,12 +117,12 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
       baseConfig = {
         level: 3,
         moves: 25,
-        requiredScore: 8500,
+        requiredScore: 600, // FIXED: Much lower score requirement (was 8500)
         objectives: [
           {
             type: 'score',
-            target: 8500,
-            description: 'Reach 8500 points'
+            target: 600,
+            description: 'Reach 600 points'
           },
           {
             type: 'cascades',
@@ -151,12 +151,12 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
       baseConfig = {
         level: 4,
         moves: 25,
-        requiredScore: 11000,
+        requiredScore: 800, // FIXED: Much lower score requirement (was 11000)
         objectives: [
           {
             type: 'score',
-            target: 11000,
-            description: 'Reach 11000 points'
+            target: 800,
+            description: 'Reach 800 points'
           },
           {
             type: 'clear_tiles',
@@ -184,12 +184,12 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
       baseConfig = {
         level: 5,
         moves: 25,
-        requiredScore: 15000,
+        requiredScore: 1000, // FIXED: Much lower score requirement (was 15000)
         objectives: [
           {
             type: 'score',
-            target: 15000,
-            description: 'Reach 15000 points'
+            target: 1000,
+            description: 'Reach 1000 points'
           },
           {
             type: 'cascades',
@@ -219,12 +219,12 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
       baseConfig = {
         level: level,
         moves: Math.max(20, 30 - Math.floor(progressiveLevel / 5)),
-        requiredScore: 4000 + (progressiveLevel * 1500),
+        requiredScore: 250 + (progressiveLevel * 100), // FIXED: Much more gradual progression
         objectives: [
           {
             type: 'score',
-            target: 4000 + (progressiveLevel * 1500),
-            description: `Reach ${4000 + (progressiveLevel * 1500)} points`
+            target: 250 + (progressiveLevel * 100),
+            description: `Reach ${250 + (progressiveLevel * 100)} points`
           },
           {
             type: 'clear_tiles',

@@ -1,18 +1,18 @@
 
-import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { EnhancedGameBoard } from "./EnhancedGameBoard";
 import { LevelHUD } from "./LevelHUD";
+import { BoosterPanel } from "./BoosterPanel";
 import { LevelCompleteScreen } from "./LevelCompleteScreen";
 import { GameOverScreen } from "./GameOverScreen";
-import { BoosterPanel } from "./BoosterPanel";
 import { AudioControls } from "./AudioControls";
 import { useEnhancedGameState } from "./useEnhancedGameState";
-import { usePoopeeCrushCredits } from "../usePoopeeCrushCredits";
-import { useGameAudio } from "@/hooks/useGameAudio";
 import { BoosterType } from "./BoosterSystem";
 import { DifficultyLevel } from "./DifficultySelector";
-import { toast } from "sonner";
+import { Position } from "./EnhancedGameEngine";
+import { usePoopeeCrushCredits } from "../usePoopeeCrushCredits";
 
 interface PoopeeCrushGameProps {
   onGameEnd: (score: number, moves: number) => void;
@@ -22,194 +22,143 @@ interface PoopeeCrushGameProps {
 
 export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGameProps) => {
   const [hammerMode, setHammerMode] = useState(false);
-  const { spendCredits, checkCanAfford } = usePoopeeCrushCredits(userId);
-  const { 
-    playBackgroundMusic, 
-    stopBackgroundMusic, 
-    playSoundEffect, 
-    settings 
-  } = useGameAudio();
-  
+  const { spendCredits } = usePoopeeCrushCredits(userId);
+
   const {
     gameState,
     animations,
     handleTileClick,
+    useBooster,
     startNewLevel,
     resumeGame,
     quitGame,
-    useBooster,
     continueToNextLevel,
     restartLevel
-  } = useEnhancedGameState(
-    difficulty,
-    (level: number, score: number, stars: number) => {
-      console.log(`🏆 Level ${level} completed with ${score} points and ${stars} stars`);
-      playSoundEffect('levelComplete');
-    },
-    (finalScore: number) => {
-      console.log(`💀 Game over with final score: ${finalScore}`);
-      playSoundEffect('gameOver');
-      stopBackgroundMusic();
-      onGameEnd(finalScore, 0);
-    }
-  );
+  } = useEnhancedGameState(difficulty, handleLevelComplete, handleGameEnd);
 
-  // Start background music when game becomes active
   useEffect(() => {
-    if (gameState.gameActive && settings.musicEnabled) {
-      playBackgroundMusic();
-    } else if (!gameState.gameActive) {
-      stopBackgroundMusic();
-    }
-  }, [gameState.gameActive, settings.musicEnabled, playBackgroundMusic, stopBackgroundMusic]);
-
-  // Try to resume game on component mount
-  useEffect(() => {
+    console.log(`🎮 [PoopeeCrushGame] Starting with difficulty: ${difficulty}`);
+    
+    // Try to resume game first, if that fails start level 1
     const resumed = resumeGame();
     if (!resumed) {
       startNewLevel(1);
     }
-  }, []);
+  }, [difficulty, resumeGame, startNewLevel]);
 
-  const handleHammerTarget = async (row: number, col: number) => {
-    if (!hammerMode) return;
+  function handleLevelComplete(level: number, score: number, stars: number) {
+    console.log(`🎉 Level ${level} complete! Score: ${score}, Stars: ${stars}`);
+  }
+
+  function handleGameEnd(finalScore: number) {
+    console.log(`🔚 Game ended with final score: ${finalScore}`);
+    const movesUsed = gameState.gameProgress.maxMoves - gameState.gameProgress.moves;
+    onGameEnd(finalScore, movesUsed);
+  }
+
+  const handleBoosterUse = async (type: BoosterType, targetTile?: Position): Promise<boolean> => {
+    console.log(`🔧 [PoopeeCrushGame] Using booster: ${type}`);
     
-    try {
-      await spendCredits.mutateAsync({
-        amount: 0.5,
-        description: "Used Hammer booster in POOPEE Crush"
-      });
-      
-      const success = useBooster(BoosterType.HAMMER, { row, col });
-      
-      if (success) {
-        playSoundEffect('hammer');
-        toast.success("Hammer used successfully!");
-        setHammerMode(false);
-      } else {
-        toast.error("Failed to use hammer");
-      }
-    } catch (error) {
-      console.error("Failed to use hammer:", error);
-      toast.error("Failed to use hammer");
-      setHammerMode(false);
-    }
-  };
-
-  const handleBoosterUse = (type: BoosterType, targetTile?: {row: number, col: number}) => {
     if (type === BoosterType.HAMMER && targetTile) {
-      return useBooster(type, targetTile);
-    }
-    
-    // Play sound effect for booster usage
-    if (type === BoosterType.SHUFFLE) {
-      playSoundEffect('shuffle');
-    } else if (type === BoosterType.HINT) {
-      playSoundEffect('hint');
-    } else {
-      playSoundEffect('booster');
+      try {
+        // Spend credits for hammer usage
+        await spendCredits.mutateAsync({
+          amount: 0.5,
+          description: 'Used Hammer booster in POOPEE Crush'
+        });
+        
+        // Exit hammer mode and use the booster
+        setHammerMode(false);
+        return useBooster(type, targetTile);
+      } catch (error) {
+        console.error('❌ [PoopeeCrushGame] Failed to spend credits for hammer:', error);
+        setHammerMode(false);
+        return false;
+      }
     }
     
     return useBooster(type, targetTile);
   };
 
-  const handleRestartWithCredit = async () => {
-    const canAfford = await checkCanAfford(1);
-    if (!canAfford) {
-      toast.error("You need 1 credit to restart the level");
-      return;
-    }
-    
-    try {
-      await spendCredits.mutateAsync({
-        amount: 1,
-        description: "Restarted level in POOPEE Crush"
-      });
-      
-      startNewLevel(gameState.gameProgress.currentLevel);
-      toast.success("Level restarted!");
-    } catch (error) {
-      console.error("Failed to restart level:", error);
-      toast.error("Failed to restart level");
+  const handleTileClickWithHammer = (row: number, col: number) => {
+    if (hammerMode) {
+      // Use hammer on this tile
+      handleBoosterUse(BoosterType.HAMMER, { row, col });
+    } else {
+      // Normal tile click
+      handleTileClick(row, col);
     }
   };
 
-  const handleQuit = () => {
-    setHammerMode(false);
-    stopBackgroundMusic();
-    quitGame();
-  };
-
-  // Show level complete screen
-  if (gameState.levelComplete && gameState.gameActive) {
+  if (gameState.levelComplete) {
     return (
       <LevelCompleteScreen
         level={gameState.gameProgress.currentLevel}
         score={gameState.gameProgress.score}
-        starRating={gameState.starRating}
-        levelConfig={gameState.levelConfig}
+        stars={gameState.starRating}
         onContinue={continueToNextLevel}
-        onRestart={handleRestartWithCredit}
-        onQuit={handleQuit}
+        onRestart={restartLevel}
+        onQuit={quitGame}
       />
     );
   }
 
-  // Show game over screen
-  if (gameState.gameOver || (!gameState.gameActive && gameState.gameProgress.moves <= 0)) {
+  if (gameState.gameOver) {
     return (
       <GameOverScreen
         finalScore={gameState.gameProgress.score}
         level={gameState.gameProgress.currentLevel}
-        onRestart={() => startNewLevel(1)}
-        onQuit={handleQuit}
+        onRestart={restartLevel}
+        onQuit={quitGame}
       />
     );
   }
 
   return (
-    <Card className="bg-gray-900/50 border-gray-600">
-      <CardContent className="p-4">
-        {/* Enhanced Layout: Level HUD | Game Board | Controls (Boosters + Audio) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[600px]">
-          {/* Level HUD - Left Side (Desktop) / Top (Mobile) */}
-          <div className="lg:col-span-3 order-1">
-            <LevelHUD
-              gameProgress={gameState.gameProgress}
-              levelConfig={gameState.levelConfig}
-              onQuit={handleQuit}
-              onRestart={handleRestartWithCredit}
-            />
-          </div>
-
-          {/* Game Board - Center */}
-          <div className="lg:col-span-6 order-2 flex justify-center items-center">
-            <EnhancedGameBoard
-              board={gameState.board}
-              onTileClick={handleTileClick}
-              selectedTile={gameState.selectedTile}
-              hintTiles={gameState.hintTiles}
-              animations={animations}
-              hammerMode={hammerMode}
-              onHammerTarget={handleHammerTarget}
-            />
-          </div>
-
-          {/* Controls Panel - Right Side (Desktop) / Bottom (Mobile) */}
-          <div className="lg:col-span-3 order-3 space-y-4">
-            <BoosterPanel
-              gameActive={gameState.gameActive}
-              onUseBooster={handleBoosterUse}
-              gameProgress={gameState.gameProgress}
-              userId={userId}
-              onHammerModeChange={setHammerMode}
-              hammerMode={hammerMode}
-            />
-            
-            <AudioControls gameActive={gameState.gameActive} />
-          </div>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div className="text-white">
+          <h3 className="text-lg font-semibold">Level {gameState.gameProgress.currentLevel}</h3>
+          <p className="text-sm text-gray-400">Difficulty: {difficulty}</p>
         </div>
-      </CardContent>
-    </Card>
+        <div className="flex gap-2">
+          <AudioControls />
+          <Button
+            onClick={quitGame}
+            variant="outline"
+            size="sm"
+            className="text-gray-300 border-gray-600 hover:bg-gray-700"
+          >
+            Quit Game
+          </Button>
+        </div>
+      </div>
+
+      <LevelHUD gameProgress={gameState.gameProgress} levelConfig={gameState.levelConfig} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="lg:col-span-3">
+          <EnhancedGameBoard
+            board={gameState.board}
+            selectedTile={gameState.selectedTile}
+            hintTiles={gameState.hintTiles}
+            onTileClick={handleTileClickWithHammer}
+            animations={animations}
+            hammerMode={hammerMode}
+          />
+        </div>
+        
+        <div className="lg:col-span-1">
+          <BoosterPanel
+            gameActive={gameState.gameActive}
+            onUseBooster={handleBoosterUse}
+            gameProgress={gameState.gameProgress}
+            userId={userId}
+            onHammerModeChange={setHammerMode}
+            hammerMode={hammerMode}
+          />
+        </div>
+      </div>
+    </div>
   );
 };
