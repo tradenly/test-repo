@@ -20,7 +20,7 @@ export interface Animation {
 }
 
 export interface AnimationEvent {
-  type: 'match' | 'drop' | 'swap' | 'invalid' | 'special_effect' | 'cascade' | 'level_complete';
+  type: 'match' | 'drop' | 'swap' | 'invalid' | 'special_effect' | 'cascade' | 'level_complete' | 'clear';
   tiles?: {row: number, col: number}[];
   fromTile?: {row: number, col: number};
   toTile?: {row: number, col: number};
@@ -50,6 +50,12 @@ export interface GameProgress {
   };
 }
 
+export interface BoosterResult {
+  success: boolean;
+  newBoard?: TileType[][];
+  animations?: Animation[];
+}
+
 export class EnhancedGameEngine {
   private board: TileType[][];
   private score: number;
@@ -60,6 +66,7 @@ export class EnhancedGameEngine {
   private levelConfig: LevelConfig;
   private boosterManager: BoosterManager;
   private hintTiles: {row: number, col: number}[] = [];
+  private selectedTile: Position | null = null;
 
   constructor(levelConfig?: LevelConfig, boardSize: number = 8) {
     this.boardSize = boardSize;
@@ -101,14 +108,79 @@ export class EnhancedGameEngine {
     selectedTile?: Position | null;
     animations?: Animation[];
   } {
-    // This is a simplified version - in real implementation, this would handle
-    // the tile selection logic and delegate to makeMove when appropriate
-    return {
-      boardChanged: false,
-      selectedTile: { row, col },
-      animations: []
-    };
+    console.log(`🎮 Enhanced GameEngine: Tile clicked at (${row}, ${col})`);
+    
+    if (!this.isValidPosition(row, col) || this.board[row][col] === TileType.BLOCKED) {
+      return {
+        boardChanged: false,
+        selectedTile: this.selectedTile,
+        animations: []
+      };
+    }
+
+    // If no tile is selected, select this tile
+    if (!this.selectedTile) {
+      this.selectedTile = { row, col };
+      return {
+        boardChanged: false,
+        selectedTile: this.selectedTile,
+        animations: []
+      };
+    }
+
+    // If same tile clicked, deselect
+    if (this.selectedTile.row === row && this.selectedTile.col === col) {
+      this.selectedTile = null;
+      return {
+        boardChanged: false,
+        selectedTile: null,
+        animations: []
+      };
+    }
+
+    // Try to make a move
+    const moveSuccessful = this.makeMove(this.selectedTile.row, this.selectedTile.col, row, col);
+    const animations = this.getAnimations().map(this.convertAnimationEventToAnimation);
+    
+    if (moveSuccessful) {
+      const newState = {
+        board: this.getBoard(),
+        gameProgress: this.getGameProgress(),
+        levelComplete: this.checkLevelComplete(),
+        gameOver: this.isGameOver()
+      };
+      
+      this.selectedTile = null;
+      return {
+        boardChanged: true,
+        newState,
+        selectedTile: null,
+        animations
+      };
+    } else {
+      // Move failed, keep selection or clear based on adjacency
+      const areAdjacent = this.areAdjacent(this.selectedTile.row, this.selectedTile.col, row, col);
+      this.selectedTile = areAdjacent ? null : { row, col };
+      
+      return {
+        boardChanged: false,
+        selectedTile: this.selectedTile,
+        animations
+      };
+    }
   }
+
+  private convertAnimationEventToAnimation = (event: AnimationEvent): Animation => {
+    return {
+      type: event.type,
+      tiles: event.tiles?.map(t => ({ row: t.row, col: t.col })),
+      fromTile: event.fromTile ? { row: event.fromTile.row, col: event.fromTile.col } : undefined,
+      toTile: event.toTile ? { row: event.toTile.row, col: event.toTile.col } : undefined,
+      specialEffect: event.specialEffect,
+      cascadeMultiplier: event.cascadeMultiplier,
+      id: event.id
+    };
+  };
 
   // New method: Process board after changes
   public processBoard(board: TileType[][]): {
@@ -705,10 +777,10 @@ export class EnhancedGameEngine {
     });
   }
 
-  public useBooster(type: BoosterType, targetTile?: {row: number, col: number}): boolean {
+  public useBooster(type: BoosterType, targetTile?: {row: number, col: number}): BoosterResult {
     if (!this.boosterManager.canUseBooster(type)) {
       console.log(`❌ Cannot use booster ${type} - limit reached`);
-      return false;
+      return { success: false };
     }
     
     switch (type) {
@@ -721,27 +793,45 @@ export class EnhancedGameEngine {
           this.dropTiles();
           this.fillEmptySpaces();
           this.boosterManager.useBooster(type);
-          return true;
+          
+          const animations: Animation[] = [{
+            type: 'clear',
+            tiles: [{ row: targetTile.row, col: targetTile.col }],
+            id: `hammer-${this.currentAnimationId++}`
+          }];
+          
+          return { 
+            success: true, 
+            newBoard: this.getBoard(),
+            animations 
+          };
         }
         break;
         
       case BoosterType.SHUFFLE:
         this.shuffleBoard();
         this.boosterManager.useBooster(type);
-        return true;
+        return { 
+          success: true, 
+          newBoard: this.getBoard(),
+          animations: [{
+            type: 'clear',
+            id: `shuffle-${this.currentAnimationId++}`
+          }]
+        };
         
       case BoosterType.EXTRA_MOVES:
         this.gameProgress.moves += 5;
         this.boosterManager.useBooster(type);
-        return true;
+        return { success: true };
         
       case BoosterType.HINT:
         this.generateHint();
         this.boosterManager.useBooster(type);
-        return true;
+        return { success: true };
     }
     
-    return false;
+    return { success: false };
   }
 
   private shuffleBoard(): void {

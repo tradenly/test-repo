@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { GameBoard, GameProgress, Position, Animation, EnhancedGameEngine } from './EnhancedGameEngine';
+import { GameBoard, GameProgress, Position, Animation, EnhancedGameEngine, BoosterResult } from './EnhancedGameEngine';
 import { BoosterType, BoosterManager } from './BoosterSystem';
 import { LevelConfig, getLevelConfig } from './LevelConfig';
 import { TileType } from './EnhancedTileTypes';
@@ -73,7 +73,7 @@ export const useEnhancedGameState = (
   const [animations, setAnimations] = useState<Animation[]>([]);
 
   const [gameState, setGameState] = useState<EnhancedGameState>(() => ({
-    board: Array(8).fill(null).map(() => Array(8).fill(TileType.NORMAL_1)),
+    board: Array(8).fill(null).map(() => Array(8).fill(TileType.POOP)),
     gameProgress: {
       currentLevel: 1,
       score: 0,
@@ -156,7 +156,7 @@ export const useEnhancedGameState = (
       return false;
     }
 
-    const result = boosterSystemRef.current.useBooster(type, gameState.board, targetTile);
+    const result: BoosterResult = gameEngineRef.current.useBooster(type, targetTile);
     
     if (result.success && result.newBoard) {
       setAnimations(result.animations || []);

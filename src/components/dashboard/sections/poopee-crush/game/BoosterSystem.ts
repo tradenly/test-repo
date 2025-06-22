@@ -1,91 +1,83 @@
+
 export enum BoosterType {
-  HAMMER = "hammer",
-  SHUFFLE = "shuffle",
-  EXTRA_MOVES = "extra_moves",
-  HINT = "hint"
+  HAMMER = "HAMMER",
+  SHUFFLE = "SHUFFLE", 
+  EXTRA_MOVES = "EXTRA_MOVES",
+  HINT = "HINT"
 }
 
-export interface Booster {
-  type: BoosterType;
-  name: string;
-  description: string;
-  cost: number; // in credits
-  icon: string;
-  usageLimit?: number; // per level, undefined = unlimited
+export interface BoosterCounts {
+  [BoosterType.HAMMER]: number;
+  [BoosterType.SHUFFLE]: number;
+  [BoosterType.EXTRA_MOVES]: number;
+  [BoosterType.HINT]: number;
 }
 
-export const AVAILABLE_BOOSTERS: Record<BoosterType, Booster> = {
-  [BoosterType.HAMMER]: {
-    type: BoosterType.HAMMER,
-    name: "Hammer",
-    description: "Remove any single tile",
-    cost: 0.5,
-    icon: "🔨",
-    usageLimit: 3
-  },
-  [BoosterType.SHUFFLE]: {
-    type: BoosterType.SHUFFLE,
-    name: "Shuffle",
-    description: "Shuffle the board when stuck",
-    cost: 1,
-    icon: "🔀",
-    usageLimit: 1
-  },
-  [BoosterType.EXTRA_MOVES]: {
-    type: BoosterType.EXTRA_MOVES,
-    name: "+5 Moves",
-    description: "Add 5 extra moves",
-    cost: 2,
-    icon: "⏰",
-    usageLimit: 2
-  },
-  [BoosterType.HINT]: {
-    type: BoosterType.HINT,
-    name: "Hint",
-    description: "Show possible moves",
-    cost: 0.25,
-    icon: "💡"
-  }
-};
-
-export interface BoosterUsage {
-  type: BoosterType;
-  usedCount: number;
-  available: number;
+export interface BoosterLimits {
+  [BoosterType.HAMMER]: number;
+  [BoosterType.SHUFFLE]: number;
+  [BoosterType.EXTRA_MOVES]: number;
+  [BoosterType.HINT]: number;
 }
 
 export class BoosterManager {
-  private usageTracking: Map<BoosterType, number> = new Map();
+  private usageCounts: BoosterCounts;
+  private limits: BoosterLimits;
 
-  resetForNewLevel(): void {
-    this.usageTracking.clear();
+  constructor() {
+    this.usageCounts = {
+      [BoosterType.HAMMER]: 0,
+      [BoosterType.SHUFFLE]: 0,
+      [BoosterType.EXTRA_MOVES]: 0,
+      [BoosterType.HINT]: 0
+    };
+
+    this.limits = {
+      [BoosterType.HAMMER]: 3,
+      [BoosterType.SHUFFLE]: 2,
+      [BoosterType.EXTRA_MOVES]: 1,
+      [BoosterType.HINT]: 5
+    };
   }
 
-  canUseBooster(type: BoosterType): boolean {
-    const booster = AVAILABLE_BOOSTERS[type];
-    if (!booster.usageLimit) return true;
-    
-    const used = this.usageTracking.get(type) || 0;
-    return used < booster.usageLimit;
+  public canUseBooster(type: BoosterType): boolean {
+    return this.usageCounts[type] < this.limits[type];
   }
 
-  useBooster(type: BoosterType): boolean {
-    if (!this.canUseBooster(type)) return false;
-    
-    const used = this.usageTracking.get(type) || 0;
-    this.usageTracking.set(type, used + 1);
-    return true;
+  public useBooster(type: BoosterType): boolean {
+    if (this.canUseBooster(type)) {
+      this.usageCounts[type]++;
+      return true;
+    }
+    return false;
   }
 
-  getUsageCount(type: BoosterType): number {
-    return this.usageTracking.get(type) || 0;
+  public getUsageCount(type: BoosterType): number {
+    return this.usageCounts[type];
   }
 
-  getRemainingUses(type: BoosterType): number {
-    const booster = AVAILABLE_BOOSTERS[type];
-    if (!booster.usageLimit) return Infinity;
-    
-    const used = this.getUsageCount(type);
-    return Math.max(0, booster.usageLimit - used);
+  public getLimit(type: BoosterType): number {
+    return this.limits[type];
+  }
+
+  public getRemainingUses(type: BoosterType): number {
+    return this.limits[type] - this.usageCounts[type];
+  }
+
+  public resetForNewLevel(): void {
+    this.usageCounts = {
+      [BoosterType.HAMMER]: 0,
+      [BoosterType.SHUFFLE]: 0,
+      [BoosterType.EXTRA_MOVES]: 0,
+      [BoosterType.HINT]: 0
+    };
+  }
+
+  public getAllUsageCounts(): BoosterCounts {
+    return { ...this.usageCounts };
+  }
+
+  public getAllLimits(): BoosterLimits {
+    return { ...this.limits };
   }
 }
