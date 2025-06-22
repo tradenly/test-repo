@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { 
   User, 
@@ -55,6 +56,8 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
         <SidebarContent className="bg-gray-900">
           <SidebarMenu className="px-4">
             {menuItems.map((item) => {
+              const IconComponent = item.isIconComponent ? item.icon : null;
+              
               return (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton
@@ -66,10 +69,10 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
                         : ""
                     }`}
                   >
-                    {item.isIconComponent ? (
-                      <item.icon className="mr-3 h-4 w-4" />
+                    {item.isIconComponent && IconComponent ? (
+                      <IconComponent className="mr-3 h-4 w-4" />
                     ) : (
-                      <span className="mr-3 text-lg">{item.icon}</span>
+                      <span className="mr-3 text-lg">{item.icon as string}</span>
                     )}
                     <span>{item.label}</span>
                   </SidebarMenuButton>
@@ -82,13 +85,15 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
     );
   }
 
-  // Desktop sidebar (unchanged)
+  // Desktop sidebar
   return (
     <aside className="w-64 bg-gray-900/50 backdrop-blur-sm border-r border-gray-800 min-h-screen">
       <div className="p-6">
         <h2 className="text-xl font-bold text-white mb-6">💩 POOPEE Dashboard</h2>
         <nav className="space-y-2">
           {menuItems.map((item) => {
+            const IconComponent = item.isIconComponent ? item.icon : null;
+            
             return (
               <Button
                 key={item.id}
@@ -100,10 +105,10 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
                 }`}
                 onClick={() => onSectionChange(item.id)}
               >
-                {item.isIconComponent ? (
-                  <item.icon className="mr-3 h-4 w-4" />
+                {item.isIconComponent && IconComponent ? (
+                  <IconComponent className="mr-3 h-4 w-4" />
                 ) : (
-                  <span className="mr-3 text-lg">{item.icon}</span>
+                  <span className="mr-3 text-lg">{item.icon as string}</span>
                 )}
                 {item.label}
               </Button>
