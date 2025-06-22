@@ -6,8 +6,10 @@ import { LevelHUD } from "./LevelHUD";
 import { LevelCompleteScreen } from "./LevelCompleteScreen";
 import { GameOverScreen } from "./GameOverScreen";
 import { BoosterPanel } from "./BoosterPanel";
+import { AudioControls } from "./AudioControls";
 import { useEnhancedGameState } from "./useEnhancedGameState";
 import { usePoopeeCrushCredits } from "../usePoopeeCrushCredits";
+import { useGameAudio } from "@/hooks/useGameAudio";
 import { BoosterType } from "./BoosterSystem";
 import { toast } from "sonner";
 
@@ -19,6 +21,12 @@ interface PoopeeCrushGameProps {
 export const PoopeeCrushGame = ({ onGameEnd, userId }: PoopeeCrushGameProps) => {
   const [hammerMode, setHammerMode] = useState(false);
   const { spendCredits, checkCanAfford } = usePoopeeCrushCredits(userId);
+  const { 
+    playBackgroundMusic, 
+    stopBackgroundMusic, 
+    playSoundEffect, 
+    settings 
+  } = useGameAudio();
   
   const {
     gameState,
@@ -33,13 +41,24 @@ export const PoopeeCrushGame = ({ onGameEnd, userId }: PoopeeCrushGameProps) => 
   } = useEnhancedGameState(
     (level: number, score: number, stars: number) => {
       console.log(`🏆 Level ${level} completed with ${score} points and ${stars} stars`);
-      // Level completed - don't end game, just show completion screen
+      playSoundEffect('levelComplete');
     },
     (finalScore: number) => {
       console.log(`💀 Game over with final score: ${finalScore}`);
-      onGameEnd(finalScore, 0); // 0 moves as this is now level-based
+      playSoundEffect('gameOver');
+      stopBackgroundMusic();
+      onGameEnd(finalScore, 0);
     }
   );
+
+  // Start background music when game becomes active
+  useEffect(() => {
+    if (gameState.gameActive && settings.musicEnabled) {
+      playBackgroundMusic();
+    } else if (!gameState.gameActive) {
+      stopBackgroundMusic();
+    }
+  }, [gameState.gameActive, settings.musicEnabled, playBackgroundMusic, stopBackgroundMusic]);
 
   // Try to resume game on component mount
   useEffect(() => {
@@ -53,18 +72,17 @@ export const PoopeeCrushGame = ({ onGameEnd, userId }: PoopeeCrushGameProps) => 
     if (!hammerMode) return;
     
     try {
-      // Spend credits for hammer usage
       await spendCredits.mutateAsync({
         amount: 0.5,
         description: "Used Hammer booster in POOPEE Crush"
       });
       
-      // Use the hammer booster with target tile
       const success = useBooster(BoosterType.HAMMER, { row, col });
       
       if (success) {
+        playSoundEffect('hammer');
         toast.success("Hammer used successfully!");
-        setHammerMode(false); // Exit hammer mode after use
+        setHammerMode(false);
       } else {
         toast.error("Failed to use hammer");
       }
@@ -76,12 +94,19 @@ export const PoopeeCrushGame = ({ onGameEnd, userId }: PoopeeCrushGameProps) => 
   };
 
   const handleBoosterUse = (type: BoosterType, targetTile?: {row: number, col: number}) => {
-    // For hammer, we handle targeting separately
     if (type === BoosterType.HAMMER && targetTile) {
       return useBooster(type, targetTile);
     }
     
-    // For other boosters, use directly
+    // Play sound effect for booster usage
+    if (type === BoosterType.SHUFFLE) {
+      playSoundEffect('shuffle');
+    } else if (type === BoosterType.HINT) {
+      playSoundEffect('hint');
+    } else {
+      playSoundEffect('booster');
+    }
+    
     return useBooster(type, targetTile);
   };
 
@@ -107,7 +132,8 @@ export const PoopeeCrushGame = ({ onGameEnd, userId }: PoopeeCrushGameProps) => 
   };
 
   const handleQuit = () => {
-    setHammerMode(false); // Clear any active hammer mode
+    setHammerMode(false);
+    stopBackgroundMusic();
     quitGame();
   };
 
@@ -141,7 +167,7 @@ export const PoopeeCrushGame = ({ onGameEnd, userId }: PoopeeCrushGameProps) => 
   return (
     <Card className="bg-gray-900/50 border-gray-600">
       <CardContent className="p-4">
-        {/* Horizontal Layout: Level HUD | Game Board | Booster Panel */}
+        {/* Enhanced Layout: Level HUD | Game Board | Controls (Boosters + Audio) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[600px]">
           {/* Level HUD - Left Side (Desktop) / Top (Mobile) */}
           <div className="lg:col-span-3 order-1">
@@ -166,8 +192,8 @@ export const PoopeeCrushGame = ({ onGameEnd, userId }: PoopeeCrushGameProps) => 
             />
           </div>
 
-          {/* Booster Panel - Right Side (Desktop) / Bottom (Mobile) */}
-          <div className="lg:col-span-3 order-3">
+          {/* Controls Panel - Right Side (Desktop) / Bottom (Mobile) */}
+          <div className="lg:col-span-3 order-3 space-y-4">
             <BoosterPanel
               gameActive={gameState.gameActive}
               onUseBooster={handleBoosterUse}
@@ -176,6 +202,8 @@ export const PoopeeCrushGame = ({ onGameEnd, userId }: PoopeeCrushGameProps) => 
               onHammerModeChange={setHammerMode}
               hammerMode={hammerMode}
             />
+            
+            <AudioControls gameActive={gameState.gameActive} />
           </div>
         </div>
       </CardContent>
