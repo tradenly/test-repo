@@ -6,6 +6,7 @@ import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { useSocialOperations } from "./social/useSocialOperations";
 import { AddSocialForm } from "./social/AddSocialForm";
 import { SocialAccountsList } from "./social/SocialAccountsList";
+import { SocialCampaignBanner } from "./social/SocialCampaignBanner";
 
 interface SocialSectionProps {
   user: UnifiedUser;
@@ -43,6 +44,8 @@ export const SocialSection = ({ user }: SocialSectionProps) => {
           Add Account
         </Button>
       </div>
+
+      <SocialCampaignBanner />
 
       {showAddForm && (
         <AddSocialForm
