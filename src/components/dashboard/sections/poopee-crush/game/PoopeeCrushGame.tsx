@@ -139,39 +139,46 @@ export const PoopeeCrushGame = ({ onGameEnd, userId }: PoopeeCrushGameProps) => 
   }
 
   return (
-    <div className="space-y-4">
-      {/* Level HUD */}
-      <LevelHUD
-        gameProgress={gameState.gameProgress}
-        levelConfig={gameState.levelConfig}
-        onQuit={handleQuit}
-        onRestart={handleRestartWithCredit}
-      />
+    <Card className="bg-gray-900/50 border-gray-600">
+      <CardContent className="p-4">
+        {/* Horizontal Layout: Level HUD | Game Board | Booster Panel */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[600px]">
+          {/* Level HUD - Left Side (Desktop) / Top (Mobile) */}
+          <div className="lg:col-span-3 order-1">
+            <LevelHUD
+              gameProgress={gameState.gameProgress}
+              levelConfig={gameState.levelConfig}
+              onQuit={handleQuit}
+              onRestart={handleRestartWithCredit}
+            />
+          </div>
 
-      {/* Booster Panel */}
-      <BoosterPanel
-        gameActive={gameState.gameActive}
-        onUseBooster={handleBoosterUse}
-        gameProgress={gameState.gameProgress}
-        userId={userId}
-        onHammerModeChange={setHammerMode}
-        hammerMode={hammerMode}
-      />
+          {/* Game Board - Center */}
+          <div className="lg:col-span-6 order-2 flex justify-center items-center">
+            <EnhancedGameBoard
+              board={gameState.board}
+              onTileClick={handleTileClick}
+              selectedTile={gameState.selectedTile}
+              hintTiles={gameState.hintTiles}
+              animations={animations}
+              hammerMode={hammerMode}
+              onHammerTarget={handleHammerTarget}
+            />
+          </div>
 
-      {/* Game Board */}
-      <Card className="bg-gray-900/50 border-gray-600">
-        <CardContent className="p-4">
-          <EnhancedGameBoard
-            board={gameState.board}
-            onTileClick={handleTileClick}
-            selectedTile={gameState.selectedTile}
-            hintTiles={gameState.hintTiles}
-            animations={animations}
-            hammerMode={hammerMode}
-            onHammerTarget={handleHammerTarget}
-          />
-        </CardContent>
-      </Card>
-    </div>
+          {/* Booster Panel - Right Side (Desktop) / Bottom (Mobile) */}
+          <div className="lg:col-span-3 order-3">
+            <BoosterPanel
+              gameActive={gameState.gameActive}
+              onUseBooster={handleBoosterUse}
+              gameProgress={gameState.gameProgress}
+              userId={userId}
+              onHammerModeChange={setHammerMode}
+              hammerMode={hammerMode}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

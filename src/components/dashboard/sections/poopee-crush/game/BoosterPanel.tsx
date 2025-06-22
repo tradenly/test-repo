@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GameProgress } from "./EnhancedGameEngine";
@@ -122,7 +121,7 @@ export const BoosterPanel = ({
   };
 
   const getButtonClassName = (type: BoosterType) => {
-    let baseClass = "h-auto p-3 flex flex-col items-center space-y-1 border-gray-600";
+    let baseClass = "w-full p-3 flex flex-col items-center space-y-1 border-gray-600 min-h-[80px]";
     
     if (type === BoosterType.HAMMER && hammerMode) {
       baseClass += " bg-yellow-600 hover:bg-yellow-500 border-yellow-400";
@@ -138,50 +137,49 @@ export const BoosterPanel = ({
   }
 
   return (
-    <Card className="bg-gray-900/50 border-gray-600">
-      <CardContent className="p-4">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-semibold text-white">Power-ups</h3>
-          <Badge variant="outline" className="text-yellow-400 border-yellow-400">
-            Level {gameProgress.currentLevel}
-          </Badge>
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {boosters.map((booster) => (
-            <Button
-              key={booster.type}
-              onClick={() => handleBoosterClick(booster.type)}
-              variant={getButtonVariant(booster.type)}
-              className={getButtonClassName(booster.type)}
-              disabled={!gameActive || isSpending || (processingBooster && processingBooster !== booster.type)}
-            >
-              <span className="text-2xl">{booster.icon}</span>
-              <span className="text-xs font-medium text-white">
-                {booster.type === BoosterType.HAMMER && hammerMode ? "Cancel" : booster.name}
-              </span>
-              <span className="text-xs text-gray-400">{booster.cost} credits</span>
-              {processingBooster === booster.type && (
-                <span className="text-xs text-yellow-400">Processing...</span>
-              )}
-            </Button>
-          ))}
-        </div>
-        
-        {hammerMode && (
-          <div className="mt-3 text-center">
-            <span className="text-sm text-yellow-400 bg-yellow-900/30 px-3 py-1 rounded">
-              🔨 Hammer Mode: Click a tile to remove it
+    <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-4 h-full flex flex-col">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-white">Power-ups</h3>
+        <Badge variant="outline" className="text-yellow-400 border-yellow-400 text-xs">
+          Lv. {gameProgress.currentLevel}
+        </Badge>
+      </div>
+      
+      {/* Vertical layout for boosters */}
+      <div className="space-y-3 flex-1">
+        {boosters.map((booster) => (
+          <Button
+            key={booster.type}
+            onClick={() => handleBoosterClick(booster.type)}
+            variant={getButtonVariant(booster.type)}
+            className={getButtonClassName(booster.type)}
+            disabled={!gameActive || isSpending || (processingBooster && processingBooster !== booster.type)}
+          >
+            <span className="text-xl">{booster.icon}</span>
+            <span className="text-xs font-medium text-white">
+              {booster.type === BoosterType.HAMMER && hammerMode ? "Cancel" : booster.name}
             </span>
-          </div>
-        )}
-        
+            <span className="text-xs text-gray-400">{booster.cost} credits</span>
+            {processingBooster === booster.type && (
+              <span className="text-xs text-yellow-400">Processing...</span>
+            )}
+          </Button>
+        ))}
+      </div>
+      
+      {hammerMode && (
         <div className="mt-3 text-center">
-          <span className="text-xs text-gray-500">
-            Power-ups cost credits and provide strategic advantages
+          <span className="text-xs text-yellow-400 bg-yellow-900/30 px-2 py-1 rounded">
+            🔨 Click a tile to remove it
           </span>
         </div>
-      </CardContent>
-    </Card>
+      )}
+      
+      <div className="mt-3 text-center">
+        <span className="text-xs text-gray-500">
+          Power-ups cost credits
+        </span>
+      </div>
+    </div>
   );
 };
