@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CashoutRequest } from "./useCashoutOperations";
+import { logger } from "@/utils/logger";
 
 export interface CashoutRequestWithUser extends CashoutRequest {
   user_profile?: {
@@ -21,7 +22,7 @@ export const useAdminCashoutRequests = () => {
   return useQuery({
     queryKey: ["admin-cashout-requests"],
     queryFn: async (): Promise<CashoutRequestWithUser[]> => {
-      console.log("Fetching admin cashout requests");
+      logger.log("Fetching admin cashout requests");
       
       // First, get all cashout requests
       const { data: cashoutRequests, error: cashoutError } = await supabase
@@ -30,16 +31,16 @@ export const useAdminCashoutRequests = () => {
         .order("requested_at", { ascending: false });
       
       if (cashoutError) {
-        console.error("Error fetching cashout requests:", cashoutError);
+        logger.error("Error fetching cashout requests:", cashoutError);
         throw cashoutError;
       }
       
       if (!cashoutRequests || cashoutRequests.length === 0) {
-        console.log("No cashout requests found");
+        logger.log("No cashout requests found");
         return [];
       }
       
-      console.log("Found cashout requests:", cashoutRequests.length);
+      logger.log("Found cashout requests:", cashoutRequests.length);
       
       // Get unique user IDs and wallet IDs
       const userIds = [...new Set(cashoutRequests.map(req => req.user_id))];
@@ -52,7 +53,7 @@ export const useAdminCashoutRequests = () => {
         .in("id", userIds);
       
       if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
+        logger.error("Error fetching profiles:", profilesError);
         // Don't throw, just log - we can still show requests without profile data
       }
       
@@ -63,12 +64,12 @@ export const useAdminCashoutRequests = () => {
         .in("id", walletIds);
       
       if (walletsError) {
-        console.error("Error fetching wallets:", walletsError);
+        logger.error("Error fetching wallets:", walletsError);
         // Don't throw, just log - we can still show requests without wallet data
       }
       
-      console.log("Profiles fetched:", profiles?.length || 0);
-      console.log("Wallets fetched:", wallets?.length || 0);
+      logger.log("Profiles fetched:", profiles?.length || 0);
+      logger.log("Wallets fetched:", wallets?.length || 0);
       
       // Create lookup maps for better performance
       const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
@@ -96,7 +97,7 @@ export const useAdminCashoutRequests = () => {
         };
       });
       
-      console.log("Final admin cashout requests with user data:", result);
+      logger.log("Final admin cashout requests with user data:", result);
       return result;
     },
   });
@@ -120,7 +121,7 @@ export const useUpdateCashoutStatus = () => {
       transactionId?: string;
       adminUserId: string;
     }) => {
-      console.log("Updating cashout status:", { requestId, status, adminNotes, transactionId });
+      logger.log("Updating cashout status:", { requestId, status, adminNotes, transactionId });
       
       const updateData: any = {
         status,
@@ -146,7 +147,7 @@ export const useUpdateCashoutStatus = () => {
           .single();
         
         if (fetchError) {
-          console.error("Error fetching cashout request:", fetchError);
+          logger.error("Error fetching cashout request:", fetchError);
           throw fetchError;
         }
         
@@ -160,7 +161,7 @@ export const useUpdateCashoutStatus = () => {
           .eq("user_id", cashoutRequest.user_id);
         
         if (creditError) {
-          console.error("Error restoring credits:", creditError);
+          logger.error("Error restoring credits:", creditError);
           throw creditError;
         }
         
@@ -178,7 +179,7 @@ export const useUpdateCashoutStatus = () => {
           });
         
         if (transactionError) {
-          console.error("Error creating refund transaction:", transactionError);
+          logger.error("Error creating refund transaction:", transactionError);
           throw transactionError;
         }
       }
@@ -190,7 +191,7 @@ export const useUpdateCashoutStatus = () => {
         .eq("id", requestId);
       
       if (updateError) {
-        console.error("Error updating cashout request:", updateError);
+        logger.error("Error updating cashout request:", updateError);
         throw updateError;
       }
       
@@ -222,7 +223,7 @@ export const useUpdateCashoutStatus = () => {
         }
       }
       
-      console.log("Cashout status updated successfully");
+      logger.log("Cashout status updated successfully");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-cashout-requests"] });
@@ -232,7 +233,7 @@ export const useUpdateCashoutStatus = () => {
       });
     },
     onError: (error: any) => {
-      console.error("Update cashout status error:", error);
+      logger.error("Update cashout status error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to update cashout request.",

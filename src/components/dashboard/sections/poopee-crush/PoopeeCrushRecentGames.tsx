@@ -2,12 +2,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
 import { GameSession } from "@/hooks/useGameSessions";
+import { SkeletonTable } from "@/components/ui/enhanced-skeleton";
 
 interface PoopeeCrushRecentGamesProps {
   gameSessions: GameSession[] | undefined;
+  isLoading?: boolean;
 }
 
-export const PoopeeCrushRecentGames = ({ gameSessions }: PoopeeCrushRecentGamesProps) => {
+export const PoopeeCrushRecentGames = ({ gameSessions, isLoading }: PoopeeCrushRecentGamesProps) => {
   const recentSessions = gameSessions?.slice(0, 5) || [];
 
   return (
@@ -16,7 +18,9 @@ export const PoopeeCrushRecentGames = ({ gameSessions }: PoopeeCrushRecentGamesP
         <CardTitle className="text-white">Recent POOPEE Crush Games</CardTitle>
       </CardHeader>
       <CardContent>
-        {recentSessions.length === 0 ? (
+        {isLoading ? (
+          <SkeletonTable rows={3} />
+        ) : recentSessions.length === 0 ? (
           <p className="text-gray-400 text-center py-4">
             No games played yet. Start your first POOPEE Crush game!
           </p>

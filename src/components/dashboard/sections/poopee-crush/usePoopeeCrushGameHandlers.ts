@@ -3,6 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSpendCredits, useEarnCredits } from "@/hooks/useCreditOperations";
 import { useCreateGameSession } from "@/hooks/useGameSessions";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
+import { logger } from "@/utils/logger";
 
 interface UsePoopeeCrushGameHandlersProps {
   user: UnifiedUser;
@@ -28,7 +29,7 @@ export const usePoopeeCrushGameHandlers = ({ user, highScore }: UsePoopeeCrushGa
         description: "1 credit deducted. Good luck crushing those POOPEEs!",
       });
     } catch (error) {
-      console.error("Error starting game:", error);
+      logger.error("Error starting game:", error);
       toast({
         title: "Error",
         description: "Failed to start game. Please try again.",
@@ -90,7 +91,7 @@ export const usePoopeeCrushGameHandlers = ({ user, highScore }: UsePoopeeCrushGa
       });
 
     } catch (error) {
-      console.error("Error ending game:", error);
+      logger.error("Error ending game:", error);
       toast({
         title: "Game Ended",
         description: `Final score: ${score.toLocaleString()}`,

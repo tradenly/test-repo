@@ -1,5 +1,6 @@
 
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { LazyImage } from "@/components/ui/lazy-image";
 
 export const SneakPeekSection = () => {
   const nftImages = [
@@ -68,10 +69,11 @@ export const SneakPeekSection = () => {
                 <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                   <div className="p-4">
                     <div className="bg-gray-800 rounded-xl p-4 hover:scale-105 transition-transform duration-300 hover:bg-gray-700 border border-gray-700">
-                      <img
+                      <LazyImage
                         src={nft.src}
                         alt={nft.caption}
                         className="w-full h-64 object-cover rounded-lg mb-4"
+                        fallback={<div className="w-full h-64 bg-gray-700 animate-pulse rounded-lg mb-4" />}
                       />
                       <p className="text-white font-bold text-lg">{nft.caption}</p>
                     </div>

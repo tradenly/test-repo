@@ -81,9 +81,17 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     <div className="flex flex-col lg:flex-row items-start gap-3">
       <canvas 
         ref={canvasRef}
-        className="border-2 border-gray-300 rounded-lg shadow-lg"
+        className="border-2 border-gray-300 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         style={{ maxWidth: '100%', height: 'auto' }}
+        tabIndex={gameState === 'playing' ? 0 : -1}
+        role="application"
+        aria-label="Flappy Hippos Game Canvas"
+        aria-describedby="game-instructions"
       />
+      
+      <div id="game-instructions" className="sr-only">
+        Use spacebar or click to make the hippo jump and avoid obstacles. Collect power-ups for extra points.
+      </div>
       
       <div className="flex flex-col gap-2">
         <GameControls

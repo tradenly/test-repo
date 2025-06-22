@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
+import { logger } from "@/utils/logger";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -24,16 +25,17 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    logger.error('Error caught by boundary:', error);
+    logger.error('Error info:', errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
       return this.props.fallback || (
-        <Card className="bg-gray-800/40 border-gray-700">
+        <Card className="bg-gray-800/40 border-gray-700" role="alert" aria-labelledby="error-title">
           <CardHeader>
-            <CardTitle className="text-red-400 flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
+            <CardTitle id="error-title" className="text-red-400 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" aria-hidden="true" />
               Something went wrong
             </CardTitle>
           </CardHeader>
@@ -46,6 +48,13 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                 Error: {this.state.error.message}
               </p>
             )}
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              aria-label="Refresh the page"
+            >
+              Refresh Page
+            </button>
           </CardContent>
         </Card>
       );
