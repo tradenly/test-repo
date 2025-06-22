@@ -1,8 +1,9 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { GameBoard, GameProgress, TileType, Position, Animation } from './EnhancedGameEngine';
-import { BoosterType, BoosterSystem } from './BoosterSystem';
-import { LevelConfig, createLevelConfig } from './LevelConfig';
-import { EnhancedGameEngine } from './EnhancedGameEngine';
+import { GameBoard, GameProgress, Position, Animation, EnhancedGameEngine } from './EnhancedGameEngine';
+import { BoosterType, BoosterManager } from './BoosterSystem';
+import { LevelConfig, getLevelConfig } from './LevelConfig';
+import { TileType } from './EnhancedTileTypes';
 import { useGameAudio } from '@/hooks/useGameAudio';
 
 interface MatchResult {
@@ -14,7 +15,7 @@ interface MatchResult {
 
 const calculateStarRating = (gameProgress: GameProgress, levelConfig: LevelConfig): number => {
   const { score, targetScore } = gameProgress;
-  const { perfectScore } = levelConfig;
+  const perfectScore = levelConfig.requiredScore * 2; // Calculate perfect score
 
   if (score >= perfectScore) {
     return 3;
@@ -68,7 +69,7 @@ export const useEnhancedGameState = (
 ) => {
   const { playSoundEffect } = useGameAudio();
   const gameEngineRef = useRef<EnhancedGameEngine>();
-  const boosterSystemRef = useRef<BoosterSystem>();
+  const boosterSystemRef = useRef<BoosterManager>();
   const [animations, setAnimations] = useState<Animation[]>([]);
 
   const [gameState, setGameState] = useState<EnhancedGameState>(() => ({
@@ -77,6 +78,11 @@ export const useEnhancedGameState = (
       currentLevel: 1,
       score: 0,
       moves: 0,
+      objectives: {},
+      clearedTiles: 0,
+      specialTilesCreated: 0,
+      cascades: 0,
+      comboMultiplier: 1,
       targetScore: 1000,
       maxMoves: 20,
       levelObjectives: {
@@ -91,7 +97,7 @@ export const useEnhancedGameState = (
     gameActive: false,
     levelComplete: false,
     gameOver: false,
-    levelConfig: createLevelConfig(1),
+    levelConfig: getLevelConfig(1),
     starRating: 0
   }));
 
@@ -182,9 +188,9 @@ export const useEnhancedGameState = (
   }, [gameState.gameActive, gameState.board]);
 
   const startNewLevel = useCallback((level: number) => {
-    const levelConfig = createLevelConfig(level);
+    const levelConfig = getLevelConfig(level);
     const engine = new EnhancedGameEngine(levelConfig);
-    const boosterSystem = new BoosterSystem();
+    const boosterSystem = new BoosterManager();
     
     gameEngineRef.current = engine;
     boosterSystemRef.current = boosterSystem;
@@ -197,9 +203,19 @@ export const useEnhancedGameState = (
         currentLevel: level,
         score: 0,
         moves: 0,
-        targetScore: levelConfig.targetScore,
-        maxMoves: levelConfig.maxMoves,
-        levelObjectives: levelConfig.objectives
+        objectives: {},
+        clearedTiles: 0,
+        specialTilesCreated: 0,
+        cascades: 0,
+        comboMultiplier: 1,
+        targetScore: levelConfig.requiredScore,
+        maxMoves: levelConfig.moves,
+        levelObjectives: {
+          description: "Reach the target score!",
+          requirements: [
+            { type: 'score', target: levelConfig.requiredScore, current: 0 }
+          ]
+        }
       },
       selectedTile: null,
       hintTiles: [],
@@ -221,7 +237,7 @@ export const useEnhancedGameState = (
       const savedState = loadGameState();
       if (savedState && savedState.gameActive) {
         const engine = new EnhancedGameEngine(savedState.levelConfig);
-        const boosterSystem = new BoosterSystem();
+        const boosterSystem = new BoosterManager();
         
         gameEngineRef.current = engine;
         boosterSystemRef.current = boosterSystem;

@@ -2,6 +2,23 @@ import { TileType, BASIC_TILE_TYPES, isSpecialTile, isBasicTile, MatchResult, Po
 import { LevelConfig, getLevelConfig } from "./LevelConfig";
 import { BoosterManager, BoosterType } from "./BoosterSystem";
 
+// Export these types for use in other files
+export type GameBoard = TileType[][];
+export interface Position {
+  row: number;
+  col: number;
+}
+
+export interface Animation {
+  type: 'match' | 'drop' | 'swap' | 'invalid' | 'special_effect' | 'cascade' | 'level_complete' | 'clear';
+  tiles?: Position[];
+  fromTile?: Position;
+  toTile?: Position;
+  specialEffect?: PowerUpEffect;
+  cascadeMultiplier?: number;
+  id: string;
+}
+
 export interface AnimationEvent {
   type: 'match' | 'drop' | 'swap' | 'invalid' | 'special_effect' | 'cascade' | 'level_complete';
   tiles?: {row: number, col: number}[];
@@ -21,6 +38,16 @@ export interface GameProgress {
   specialTilesCreated: number;
   cascades: number;
   comboMultiplier: number;
+  targetScore: number;
+  maxMoves: number;
+  levelObjectives: {
+    description: string;
+    requirements: Array<{
+      type: string;
+      target: number;
+      current: number;
+    }>;
+  };
 }
 
 export class EnhancedGameEngine {
@@ -34,22 +61,81 @@ export class EnhancedGameEngine {
   private boosterManager: BoosterManager;
   private hintTiles: {row: number, col: number}[] = [];
 
-  constructor(boardSize: number = 8) {
+  constructor(levelConfig?: LevelConfig, boardSize: number = 8) {
     this.boardSize = boardSize;
     this.board = [];
     this.score = 0;
     this.boosterManager = new BoosterManager();
+    this.levelConfig = levelConfig || getLevelConfig(1);
     this.gameProgress = {
       currentLevel: 1,
       score: 0,
-      moves: 0,
+      moves: this.levelConfig.moves || 20,
       objectives: {},
       clearedTiles: 0,
       specialTilesCreated: 0,
       cascades: 0,
-      comboMultiplier: 1
+      comboMultiplier: 1,
+      targetScore: this.levelConfig.requiredScore || 1000,
+      maxMoves: this.levelConfig.moves || 20,
+      levelObjectives: {
+        description: "Reach the target score!",
+        requirements: [
+          { type: 'score', target: this.levelConfig.requiredScore || 1000, current: 0 }
+        ]
+      }
     };
-    this.levelConfig = getLevelConfig(1);
+  }
+
+  // New method: Generate initial board
+  public generateInitialBoard(): TileType[][] {
+    const board = this.generateLevelBoard();
+    this.board = board.map(row => [...row]);
+    return board;
+  }
+
+  // New method: Handle tile click (wrapper for makeMove logic)
+  public handleTileClick(row: number, col: number): {
+    boardChanged: boolean;
+    newState?: Partial<any>;
+    selectedTile?: Position | null;
+    animations?: Animation[];
+  } {
+    // This is a simplified version - in real implementation, this would handle
+    // the tile selection logic and delegate to makeMove when appropriate
+    return {
+      boardChanged: false,
+      selectedTile: { row, col },
+      animations: []
+    };
+  }
+
+  // New method: Process board after changes
+  public processBoard(board: TileType[][]): {
+    board: TileType[][];
+    scoreIncrease: number;
+  } {
+    this.board = board.map(row => [...row]);
+    
+    // Process matches and cascades
+    this.processCascadingMatches();
+    this.dropTiles();
+    this.fillEmptySpaces();
+    
+    const scoreIncrease = this.score - this.gameProgress.score;
+    this.gameProgress.score = this.score;
+    
+    return {
+      board: this.getBoard(),
+      scoreIncrease
+    };
+  }
+
+  // New method: Set game state
+  public setGameState(board: TileType[][], gameProgress: GameProgress): void {
+    this.board = board.map(row => [...row]);
+    this.gameProgress = { ...gameProgress };
+    this.score = gameProgress.score;
   }
 
   public startNewLevel(level: number = 1): TileType[][] {
@@ -63,7 +149,15 @@ export class EnhancedGameEngine {
       clearedTiles: 0,
       specialTilesCreated: 0,
       cascades: 0,
-      comboMultiplier: 1
+      comboMultiplier: 1,
+      targetScore: this.levelConfig.requiredScore,
+      maxMoves: this.levelConfig.moves,
+      levelObjectives: {
+        description: "Reach the target score!",
+        requirements: [
+          { type: 'score', target: this.levelConfig.requiredScore, current: 0 }
+        ]
+      }
     };
     this.boosterManager.resetForNewLevel();
     this.hintTiles = [];
