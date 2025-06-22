@@ -363,6 +363,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_bans: {
+        Row: {
+          banned_at: string
+          banned_by: string
+          created_at: string
+          id: string
+          is_active: boolean
+          reason: string | null
+          unbanned_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          banned_at?: string
+          banned_by: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          reason?: string | null
+          unbanned_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          banned_at?: string
+          banned_by?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          reason?: string | null
+          unbanned_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_credits: {
         Row: {
           balance: number

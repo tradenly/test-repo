@@ -6,11 +6,14 @@ import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Crown, Shield, Ban, Search } from "lucide-react";
+import { Crown, Shield, Ban, Search, Users, Wallet, MessageSquare } from "lucide-react";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
+import { EnhancedUserCard } from "./user-management/EnhancedUserCard";
+import { BanUserDialog } from "./user-management/BanUserDialog";
 
 export const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [banDialogUser, setBanDialogUser] = useState<any>(null);
   const { user } = useUnifiedAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -18,15 +21,12 @@ export const UserManagement = () => {
   const { data: users, isLoading } = useQuery({
     queryKey: ['adminUsers', searchTerm],
     queryFn: async () => {
-      console.log('🔍 UserManagement: Fetching users, current user:', user?.id);
+      console.log('🔍 UserManagement: Fetching enhanced user data, current user:', user?.id);
       
-      // Ensure we have a session before making queries
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No authenticated session found');
       }
-      
-      console.log('🔐 UserManagement: Using session:', !!session);
 
       // Get profiles first
       let profileQuery = supabase
@@ -68,11 +68,45 @@ export const UserManagement = () => {
         console.error('❌ UserManagement: Credits fetch error:', creditsError);
       }
 
-      // Merge data
+      // Get social accounts
+      const { data: socialAccounts, error: socialError } = await supabase
+        .from('user_social_accounts')
+        .select('user_id, platform, username, verified')
+        .in('user_id', userIds);
+
+      if (socialError) {
+        console.error('❌ UserManagement: Social accounts fetch error:', socialError);
+      }
+
+      // Get user wallets
+      const { data: userWallets, error: walletsError } = await supabase
+        .from('user_wallets')
+        .select('user_id, blockchain, wallet_address, wallet_name, is_primary')
+        .in('user_id', userIds);
+
+      if (walletsError) {
+        console.error('❌ UserManagement: Wallets fetch error:', walletsError);
+      }
+
+      // Get ban status
+      const { data: userBans, error: bansError } = await supabase
+        .from('user_bans')
+        .select('user_id, reason, banned_at, is_active')
+        .in('user_id', userIds)
+        .eq('is_active', true);
+
+      if (bansError) {
+        console.error('❌ UserManagement: Bans fetch error:', bansError);
+      }
+
+      // Merge all data
       return profiles.map(profile => ({
         ...profile,
         user_roles: userRoles?.filter(role => role.user_id === profile.id) || [],
         user_credits: userCredits?.filter(credit => credit.user_id === profile.id) || [],
+        social_accounts: socialAccounts?.filter(social => social.user_id === profile.id) || [],
+        wallets: userWallets?.filter(wallet => wallet.user_id === profile.id) || [],
+        ban_info: userBans?.find(ban => ban.user_id === profile.id) || null,
       }));
     },
     enabled: !!user,
@@ -82,7 +116,6 @@ export const UserManagement = () => {
     mutationFn: async (userId: string) => {
       console.log('🔧 UserManagement: Making user admin:', userId);
       
-      // Ensure we have a session
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No authenticated session found');
@@ -96,8 +129,6 @@ export const UserManagement = () => {
         console.error('❌ UserManagement: Make admin error:', error);
         throw error;
       }
-      
-      console.log('✅ UserManagement: Successfully made user admin');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
@@ -107,7 +138,6 @@ export const UserManagement = () => {
       });
     },
     onError: (error: any) => {
-      console.error('💥 UserManagement: Make admin mutation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to make user admin.",
@@ -120,7 +150,6 @@ export const UserManagement = () => {
     mutationFn: async (userId: string) => {
       console.log('🔧 UserManagement: Removing admin from user:', userId);
       
-      // Ensure we have a session
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No authenticated session found');
@@ -136,8 +165,6 @@ export const UserManagement = () => {
         console.error('❌ UserManagement: Remove admin error:', error);
         throw error;
       }
-      
-      console.log('✅ UserManagement: Successfully removed admin privileges');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
@@ -147,10 +174,94 @@ export const UserManagement = () => {
       });
     },
     onError: (error: any) => {
-      console.error('💥 UserManagement: Remove admin mutation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to remove admin privileges.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const banUserMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+      console.log('🔧 UserManagement: Banning user:', userId);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authenticated session found');
+      }
+
+      // Prevent admins from banning themselves
+      if (userId === user?.id) {
+        throw new Error('You cannot ban yourself');
+      }
+
+      const { error } = await supabase
+        .from('user_bans')
+        .insert({
+          user_id: userId,
+          banned_by: user?.id,
+          reason: reason || 'No reason provided',
+          is_active: true
+        });
+      
+      if (error) {
+        console.error('❌ UserManagement: Ban user error:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      setBanDialogUser(null);
+      toast({
+        title: "Success",
+        description: "User has been banned.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to ban user.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const unbanUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      console.log('🔧 UserManagement: Unbanning user:', userId);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authenticated session found');
+      }
+
+      const { error } = await supabase
+        .from('user_bans')
+        .update({ 
+          is_active: false,
+          unbanned_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('is_active', true);
+      
+      if (error) {
+        console.error('❌ UserManagement: Unban user error:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      toast({
+        title: "Success",
+        description: "User has been unbanned.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to unban user.",
         variant: "destructive",
       });
     },
@@ -160,7 +271,7 @@ export const UserManagement = () => {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">User Management</h1>
-        <p className="text-gray-400">Manage users, roles, and permissions</p>
+        <p className="text-gray-400">Manage users, roles, permissions, and safety</p>
       </div>
 
       <Card className="bg-gray-800/40 border-gray-700">
@@ -182,67 +293,45 @@ export const UserManagement = () => {
 
       <Card className="bg-gray-800/40 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white">Users</CardTitle>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Users ({users?.length || 0})
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-gray-400">Loading users...</div>
           ) : (
             <div className="space-y-4">
-              {users?.map((user) => {
-                const isAdmin = user.user_roles?.some(role => role.role === 'admin');
-                const credits = user.user_credits?.[0]?.balance || 0;
-                
-                return (
-                  <div key={user.id} className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-white font-medium">
-                          {user.full_name || user.username || 'Unnamed User'}
-                        </h3>
-                        {isAdmin && (
-                          <Crown className="h-4 w-4 text-yellow-400" />
-                        )}
-                      </div>
-                      <p className="text-gray-400 text-sm">@{user.username}</p>
-                      <p className="text-gray-400 text-sm">Credits: {Number(credits).toFixed(2)}</p>
-                      <p className="text-gray-400 text-xs">
-                        Joined: {new Date(user.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {isAdmin ? (
-                        <Button
-                          onClick={() => removeAdminMutation.mutate(user.id)}
-                          variant="outline"
-                          size="sm"
-                          className="border-yellow-600 text-yellow-400 hover:bg-yellow-600/20"
-                          disabled={removeAdminMutation.isPending}
-                        >
-                          <Shield className="h-4 w-4 mr-1" />
-                          Remove Admin
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => makeAdminMutation.mutate(user.id)}
-                          variant="outline"
-                          size="sm"
-                          className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                          disabled={makeAdminMutation.isPending}
-                        >
-                          <Crown className="h-4 w-4 mr-1" />
-                          Make Admin
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {users?.map((userData) => (
+                <EnhancedUserCard
+                  key={userData.id}
+                  user={userData}
+                  currentUserId={user?.id}
+                  onMakeAdmin={() => makeAdminMutation.mutate(userData.id)}
+                  onRemoveAdmin={() => removeAdminMutation.mutate(userData.id)}
+                  onBanUser={() => setBanDialogUser(userData)}
+                  onUnbanUser={() => unbanUserMutation.mutate(userData.id)}
+                  isProcessing={
+                    makeAdminMutation.isPending || 
+                    removeAdminMutation.isPending ||
+                    banUserMutation.isPending ||
+                    unbanUserMutation.isPending
+                  }
+                />
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
+
+      <BanUserDialog
+        user={banDialogUser}
+        isOpen={!!banDialogUser}
+        onClose={() => setBanDialogUser(null)}
+        onConfirm={(reason) => banUserMutation.mutate({ userId: banDialogUser.id, reason })}
+        isProcessing={banUserMutation.isPending}
+      />
     </div>
   );
 };
