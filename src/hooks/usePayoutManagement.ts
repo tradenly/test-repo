@@ -23,61 +23,81 @@ export const useAdminCashoutRequests = () => {
     queryFn: async (): Promise<CashoutRequestWithUser[]> => {
       console.log("Fetching admin cashout requests");
       
-      // Use proper JOIN syntax instead of foreign key constraint references
-      const { data, error } = await supabase
+      // First, get all cashout requests
+      const { data: cashoutRequests, error: cashoutError } = await supabase
         .from("credit_cashout_requests")
-        .select(`
-          *,
-          profiles!inner(id, username, full_name),
-          user_wallets!inner(id, wallet_address, blockchain, wallet_name)
-        `)
+        .select("*")
         .order("requested_at", { ascending: false });
       
-      if (error) {
-        console.error("Error fetching admin cashout requests:", error);
-        throw error;
+      if (cashoutError) {
+        console.error("Error fetching cashout requests:", cashoutError);
+        throw cashoutError;
       }
       
-      console.log("Admin cashout requests data:", data);
+      if (!cashoutRequests || cashoutRequests.length === 0) {
+        console.log("No cashout requests found");
+        return [];
+      }
       
-      // Safely map and cast the response data
-      return (data || []).map(item => {
-        // Handle profiles data - cast to any first to bypass TypeScript strict checking
-        let userProfile = null;
-        const profilesData = (item as any).profiles;
-        if (profilesData && 
-            typeof profilesData === 'object' && 
-            !Array.isArray(profilesData) &&
-            'id' in profilesData) {
-          userProfile = {
-            id: profilesData.id,
-            username: profilesData.username,
-            full_name: profilesData.full_name,
-          };
-        }
-          
-        // Handle user_wallets data - cast to any first to bypass TypeScript strict checking
-        let userWallet = null;
-        const walletsData = (item as any).user_wallets;
-        if (walletsData && 
-            typeof walletsData === 'object' && 
-            !Array.isArray(walletsData) &&
-            'id' in walletsData) {
-          userWallet = {
-            id: walletsData.id,
-            wallet_address: walletsData.wallet_address,
-            blockchain: walletsData.blockchain,
-            wallet_name: walletsData.wallet_name,
-          };
-        }
-
+      console.log("Found cashout requests:", cashoutRequests.length);
+      
+      // Get unique user IDs and wallet IDs
+      const userIds = [...new Set(cashoutRequests.map(req => req.user_id))];
+      const walletIds = [...new Set(cashoutRequests.map(req => req.selected_wallet_id))];
+      
+      // Fetch user profiles separately
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, username, full_name")
+        .in("id", userIds);
+      
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        // Don't throw, just log - we can still show requests without profile data
+      }
+      
+      // Fetch wallets separately
+      const { data: wallets, error: walletsError } = await supabase
+        .from("user_wallets")
+        .select("id, wallet_address, blockchain, wallet_name")
+        .in("id", walletIds);
+      
+      if (walletsError) {
+        console.error("Error fetching wallets:", walletsError);
+        // Don't throw, just log - we can still show requests without wallet data
+      }
+      
+      console.log("Profiles fetched:", profiles?.length || 0);
+      console.log("Wallets fetched:", wallets?.length || 0);
+      
+      // Create lookup maps for better performance
+      const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
+      const walletsMap = new Map(wallets?.map(w => [w.id, w]) || []);
+      
+      // Combine the data
+      const result = cashoutRequests.map(request => {
+        const userProfile = profilesMap.get(request.user_id) || null;
+        const userWallet = walletsMap.get(request.selected_wallet_id) || null;
+        
         return {
-          ...item,
-          status: item.status as 'pending' | 'approved' | 'completed' | 'rejected',
-          user_profile: userProfile,
-          user_wallet: userWallet,
+          ...request,
+          status: request.status as 'pending' | 'approved' | 'completed' | 'rejected',
+          user_profile: userProfile ? {
+            id: userProfile.id,
+            username: userProfile.username,
+            full_name: userProfile.full_name,
+          } : null,
+          user_wallet: userWallet ? {
+            id: userWallet.id,
+            wallet_address: userWallet.wallet_address,
+            blockchain: userWallet.blockchain,
+            wallet_name: userWallet.wallet_name,
+          } : null,
         };
       });
+      
+      console.log("Final admin cashout requests with user data:", result);
+      return result;
     },
   });
 };
