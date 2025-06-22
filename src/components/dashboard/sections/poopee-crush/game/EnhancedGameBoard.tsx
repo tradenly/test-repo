@@ -1,4 +1,3 @@
-
 import React from "react";
 import { TileType } from "./EnhancedTileTypes";
 import { AnimationEvent } from "./EnhancedGameEngine";
@@ -26,10 +25,10 @@ export const EnhancedGameBoard = ({
     switch (tile) {
       case TileType.POOP: return "💩";
       case TileType.TOILET: return "🚽";
-      case TileType.PAPER: return "🧻";
-      case TileType.SOAP: return "🧼";
-      case TileType.BRUSH: return "🪥";
-      case TileType.PLUNGER: return "🪠";
+      case TileType.TOILET_PAPER: return "🧻";
+      case TileType.FART: return "💨";
+      case TileType.BANANA: return "🍌";
+      case TileType.BELL: return "🔔";
       case TileType.STRIPED_HORIZONTAL: return "💩⚡";
       case TileType.STRIPED_VERTICAL: return "💩⬆️";
       case TileType.WRAPPED: return "💩💥";
