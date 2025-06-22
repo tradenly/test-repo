@@ -7,7 +7,6 @@ import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export type AdminSection = 
   | "overview" 
@@ -59,10 +58,8 @@ const AdminPanel = () => {
             <SidebarInset>
               <div className="pt-20 p-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <SidebarTrigger asChild>
-                    <Button variant="outline" size="icon" className="md:hidden">
-                      <Menu className="h-4 w-4" />
-                    </Button>
+                  <SidebarTrigger className="md:hidden border border-yellow-600 bg-yellow-600 text-black hover:bg-yellow-500 h-10 w-10 p-0 flex items-center justify-center">
+                    <Menu className="h-4 w-4" />
                   </SidebarTrigger>
                   <h1 className="text-xl font-semibold text-white capitalize">
                     Admin {activeSection.replace('-', ' ')}

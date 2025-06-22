@@ -7,7 +7,6 @@ import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export type DashboardSection = 
   | "overview" 
@@ -53,10 +52,8 @@ const Dashboard = () => {
             <SidebarInset>
               <div className="pt-20 p-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <SidebarTrigger asChild>
-                    <Button variant="outline" size="icon" className="md:hidden">
-                      <Menu className="h-4 w-4" />
-                    </Button>
+                  <SidebarTrigger className="md:hidden border border-gray-600 bg-gray-800 text-white hover:bg-gray-700 h-10 w-10 p-0 flex items-center justify-center">
+                    <Menu className="h-4 w-4" />
                   </SidebarTrigger>
                   <h1 className="text-xl font-semibold text-white capitalize">
                     {activeSection.replace('-', ' ')}
