@@ -1,9 +1,7 @@
-
 export enum BoosterType {
   HAMMER = "hammer",
   SHUFFLE = "shuffle",
   EXTRA_MOVES = "extra_moves",
-  COLOR_BOMB_START = "color_bomb_start",
   HINT = "hint"
 }
 
@@ -40,13 +38,6 @@ export const AVAILABLE_BOOSTERS: Record<BoosterType, Booster> = {
     cost: 2,
     icon: "⏰",
     usageLimit: 2
-  },
-  [BoosterType.COLOR_BOMB_START]: {
-    type: BoosterType.COLOR_BOMB_START,
-    name: "Color Bomb Start",
-    description: "Start with a color bomb on the board",
-    cost: 3,
-    icon: "💣"
   },
   [BoosterType.HINT]: {
     type: BoosterType.HINT,

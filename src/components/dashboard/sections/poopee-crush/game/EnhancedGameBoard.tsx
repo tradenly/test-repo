@@ -67,9 +67,9 @@ export const EnhancedGameBoard = ({
       case TileType.FART: return "💨";
       case TileType.BANANA: return "🍌";
       case TileType.BELL: return "🔔";
-      // Special tiles
-      case TileType.STRIPED_HORIZONTAL: return "🟡";
-      case TileType.STRIPED_VERTICAL: return "🟠";
+      // Special tiles with distinct visuals
+      case TileType.STRIPED_HORIZONTAL: return "⚡";
+      case TileType.STRIPED_VERTICAL: return "⚡";
       case TileType.WRAPPED: return "🎁";
       case TileType.COLOR_BOMB: return "💣";
       case TileType.BLOCKED: return "🚫";
@@ -107,7 +107,14 @@ export const EnhancedGameBoard = ({
     } else if (isHinted) {
       classes += " ring-2 ring-blue-400 bg-blue-600/20 border-blue-400 animate-pulse";
     } else if (isSpecial) {
-      classes += " bg-purple-600/30 border-purple-400 shadow-lg shadow-purple-400/20";
+      // Different colors for different special tiles
+      if (tile === TileType.STRIPED_HORIZONTAL || tile === TileType.STRIPED_VERTICAL) {
+        classes += " bg-yellow-600/30 border-yellow-400 shadow-lg shadow-yellow-400/20";
+      } else if (tile === TileType.WRAPPED) {
+        classes += " bg-green-600/30 border-green-400 shadow-lg shadow-green-400/20";
+      } else if (tile === TileType.COLOR_BOMB) {
+        classes += " bg-red-600/30 border-red-400 shadow-lg shadow-red-400/20 animate-pulse";
+      }
     }
 
     if (isAnimating) {
@@ -132,11 +139,11 @@ export const EnhancedGameBoard = ({
       case TileType.STRIPED_HORIZONTAL:
         return "before:content-[''] before:absolute before:w-full before:h-1 before:bg-yellow-400 before:top-1/2 before:left-0 before:transform before:-translate-y-1/2";
       case TileType.STRIPED_VERTICAL:
-        return "before:content-[''] before:absolute before:h-full before:w-1 before:bg-orange-400 before:left-1/2 before:top-0 before:transform before:-translate-x-1/2";
+        return "before:content-[''] before:absolute before:h-full before:w-1 before:bg-yellow-400 before:left-1/2 before:top-0 before:transform before:-translate-x-1/2";
       case TileType.WRAPPED:
         return "before:content-[''] before:absolute before:inset-1 before:border-2 before:border-green-400 before:rounded-lg";
       case TileType.COLOR_BOMB:
-        return "animate-pulse shadow-lg shadow-red-500/50";
+        return "shadow-lg shadow-red-500/50";
       default:
         return "";
     }
@@ -157,9 +164,9 @@ export const EnhancedGameBoard = ({
       <div className="bg-gray-800/60 rounded-lg p-4 text-center">
         <h3 className="text-white font-semibold mb-2">Enhanced POOPEE Crush</h3>
         <div className="text-gray-300 text-sm space-y-1">
-          <p>🟡 Striped (4-match) clears rows/columns | 🎁 Wrapped (L/T-match) explodes 3x3</p>
+          <p>⚡ Striped tiles (4-match) clear rows/columns | 🎁 Wrapped tiles (L/T-match) explode 3x3</p>
           <p>💣 Color Bomb (5-match) clears all of one type | 🚫 Blocked tiles can't be moved</p>
-          <p>💡 Blue glow = Hint | ⭐ Complete objectives to advance levels</p>
+          <p>💡 Blue glow = Hint | ⭐ Match special tiles or swap them for powerful effects!</p>
         </div>
       </div>
 
@@ -175,13 +182,13 @@ export const EnhancedGameBoard = ({
                 onClick={() => onTileClick(rowIndex, colIndex)}
                 className={`${getTileClasses(rowIndex, colIndex, tile)} ${specialEffectClasses}`}
                 disabled={tile === TileType.BLOCKED || tile === TileType.EMPTY}
-                title={isSpecialTile(tile) ? `Special tile: ${tile}` : `Tile: ${tile}`}
+                title={isSpecialTile(tile) ? `Special tile: ${tile} - Click to activate!` : `Tile: ${tile}`}
               >
                 {tile !== TileType.EMPTY && getTileEmoji(tile)}
                 
                 {/* Special tile overlay effects */}
                 {isSpecialTile(tile) && (
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-lg pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-lg pointer-events-none" />
                 )}
               </button>
             );
@@ -193,7 +200,7 @@ export const EnhancedGameBoard = ({
       {selectedTile && (
         <div className="text-center">
           <p className="text-yellow-400 text-sm animate-pulse">
-            ✨ Now click an adjacent tile to swap! ✨
+            ✨ Now click an adjacent tile to swap! Special tiles activate when moved! ✨
           </p>
         </div>
       )}

@@ -174,37 +174,26 @@ export class EnhancedGameEngine {
       id: `swap-${this.currentAnimationId++}`
     });
 
-    // Swap tiles
+    // Check if either tile is a special tile - handle activation
+    const tile1 = this.board[row1][col1];
+    const tile2 = this.board[row2][col2];
+    
+    if (isSpecialTile(tile1) || isSpecialTile(tile2)) {
+      return this.handleSpecialTileActivation(row1, col1, row2, col2);
+    }
+
+    // Regular tile swap
     this.swapTiles(row1, col1, row2, col2);
     
-    // Check for matches and special tile effects
+    // Check for matches
     const matches = this.findEnhancedMatches();
-    const specialEffects = this.processSpecialTileEffects(row1, col1, row2, col2);
     
-    if (matches.length > 0 || specialEffects.length > 0) {
-      // Decrease moves
+    if (matches.length > 0) {
       this.gameProgress.moves--;
-      
-      // Process matches
-      if (matches.length > 0) {
-        this.processEnhancedMatches(matches);
-      }
-      
-      // Process special effects
-      specialEffects.forEach(effect => {
-        this.addAnimation({
-          type: 'special_effect',
-          specialEffect: effect,
-          id: `special-${this.currentAnimationId++}`
-        });
-        this.applySpecialEffect(effect);
-      });
-      
+      this.processEnhancedMatches(matches);
       this.dropTiles();
       this.fillEmptySpaces();
       this.processCascadingMatches();
-      
-      // Update objectives
       this.updateObjectives();
       
       console.log(`✅ Move successful! Score: ${this.score}, Moves: ${this.gameProgress.moves}`);
@@ -220,6 +209,187 @@ export class EnhancedGameEngine {
       });
       return false;
     }
+  }
+
+  private handleSpecialTileActivation(row1: number, col1: number, row2: number, col2: number): boolean {
+    const tile1 = this.board[row1][col1];
+    const tile2 = this.board[row2][col2];
+    
+    this.gameProgress.moves--;
+    
+    // Handle special tile combinations
+    if (isSpecialTile(tile1) && isSpecialTile(tile2)) {
+      this.handleSpecialTileCombination(row1, col1, row2, col2);
+    } else if (isSpecialTile(tile1)) {
+      this.activateSpecialTile(tile1, row1, col1, tile2);
+    } else if (isSpecialTile(tile2)) {
+      this.activateSpecialTile(tile2, row2, col2, tile1);
+    }
+    
+    this.dropTiles();
+    this.fillEmptySpaces();
+    this.processCascadingMatches();
+    this.updateObjectives();
+    
+    return true;
+  }
+
+  private handleSpecialTileCombination(row1: number, col1: number, row2: number, col2: number): void {
+    const tile1 = this.board[row1][col1];
+    const tile2 = this.board[row2][col2];
+    
+    console.log(`✨ Special tile combination: ${tile1} + ${tile2}`);
+    
+    // Clear both special tiles
+    this.board[row1][col1] = TileType.EMPTY;
+    this.board[row2][col2] = TileType.EMPTY;
+    
+    if (tile1 === TileType.COLOR_BOMB || tile2 === TileType.COLOR_BOMB) {
+      // Color bomb combinations
+      if (tile1 === TileType.COLOR_BOMB && tile2 === TileType.COLOR_BOMB) {
+        // Two color bombs - clear entire board
+        this.clearEntireBoard();
+      } else {
+        // Color bomb + other special - convert all tiles of most common type to the special type
+        const otherTile = tile1 === TileType.COLOR_BOMB ? tile2 : tile1;
+        this.colorBombSpecialCombination(otherTile);
+      }
+    } else if ((tile1 === TileType.STRIPED_HORIZONTAL || tile1 === TileType.STRIPED_VERTICAL) &&
+               (tile2 === TileType.STRIPED_HORIZONTAL || tile2 === TileType.STRIPED_VERTICAL)) {
+      // Two striped tiles - clear entire row AND column
+      this.clearRowAndColumn(row1, col1);
+    } else if (tile1 === TileType.WRAPPED || tile2 === TileType.WRAPPED) {
+      // Wrapped + striped - clear 3 rows or 3 columns
+      const isHorizontal = tile1 === TileType.STRIPED_HORIZONTAL || tile2 === TileType.STRIPED_HORIZONTAL;
+      this.wrappedStripedCombination(row1, col1, isHorizontal);
+    }
+    
+    // Award combination bonus
+    this.score += 5000 * this.gameProgress.comboMultiplier;
+    this.gameProgress.score = this.score;
+  }
+
+  private activateSpecialTile(specialTile: TileType, row: number, col: number, targetTile?: TileType): void {
+    console.log(`🎯 Activating special tile: ${specialTile} at (${row}, ${col})`);
+    
+    this.board[row][col] = TileType.EMPTY;
+    
+    switch (specialTile) {
+      case TileType.STRIPED_HORIZONTAL:
+        this.clearRow(row);
+        break;
+      case TileType.STRIPED_VERTICAL:
+        this.clearColumn(col);
+        break;
+      case TileType.WRAPPED:
+        this.wrappedExplosion(row, col);
+        break;
+      case TileType.COLOR_BOMB:
+        if (targetTile && isBasicTile(targetTile)) {
+          this.colorBombActivation(targetTile);
+        } else {
+          this.colorBombActivation(this.findMostCommonTile());
+        }
+        break;
+    }
+  }
+
+  private clearRow(row: number): void {
+    for (let col = 0; col < this.boardSize; col++) {
+      if (this.board[row][col] !== TileType.BLOCKED) {
+        this.board[row][col] = TileType.EMPTY;
+        this.gameProgress.clearedTiles++;
+      }
+    }
+    this.score += 300 * this.gameProgress.comboMultiplier;
+    this.gameProgress.score = this.score;
+  }
+
+  private clearColumn(col: number): void {
+    for (let row = 0; row < this.boardSize; row++) {
+      if (this.board[row][col] !== TileType.BLOCKED) {
+        this.board[row][col] = TileType.EMPTY;
+        this.gameProgress.clearedTiles++;
+      }
+    }
+    this.score += 300 * this.gameProgress.comboMultiplier;
+    this.gameProgress.score = this.score;
+  }
+
+  private clearRowAndColumn(row: number, col: number): void {
+    this.clearRow(row);
+    this.clearColumn(col);
+    this.score += 500; // Bonus for combination
+  }
+
+  private wrappedExplosion(centerRow: number, centerCol: number): void {
+    const affected: {row: number, col: number}[] = [];
+    
+    for (let r = Math.max(0, centerRow - 1); r <= Math.min(this.boardSize - 1, centerRow + 1); r++) {
+      for (let c = Math.max(0, centerCol - 1); c <= Math.min(this.boardSize - 1, centerCol + 1); c++) {
+        if (this.board[r][c] !== TileType.BLOCKED) {
+          this.board[r][c] = TileType.EMPTY;
+          this.gameProgress.clearedTiles++;
+          affected.push({row: r, col: c});
+        }
+      }
+    }
+    
+    this.score += affected.length * 100 * this.gameProgress.comboMultiplier;
+    this.gameProgress.score = this.score;
+  }
+
+  private wrappedStripedCombination(row: number, col: number, isHorizontal: boolean): void {
+    if (isHorizontal) {
+      // Clear 3 rows
+      for (let r = Math.max(0, row - 1); r <= Math.min(this.boardSize - 1, row + 1); r++) {
+        this.clearRow(r);
+      }
+    } else {
+      // Clear 3 columns
+      for (let c = Math.max(0, col - 1); c <= Math.min(this.boardSize - 1, col + 1); c++) {
+        this.clearColumn(c);
+      }
+    }
+  }
+
+  private colorBombActivation(targetTileType: TileType): void {
+    let clearedCount = 0;
+    for (let row = 0; row < this.boardSize; row++) {
+      for (let col = 0; col < this.boardSize; col++) {
+        if (this.board[row][col] === targetTileType) {
+          this.board[row][col] = TileType.EMPTY;
+          this.gameProgress.clearedTiles++;
+          clearedCount++;
+        }
+      }
+    }
+    this.score += clearedCount * 200 * this.gameProgress.comboMultiplier;
+    this.gameProgress.score = this.score;
+  }
+
+  private colorBombSpecialCombination(specialTileType: TileType): void {
+    const targetTileType = this.findMostCommonTile();
+    for (let row = 0; row < this.boardSize; row++) {
+      for (let col = 0; col < this.boardSize; col++) {
+        if (this.board[row][col] === targetTileType) {
+          this.board[row][col] = specialTileType;
+        }
+      }
+    }
+  }
+
+  private clearEntireBoard(): void {
+    for (let row = 0; row < this.boardSize; row++) {
+      for (let col = 0; col < this.boardSize; col++) {
+        if (this.board[row][col] !== TileType.BLOCKED) {
+          this.board[row][col] = TileType.EMPTY;
+          this.gameProgress.clearedTiles++;
+        }
+      }
+    }
+    this.score += 10000; // Massive bonus for clearing entire board
+    this.gameProgress.score = this.score;
   }
 
   private findEnhancedMatches(): MatchResult[] {
@@ -332,113 +502,6 @@ export class EnhancedGameEngine {
     return null;
   }
 
-  private processSpecialTileEffects(row1: number, col1: number, row2: number, col2: number): PowerUpEffect[] {
-    const effects: PowerUpEffect[] = [];
-    
-    // Check if either tile involved in swap is special
-    const tile1 = this.board[row1][col1];
-    const tile2 = this.board[row2][col2];
-    
-    if (isSpecialTile(tile1)) {
-      effects.push(this.createSpecialEffect(tile1, row1, col1));
-    }
-    
-    if (isSpecialTile(tile2)) {
-      effects.push(this.createSpecialEffect(tile2, row2, col2));
-    }
-    
-    return effects;
-  }
-
-  private createSpecialEffect(tileType: TileType, row: number, col: number): PowerUpEffect {
-    switch (tileType) {
-      case TileType.STRIPED_HORIZONTAL:
-        return {
-          type: 'stripe_horizontal',
-          tiles: Array.from({length: this.boardSize}, (_, c) => ({row, col: c})),
-          centerTile: {row, col}
-        };
-        
-      case TileType.STRIPED_VERTICAL:
-        return {
-          type: 'stripe_vertical',
-          tiles: Array.from({length: this.boardSize}, (_, r) => ({row: r, col})),
-          centerTile: {row, col}
-        };
-        
-      case TileType.WRAPPED:
-        const wrappedTiles: {row: number, col: number}[] = [];
-        for (let r = Math.max(0, row - 1); r <= Math.min(this.boardSize - 1, row + 1); r++) {
-          for (let c = Math.max(0, col - 1); c <= Math.min(this.boardSize - 1, col + 1); c++) {
-            wrappedTiles.push({row: r, col: c});
-          }
-        }
-        return {
-          type: 'wrapped_explosion',
-          tiles: wrappedTiles,
-          centerTile: {row, col}
-        };
-        
-      case TileType.COLOR_BOMB:
-        const targetTile = this.findMostCommonTile();
-        const colorBombTiles: {row: number, col: number}[] = [];
-        for (let r = 0; r < this.boardSize; r++) {
-          for (let c = 0; c < this.boardSize; c++) {
-            if (this.board[r][c] === targetTile) {
-              colorBombTiles.push({row: r, col: c});
-            }
-          }
-        }
-        return {
-          type: 'color_bomb',
-          tiles: colorBombTiles,
-          centerTile: {row, col}
-        };
-        
-      default:
-        return {type: 'wrapped_explosion', tiles: [], centerTile: {row, col}};
-    }
-  }
-
-  private findMostCommonTile(): TileType {
-    const tileCount: Map<TileType, number> = new Map();
-    
-    for (let row = 0; row < this.boardSize; row++) {
-      for (let col = 0; col < this.boardSize; col++) {
-        const tile = this.board[row][col];
-        if (isBasicTile(tile)) {
-          tileCount.set(tile, (tileCount.get(tile) || 0) + 1);
-        }
-      }
-    }
-    
-    let mostCommon = TileType.POOP;
-    let maxCount = 0;
-    
-    tileCount.forEach((count, tile) => {
-      if (count > maxCount) {
-        maxCount = count;
-        mostCommon = tile;
-      }
-    });
-    
-    return mostCommon;
-  }
-
-  private applySpecialEffect(effect: PowerUpEffect): void {
-    effect.tiles.forEach(tile => {
-      if (this.board[tile.row][tile.col] !== TileType.BLOCKED) {
-        this.board[tile.row][tile.col] = TileType.EMPTY;
-        this.gameProgress.clearedTiles++;
-      }
-    });
-    
-    // Award bonus points for special effects
-    const bonusPoints = effect.tiles.length * 50 * this.gameProgress.comboMultiplier;
-    this.score += bonusPoints;
-    this.gameProgress.score = this.score;
-  }
-
   private processEnhancedMatches(matches: MatchResult[]): void {
     let totalTilesCleared = 0;
     
@@ -537,6 +600,9 @@ export class EnhancedGameEngine {
       case BoosterType.HAMMER:
         if (targetTile && this.isValidPosition(targetTile.row, targetTile.col)) {
           this.board[targetTile.row][targetTile.col] = TileType.EMPTY;
+          this.gameProgress.clearedTiles++;
+          this.score += 50; // Small bonus for using hammer
+          this.gameProgress.score = this.score;
           this.dropTiles();
           this.fillEmptySpaces();
           this.boosterManager.useBooster(type);
@@ -764,5 +830,30 @@ export class EnhancedGameEngine {
 
   public getBoosterManager(): BoosterManager {
     return this.boosterManager;
+  }
+
+  private findMostCommonTile(): TileType {
+    const tileCount: Map<TileType, number> = new Map();
+    
+    for (let row = 0; row < this.boardSize; row++) {
+      for (let col = 0; col < this.boardSize; col++) {
+        const tile = this.board[row][col];
+        if (isBasicTile(tile)) {
+          tileCount.set(tile, (tileCount.get(tile) || 0) + 1);
+        }
+      }
+    }
+    
+    let mostCommon = TileType.POOP;
+    let maxCount = 0;
+    
+    tileCount.forEach((count, tile) => {
+      if (count > maxCount) {
+        maxCount = count;
+        mostCommon = tile;
+      }
+    });
+    
+    return mostCommon;
   }
 }

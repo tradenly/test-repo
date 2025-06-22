@@ -18,28 +18,28 @@ export const BoosterPanel = ({ gameActive, onUseBooster, gameProgress }: Booster
       name: "Hammer",
       description: "Remove any tile",
       icon: "🔨",
-      cost: 1
+      cost: 0.5
     },
     {
       type: BoosterType.SHUFFLE,
       name: "Shuffle",
       description: "Shuffle the board",
       icon: "🔀",
-      cost: 2
+      cost: 1
     },
     {
       type: BoosterType.EXTRA_MOVES,
       name: "+5 Moves",
       description: "Add 5 extra moves",
-      icon: "⏱️",
-      cost: 3
+      icon: "⏰",
+      cost: 2
     },
     {
       type: BoosterType.HINT,
       name: "Hint",
       description: "Show possible move",
       icon: "💡",
-      cost: 1
+      cost: 0.25
     }
   ];
 
@@ -60,7 +60,7 @@ export const BoosterPanel = ({ gameActive, onUseBooster, gameProgress }: Booster
     <Card className="bg-gray-900/50 border-gray-600">
       <CardContent className="p-4">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-semibold text-white">Boosters</h3>
+          <h3 className="text-lg font-semibold text-white">Power-ups</h3>
           <Badge variant="outline" className="text-yellow-400 border-yellow-400">
             Level {gameProgress.currentLevel}
           </Badge>
@@ -84,7 +84,7 @@ export const BoosterPanel = ({ gameActive, onUseBooster, gameProgress }: Booster
         
         <div className="mt-3 text-center">
           <span className="text-xs text-gray-500">
-            Click a booster to activate during gameplay
+            Power-ups provide helpful assistance but won't instantly win levels
           </span>
         </div>
       </CardContent>
