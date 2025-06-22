@@ -29,9 +29,18 @@ const calculateStarRating = (gameProgress: GameProgress, levelConfig: LevelConfi
   }
 };
 
-const saveGameState = (gameState: EnhancedGameState) => {
+const STORAGE_KEY = 'poopee-crush-enhanced-game-state';
+const PROGRESS_STORAGE_KEY = 'poopee-crush-game-progress';
+
+const saveGameState = (gameState: EnhancedGameState, difficulty: DifficultyLevel) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+    // Save progress separately to persist across sessions
+    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify({
+      currentLevel: gameState.gameProgress.currentLevel,
+      difficulty: difficulty,
+      timestamp: Date.now()
+    }));
   } catch (error) {
     console.warn('Failed to save game state:', error);
   }
@@ -50,7 +59,21 @@ const loadGameState = (): EnhancedGameState | null => {
   return null;
 };
 
-const STORAGE_KEY = 'poopee-crush-enhanced-game-state';
+const loadGameProgress = (): { currentLevel: number; difficulty: DifficultyLevel } | null => {
+  try {
+    const saved = localStorage.getItem(PROGRESS_STORAGE_KEY);
+    if (saved) {
+      const progress = JSON.parse(saved);
+      // Only restore if saved within last 24 hours
+      if (Date.now() - progress.timestamp < 24 * 60 * 60 * 1000) {
+        return { currentLevel: progress.currentLevel, difficulty: progress.difficulty };
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to load game progress:", error);
+  }
+  return null;
+};
 
 interface EnhancedGameState {
   board: GameBoard;
@@ -130,7 +153,7 @@ export const useEnhancedGameState = (
             hintTiles: []
           };
           
-          saveGameState(newState);
+          saveGameState(newState, difficulty);
           
           if (newState.levelComplete && !prevState.levelComplete) {
             const stars = calculateStarRating(newState.gameProgress, newState.levelConfig);
@@ -151,16 +174,24 @@ export const useEnhancedGameState = (
         hintTiles: []
       }));
     }
-  }, [gameState.gameActive, onLevelComplete, onGameEnd, playSoundEffect]);
+  }, [gameState.gameActive, onLevelComplete, onGameEnd, playSoundEffect, difficulty]);
 
   const useBooster = useCallback((type: BoosterType, targetTile?: Position): boolean => {
     if (!gameState.gameActive || !boosterSystemRef.current || !gameEngineRef.current) {
+      console.log('❌ [useBooster] Cannot use booster - game not active or refs not ready');
       return false;
     }
 
+    console.log(`🔧 [useBooster] Attempting to use ${type} booster`);
+    
     const result: BoosterResult = gameEngineRef.current.useBooster(type, targetTile);
     
+    console.log(`🔧 [useBooster] Booster result:`, result);
+    
     if (result.success && result.newBoard) {
+      console.log(`✅ [useBooster] ${type} booster succeeded, applying changes`);
+      
+      playSoundEffect('booster');
       setAnimations(result.animations || []);
       
       setTimeout(() => {
@@ -180,14 +211,17 @@ export const useEnhancedGameState = (
             hintTiles: []
           };
           
-          saveGameState(newState);
+          saveGameState(newState, difficulty);
+          console.log(`💾 [useBooster] Game state saved after ${type} booster`);
           return newState;
         });
       }, result.animations ? 600 : 0);
+    } else {
+      console.log(`❌ [useBooster] ${type} booster failed:`, result);
     }
 
     return result.success;
-  }, [gameState.gameActive, gameState.board]);
+  }, [gameState.gameActive, gameState.board, playSoundEffect, difficulty]);
 
   const startNewLevel = useCallback((level: number) => {
     const levelConfig = getLevelConfig(level, difficulty);
@@ -231,7 +265,7 @@ export const useEnhancedGameState = (
     };
     
     setGameState(newState);
-    saveGameState(newState);
+    saveGameState(newState, difficulty);
     
     console.log(`🎮 [Enhanced Game] Started level ${level} on ${difficulty} difficulty`);
   }, [difficulty]);
@@ -239,6 +273,15 @@ export const useEnhancedGameState = (
   const resumeGame = useCallback((): boolean => {
     try {
       const savedState = loadGameState();
+      const savedProgress = loadGameProgress();
+      
+      // Prioritize saved progress over saved state for level continuity
+      if (savedProgress && savedProgress.difficulty === difficulty) {
+        console.log(`🔄 [Enhanced Game] Resuming from level ${savedProgress.currentLevel}`);
+        startNewLevel(savedProgress.currentLevel);
+        return true;
+      }
+      
       if (savedState && savedState.gameActive) {
         const engine = new EnhancedGameEngine(savedState.levelConfig);
         const boosterSystem = new BoosterManager();
@@ -257,7 +300,7 @@ export const useEnhancedGameState = (
       console.warn('⚠️ [Enhanced Game] Failed to resume game:', error);
     }
     return false;
-  }, []);
+  }, [difficulty, startNewLevel]);
 
   const quitGame = useCallback(() => {
     setGameState(prevState => ({

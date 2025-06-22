@@ -1,13 +1,10 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { EnhancedGameBoard } from "./EnhancedGameBoard";
 import { LevelHUD } from "./LevelHUD";
 import { BoosterPanel } from "./BoosterPanel";
 import { LevelCompleteScreen } from "./LevelCompleteScreen";
 import { GameOverScreen } from "./GameOverScreen";
-import { AudioControls } from "./AudioControls";
 import { useEnhancedGameState } from "./useEnhancedGameState";
 import { BoosterType } from "./BoosterSystem";
 import { DifficultyLevel } from "./DifficultySelector";
@@ -110,56 +107,36 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="text-white">
-          <h3 className="text-lg font-semibold">Level {gameState.gameProgress.currentLevel}</h3>
-          <p className="text-sm text-gray-400">Difficulty: {difficulty}</p>
-        </div>
-        <div className="flex gap-2">
-          <AudioControls gameActive={gameState.gameActive} />
-          <Button
-            onClick={quitGame}
-            variant="outline"
-            size="sm"
-            className="text-gray-300 border-gray-600 hover:bg-gray-700"
-          >
-            Quit Game
-          </Button>
-        </div>
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-2">
+      <div className="lg:col-span-1">
+        <LevelHUD 
+          gameProgress={gameState.gameProgress} 
+          levelConfig={gameState.levelConfig} 
+          onQuit={quitGame}
+          onRestart={restartLevel}
+        />
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <div className="lg:col-span-1">
-          <LevelHUD 
-            gameProgress={gameState.gameProgress} 
-            levelConfig={gameState.levelConfig} 
-            onQuit={quitGame}
-            onRestart={restartLevel}
-          />
-        </div>
-        
-        <div className="lg:col-span-3">
-          <EnhancedGameBoard
-            board={gameState.board}
-            selectedTile={gameState.selectedTile}
-            hintTiles={gameState.hintTiles}
-            onTileClick={handleTileClickWithHammer}
-            animations={animations}
-            hammerMode={hammerMode}
-          />
-        </div>
-        
-        <div className="lg:col-span-1">
-          <BoosterPanel
-            gameActive={gameState.gameActive}
-            onUseBooster={handleBoosterUse}
-            gameProgress={gameState.gameProgress}
-            userId={userId}
-            onHammerModeChange={setHammerMode}
-            hammerMode={hammerMode}
-          />
-        </div>
+      
+      <div className="lg:col-span-3">
+        <EnhancedGameBoard
+          board={gameState.board}
+          selectedTile={gameState.selectedTile}
+          hintTiles={gameState.hintTiles}
+          onTileClick={handleTileClickWithHammer}
+          animations={animations}
+          hammerMode={hammerMode}
+        />
+      </div>
+      
+      <div className="lg:col-span-1">
+        <BoosterPanel
+          gameActive={gameState.gameActive}
+          onUseBooster={handleBoosterUse}
+          gameProgress={gameState.gameProgress}
+          userId={userId}
+          onHammerModeChange={setHammerMode}
+          hammerMode={hammerMode}
+        />
       </div>
     </div>
   );

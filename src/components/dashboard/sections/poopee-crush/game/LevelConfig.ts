@@ -15,35 +15,8 @@ export interface LevelConfig {
   availableTileTypes: number;
   specialTileSpawnRate: number;
   blockedPositions?: {row: number, col: number}[];
-  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  difficulty: DifficultyLevel; // This should match user selection, not auto-calculated
 }
-
-const calculateDifficulty = (level: number, moves: number, requiredScore: number, objectives: LevelObjective[], blockedPositions?: {row: number, col: number}[]): 'easy' | 'medium' | 'hard' | 'expert' => {
-  let difficultyScore = 0;
-  
-  difficultyScore += Math.min(level * 1.2, 30);
-  
-  if (moves >= 25) difficultyScore += 0;
-  else if (moves >= 20) difficultyScore += 8;
-  else if (moves >= 15) difficultyScore += 15;
-  else difficultyScore += 25;
-  
-  if (requiredScore >= 800) difficultyScore += 20;
-  else if (requiredScore >= 600) difficultyScore += 15;
-  else if (requiredScore >= 400) difficultyScore += 8;
-  else difficultyScore += 0;
-  
-  difficultyScore += Math.min((objectives.length - 1) * 5, 15);
-  
-  if (blockedPositions && blockedPositions.length > 0) {
-    difficultyScore += Math.min(blockedPositions.length * 2, 10);
-  }
-  
-  if (difficultyScore >= 70) return 'expert';
-  if (difficultyScore >= 45) return 'hard';
-  if (difficultyScore >= 20) return 'medium';
-  return 'easy';
-};
 
 const applyDifficultyMultiplier = (baseScore: number, baseMoves: number, difficulty: DifficultyLevel) => {
   switch (difficulty) {
@@ -66,7 +39,7 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
       baseConfig = {
         level: 1,
         moves: 30,
-        requiredScore: 250, // FIXED: Much lower score requirement (was 4000)
+        requiredScore: 250,
         objectives: [
           {
             type: 'score',
@@ -81,7 +54,7 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
         ],
         availableTileTypes: 4,
         specialTileSpawnRate: 0.03,
-        difficulty: 'easy'
+        difficulty: difficulty // Use user-selected difficulty
       };
       break;
 
@@ -89,7 +62,7 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
       baseConfig = {
         level: 2,
         moves: 28,
-        requiredScore: 400, // FIXED: Much lower score requirement (was 6000)
+        requiredScore: 400,
         objectives: [
           {
             type: 'score',
@@ -109,7 +82,7 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
         ],
         availableTileTypes: 4,
         specialTileSpawnRate: 0.04,
-        difficulty: 'easy'
+        difficulty: difficulty
       };
       break;
 
@@ -117,7 +90,7 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
       baseConfig = {
         level: 3,
         moves: 25,
-        requiredScore: 600, // FIXED: Much lower score requirement (was 8500)
+        requiredScore: 600,
         objectives: [
           {
             type: 'score',
@@ -143,7 +116,7 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
           {row: 4, col: 3},
           {row: 4, col: 4}
         ],
-        difficulty: 'medium'
+        difficulty: difficulty
       };
       break;
 
@@ -151,7 +124,7 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
       baseConfig = {
         level: 4,
         moves: 25,
-        requiredScore: 800, // FIXED: Much lower score requirement (was 11000)
+        requiredScore: 800,
         objectives: [
           {
             type: 'score',
@@ -176,7 +149,7 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
         ],
         availableTileTypes: 5,
         specialTileSpawnRate: 0.06,
-        difficulty: 'medium'
+        difficulty: difficulty
       };
       break;
 
@@ -184,7 +157,7 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
       baseConfig = {
         level: 5,
         moves: 25,
-        requiredScore: 1000, // FIXED: Much lower score requirement (was 15000)
+        requiredScore: 1000,
         objectives: [
           {
             type: 'score',
@@ -210,7 +183,7 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
           {row: 3, col: 3}, {row: 3, col: 4},
           {row: 4, col: 3}, {row: 4, col: 4}
         ],
-        difficulty: 'hard'
+        difficulty: difficulty
       };
       break;
 
@@ -219,7 +192,7 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
       baseConfig = {
         level: level,
         moves: Math.max(20, 30 - Math.floor(progressiveLevel / 5)),
-        requiredScore: 250 + (progressiveLevel * 100), // FIXED: Much more gradual progression
+        requiredScore: 250 + (progressiveLevel * 100),
         objectives: [
           {
             type: 'score',
@@ -244,7 +217,7 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
         ],
         availableTileTypes: Math.min(4 + Math.floor(progressiveLevel / 3), 6),
         specialTileSpawnRate: Math.min(0.05 + (progressiveLevel * 0.01), 0.15),
-        difficulty: 'medium'
+        difficulty: difficulty
       };
   }
 
@@ -256,15 +229,6 @@ export const getLevelConfig = (level: number, difficulty: DifficultyLevel = 'eas
   // Update objectives with new score target
   baseConfig.objectives = baseConfig.objectives.map(obj => 
     obj.type === 'score' ? { ...obj, target: score, description: `Reach ${score} points` } : obj
-  );
-
-  // Calculate the actual difficulty based on level parameters
-  baseConfig.difficulty = calculateDifficulty(
-    baseConfig.level,
-    baseConfig.moves,
-    baseConfig.requiredScore,
-    baseConfig.objectives,
-    baseConfig.blockedPositions
   );
 
   return baseConfig;
