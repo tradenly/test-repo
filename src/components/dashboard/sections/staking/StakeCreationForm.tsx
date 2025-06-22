@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,7 +80,7 @@ export const StakeCreationForm = ({ user, pools }: StakeCreationFormProps) => {
         <Button
           onClick={handleStake}
           disabled={createStakeMutation.isPending || !selectedPool || !stakeAmount || !pools?.length}
-          className="w-full bg-gray-700 hover:bg-gray-600"
+          className="w-full"
         >
           {createStakeMutation.isPending ? "Creating Stake..." : "Stake Tokens"}
         </Button>
