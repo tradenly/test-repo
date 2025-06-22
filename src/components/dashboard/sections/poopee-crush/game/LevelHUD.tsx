@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { GameProgress } from "./EnhancedGameEngine";
@@ -59,7 +58,7 @@ export const LevelHUD = ({ gameProgress, levelConfig, onQuit, onRestart }: Level
           <div className={`text-xs font-semibold ${
             levelConfig.difficulty === 'easy' ? 'text-green-400' :
             levelConfig.difficulty === 'medium' ? 'text-yellow-400' :
-            levelConfig.difficulty === 'hard' ? 'text-orange-400' : 'text-red-400'
+            levelConfig.difficulty === 'advanced' ? 'text-red-400' : 'text-gray-400'
           }`}>
             {levelConfig.difficulty.toUpperCase()}
           </div>
