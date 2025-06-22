@@ -1,11 +1,13 @@
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GameProgress } from "./EnhancedGameEngine";
+import { Loader2, Shuffle, Lightbulb, Hammer } from "lucide-react";
 import { BoosterType } from "./BoosterSystem";
+import { GameProgress } from "./EnhancedGameEngine";
 import { usePoopeeCrushCredits } from "../usePoopeeCrushCredits";
-import { toast } from "sonner";
+import { useState, useEffect } from "react";
+import { useCredits } from "@/hooks/useCredits";
 
 interface BoosterPanelProps {
   gameActive: boolean;
@@ -20,166 +22,171 @@ export const BoosterPanel = ({
   gameActive, 
   onUseBooster, 
   gameProgress, 
-  userId, 
+  userId,
   onHammerModeChange,
   hammerMode 
 }: BoosterPanelProps) => {
   const { spendCredits, checkCanAfford, isSpending } = usePoopeeCrushCredits(userId);
-  const [processingBooster, setProcessingBooster] = useState<BoosterType | null>(null);
+  const { data: credits } = useCredits(userId);
+  const [boosterAvailability, setBoosterAvailability] = useState({
+    shuffle: true,
+    hint: true,
+    hammer: true
+  });
 
-  const boosters = [
-    {
-      type: BoosterType.HAMMER,
-      name: "Hammer",
-      description: "Remove any tile",
-      icon: "🔨",
-      cost: 0.5
-    },
-    {
-      type: BoosterType.SHUFFLE,
-      name: "Shuffle",
-      description: "Shuffle the board",
-      icon: "🔀",
-      cost: 1
-    },
-    {
-      type: BoosterType.EXTRA_MOVES,
-      name: "+5 Moves",
-      description: "Add 5 extra moves",
-      icon: "⏰",
-      cost: 2
-    },
-    {
-      type: BoosterType.HINT,
-      name: "Hint",
-      description: "Show possible move",
-      icon: "💡",
-      cost: 0.25
-    }
-  ];
+  // Check affordability when credits change
+  useEffect(() => {
+    const checkAllAffordability = async () => {
+      const shuffleAfford = await checkCanAfford(1);
+      const hintAfford = await checkCanAfford(0.5);
+      const hammerAfford = await checkCanAfford(0.5);
+      
+      setBoosterAvailability({
+        shuffle: shuffleAfford,
+        hint: hintAfford,
+        hammer: hammerAfford
+      });
+    };
 
-  const handleBoosterClick = async (type: BoosterType) => {
-    if (!gameActive || isSpending || processingBooster) return;
-    
-    const booster = boosters.find(b => b.type === type);
-    if (!booster) return;
-    
-    // Check if user can afford the booster
-    const canAfford = await checkCanAfford(booster.cost);
-    if (!canAfford) {
-      toast.error(`You need ${booster.cost} credits to use ${booster.name}`);
-      return;
+    if (credits) {
+      checkAllAffordability();
     }
-    
-    setProcessingBooster(type);
-    
+  }, [credits?.balance, checkCanAfford]);
+
+  const handleBoosterUse = async (type: BoosterType, cost: number, description: string) => {
+    if (!gameActive || isSpending) return;
+
     try {
-      // Handle hammer mode specially - it requires target selection
+      console.log(`🔧 [BoosterPanel] Using ${type} booster`);
+      
+      // Special handling for hammer - enter targeting mode
       if (type === BoosterType.HAMMER) {
-        if (hammerMode) {
-          // Cancel hammer mode
-          onHammerModeChange(false);
-          setProcessingBooster(null);
-          return;
-        } else {
-          // Enter hammer mode - wait for tile selection
-          onHammerModeChange(true);
-          toast.info("Click on a tile to remove it with the hammer");
-          setProcessingBooster(null);
+        const canAfford = await checkCanAfford(cost);
+        if (!canAfford) {
           return;
         }
+        onHammerModeChange(true);
+        return;
       }
-      
-      // For other boosters, spend credits first then use the booster
+
+      // For other boosters, spend credits first then use booster
       await spendCredits.mutateAsync({
-        amount: booster.cost,
-        description: `Used ${booster.name} booster in POOPEE Crush`
+        amount: cost,
+        description: description
       });
       
       // Use the booster
       const success = onUseBooster(type);
       
-      if (success) {
-        toast.success(`${booster.name} used successfully!`);
-      } else {
-        toast.error(`Failed to use ${booster.name}`);
-        // Note: Credits already spent, but booster failed - could implement refund logic here
+      if (!success) {
+        console.error(`❌ [BoosterPanel] Failed to use ${type} booster`);
       }
     } catch (error) {
-      console.error(`Failed to use booster ${type}:`, error);
-      toast.error(`Failed to use ${booster.name}`);
-    } finally {
-      setProcessingBooster(null);
+      console.error(`💥 [BoosterPanel] Error using ${type} booster:`, error);
     }
   };
 
-  const getButtonVariant = (type: BoosterType) => {
-    if (type === BoosterType.HAMMER && hammerMode) {
-      return "default"; // Highlighted when hammer mode is active
-    }
-    return "outline";
-  };
+  const currentBalance = credits?.balance || 0;
 
-  const getButtonClassName = (type: BoosterType) => {
-    let baseClass = "w-full p-3 flex flex-col items-center space-y-1 border-gray-600 min-h-[80px]";
-    
-    if (type === BoosterType.HAMMER && hammerMode) {
-      baseClass += " bg-yellow-600 hover:bg-yellow-500 border-yellow-400";
-    } else {
-      baseClass += " hover:bg-gray-800";
+  const boosters = [
+    {
+      type: BoosterType.SHUFFLE,
+      name: "Shuffle",
+      description: "Shuffle the board",
+      cost: 1,
+      icon: Shuffle,
+      available: boosterAvailability.shuffle && gameProgress.moves > 0,
+      cooldown: false
+    },
+    {
+      type: BoosterType.HINT,
+      name: "Hint",
+      description: "Show possible moves",
+      cost: 0.5,
+      icon: Lightbulb,
+      available: boosterAvailability.hint && gameProgress.moves > 0,
+      cooldown: false
+    },
+    {
+      type: BoosterType.HAMMER,
+      name: "Hammer",
+      description: "Destroy any tile",
+      cost: 0.5,
+      icon: Hammer,
+      available: boosterAvailability.hammer && gameProgress.moves > 0,
+      cooldown: false
     }
-    
-    return baseClass;
-  };
-
-  if (!gameActive) {
-    return null;
-  }
+  ];
 
   return (
-    <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-4 h-full flex flex-col">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-white">Power-ups</h3>
-        <Badge variant="outline" className="text-yellow-400 border-yellow-400 text-xs">
-          Lv. {gameProgress.currentLevel}
-        </Badge>
-      </div>
-      
-      {/* Vertical layout for boosters */}
-      <div className="space-y-3 flex-1">
-        {boosters.map((booster) => (
-          <Button
-            key={booster.type}
-            onClick={() => handleBoosterClick(booster.type)}
-            variant={getButtonVariant(booster.type)}
-            className={getButtonClassName(booster.type)}
-            disabled={!gameActive || isSpending || (processingBooster && processingBooster !== booster.type)}
-          >
-            <span className="text-xl">{booster.icon}</span>
-            <span className="text-xs font-medium text-white">
-              {booster.type === BoosterType.HAMMER && hammerMode ? "Cancel" : booster.name}
-            </span>
-            <span className="text-xs text-gray-400">{booster.cost} credits</span>
-            {processingBooster === booster.type && (
-              <span className="text-xs text-yellow-400">Processing...</span>
-            )}
-          </Button>
-        ))}
-      </div>
-      
-      {hammerMode && (
-        <div className="mt-3 text-center">
-          <span className="text-xs text-yellow-400 bg-yellow-900/30 px-2 py-1 rounded">
-            🔨 Click a tile to remove it
-          </span>
+    <Card className="bg-gray-800/40 border-gray-700">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-white text-lg">Boosters</CardTitle>
+        <div className="text-sm text-gray-300">
+          Balance: <span className="text-yellow-400 font-semibold">{currentBalance.toFixed(2)}</span> credits
         </div>
-      )}
-      
-      <div className="mt-3 text-center">
-        <span className="text-xs text-gray-500">
-          Power-ups cost credits
-        </span>
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {boosters.map((booster) => {
+          const IconComponent = booster.icon;
+          const isHammerActive = booster.type === BoosterType.HAMMER && hammerMode;
+          
+          return (
+            <div key={booster.type} className="space-y-2">
+              <Button
+                onClick={() => handleBoosterUse(
+                  booster.type, 
+                  booster.cost, 
+                  `Used ${booster.name} booster in POOPEE Crush`
+                )}
+                disabled={!gameActive || !booster.available || isSpending || booster.cooldown}
+                className={`w-full justify-start ${
+                  isHammerActive 
+                    ? 'bg-red-600 hover:bg-red-700 text-white' 
+                    : 'bg-gray-700 hover:bg-gray-600 text-white'
+                }`}
+                size="sm"
+              >
+                {isSpending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <IconComponent className="h-4 w-4 mr-2" />
+                )}
+                <div className="flex-1 text-left">
+                  <div className="font-medium">{booster.name}</div>
+                  <div className="text-xs opacity-80">{booster.description}</div>
+                </div>
+                <Badge 
+                  variant="outline" 
+                  className={`text-xs ${
+                    booster.available ? 'text-yellow-400 border-yellow-400' : 'text-gray-500 border-gray-500'
+                  }`}
+                >
+                  {booster.cost} ⭐
+                </Badge>
+              </Button>
+              
+              {isHammerActive && (
+                <div className="text-xs text-orange-400 bg-orange-900/20 p-2 rounded border border-orange-700">
+                  🎯 Click on any tile to destroy it with the hammer!
+                </div>
+              )}
+              
+              {!booster.available && currentBalance < booster.cost && (
+                <div className="text-xs text-red-400">
+                  Need {(booster.cost - currentBalance).toFixed(2)} more credits
+                </div>
+              )}
+            </div>
+          );
+        })}
+        
+        {!gameActive && (
+          <div className="text-center text-gray-400 text-sm mt-4">
+            Start a game to use boosters
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
