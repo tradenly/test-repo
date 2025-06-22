@@ -60,8 +60,6 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
     
     if (type === BoosterType.HAMMER && targetTile) {
       try {
-        // For hammer, we'll spend credits synchronously
-        // Note: In a real implementation, you might want to handle this differently
         spendCredits.mutate({
           amount: 0.5,
           description: 'Used Hammer booster in POOPEE Crush'
@@ -131,14 +129,16 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
         </div>
       </div>
 
-      <LevelHUD 
-        gameProgress={gameState.gameProgress} 
-        levelConfig={gameState.levelConfig} 
-        onQuit={quitGame}
-        onRestart={restartLevel}
-      />
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-1">
+          <LevelHUD 
+            gameProgress={gameState.gameProgress} 
+            levelConfig={gameState.levelConfig} 
+            onQuit={quitGame}
+            onRestart={restartLevel}
+          />
+        </div>
+        
         <div className="lg:col-span-3">
           <EnhancedGameBoard
             board={gameState.board}

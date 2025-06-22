@@ -28,17 +28,17 @@ export const LevelHUD = ({ gameProgress, levelConfig, onQuit, onRestart }: Level
   };
 
   return (
-    <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-4 h-full flex flex-col">
-      {/* Header */}
-      <div className="mb-4">
-        <h2 className="text-xl font-bold text-white mb-1">Level {gameProgress.currentLevel}</h2>
+    <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-3 h-fit">
+      {/* Compact Header */}
+      <div className="mb-3">
+        <h2 className="text-lg font-bold text-white mb-1">Level {gameProgress.currentLevel}</h2>
         <div className="text-sm text-gray-300">
           <span className="text-yellow-400">{gameProgress.moves}</span> moves left
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="mb-4 space-y-2">
+      {/* Compact Action Buttons */}
+      <div className="mb-3 space-y-2">
         <Button onClick={onRestart} variant="outline" size="sm" className="w-full text-xs">
           Restart
         </Button>
@@ -48,15 +48,15 @@ export const LevelHUD = ({ gameProgress, levelConfig, onQuit, onRestart }: Level
       </div>
 
       {/* Score and Difficulty */}
-      <div className="mb-4 space-y-3">
+      <div className="mb-3 space-y-2">
         <div>
           <div className="text-xs text-gray-300 mb-1">Score</div>
-          <div className="text-lg font-semibold text-white">{gameProgress.score.toLocaleString()}</div>
+          <div className="text-base font-semibold text-white">{gameProgress.score.toLocaleString()}</div>
         </div>
         
         <div>
           <div className="text-xs text-gray-300 mb-1">Difficulty</div>
-          <div className={`text-sm font-semibold ${
+          <div className={`text-xs font-semibold ${
             levelConfig.difficulty === 'easy' ? 'text-green-400' :
             levelConfig.difficulty === 'medium' ? 'text-yellow-400' :
             levelConfig.difficulty === 'hard' ? 'text-orange-400' : 'text-red-400'
@@ -66,39 +66,39 @@ export const LevelHUD = ({ gameProgress, levelConfig, onQuit, onRestart }: Level
         </div>
       </div>
 
-      {/* Objectives */}
-      <div className="mb-4 flex-1">
-        <h3 className="text-sm font-semibold text-gray-300 mb-3">Objectives</h3>
-        <div className="space-y-3">
+      {/* Compact Objectives */}
+      <div className="mb-3">
+        <h3 className="text-xs font-semibold text-gray-300 mb-2">Objectives</h3>
+        <div className="space-y-2">
           {levelConfig.objectives.map((objective, index) => (
             <div key={index}>
               <div className="flex justify-between text-xs text-gray-400 mb-1">
-                <span className="text-xs">{objective.description}</span>
+                <span className="text-xs truncate">{objective.description}</span>
                 <span>{getObjectiveProgress(objective).toFixed(0)}%</span>
               </div>
               <Progress 
                 value={getObjectiveProgress(objective)} 
-                className="h-2 bg-gray-700"
+                className="h-1.5 bg-gray-700"
               />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Game Stats */}
-      <div className="space-y-2 text-center">
-        <div className="text-xs text-gray-400 mb-2">Stats</div>
-        <div className="grid grid-cols-1 gap-2">
+      {/* Compact Game Stats */}
+      <div className="space-y-2">
+        <div className="text-xs text-gray-400 mb-1">Stats</div>
+        <div className="grid grid-cols-3 gap-1 text-center">
           <div>
-            <div className="text-sm font-bold text-blue-400">{gameProgress.clearedTiles}</div>
+            <div className="text-xs font-bold text-blue-400">{gameProgress.clearedTiles}</div>
             <div className="text-xs text-gray-400">Tiles</div>
           </div>
           <div>
-            <div className="text-sm font-bold text-purple-400">{gameProgress.specialTilesCreated}</div>
+            <div className="text-xs font-bold text-purple-400">{gameProgress.specialTilesCreated}</div>
             <div className="text-xs text-gray-400">Special</div>
           </div>
           <div>
-            <div className="text-sm font-bold text-orange-400">{gameProgress.cascades}</div>
+            <div className="text-xs font-bold text-orange-400">{gameProgress.cascades}</div>
             <div className="text-xs text-gray-400">Cascades</div>
           </div>
         </div>
