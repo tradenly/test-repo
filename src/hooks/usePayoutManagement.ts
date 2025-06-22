@@ -1,4 +1,3 @@
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -43,30 +42,32 @@ export const useAdminCashoutRequests = () => {
       
       // Safely map and cast the response data
       return (data || []).map(item => {
-        // Handle profiles data
+        // Handle profiles data - cast to any first to bypass TypeScript strict checking
         let userProfile = null;
-        if (item.profiles && 
-            typeof item.profiles === 'object' && 
-            !Array.isArray(item.profiles) &&
-            'id' in item.profiles) {
+        const profilesData = (item as any).profiles;
+        if (profilesData && 
+            typeof profilesData === 'object' && 
+            !Array.isArray(profilesData) &&
+            'id' in profilesData) {
           userProfile = {
-            id: item.profiles.id,
-            username: item.profiles.username,
-            full_name: item.profiles.full_name,
+            id: profilesData.id,
+            username: profilesData.username,
+            full_name: profilesData.full_name,
           };
         }
           
-        // Handle user_wallets data
+        // Handle user_wallets data - cast to any first to bypass TypeScript strict checking
         let userWallet = null;
-        if (item.user_wallets && 
-            typeof item.user_wallets === 'object' && 
-            !Array.isArray(item.user_wallets) &&
-            'id' in item.user_wallets) {
+        const walletsData = (item as any).user_wallets;
+        if (walletsData && 
+            typeof walletsData === 'object' && 
+            !Array.isArray(walletsData) &&
+            'id' in walletsData) {
           userWallet = {
-            id: item.user_wallets.id,
-            wallet_address: item.user_wallets.wallet_address,
-            blockchain: item.user_wallets.blockchain,
-            wallet_name: item.user_wallets.wallet_name,
+            id: walletsData.id,
+            wallet_address: walletsData.wallet_address,
+            blockchain: walletsData.blockchain,
+            wallet_name: walletsData.wallet_name,
           };
         }
 
