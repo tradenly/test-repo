@@ -276,8 +276,8 @@ export class EnhancedGameEngine {
       this.wrappedStripedCombination(row1, col1, isHorizontal);
     }
     
-    // BALANCED SCORING: Reduced combination bonus
-    this.score += 500 * this.gameProgress.comboMultiplier;
+    // HEAVILY REDUCED SCORING: Much lower combination bonus
+    this.score += 100 * this.gameProgress.comboMultiplier; // Reduced from 500
     this.gameProgress.score = this.score;
   }
 
@@ -315,8 +315,8 @@ export class EnhancedGameEngine {
         clearedCount++;
       }
     }
-    // BALANCED SCORING: Reduced from 300 to 30 per tile
-    this.score += clearedCount * 30 * this.gameProgress.comboMultiplier;
+    // HEAVILY REDUCED SCORING: Much lower per-tile bonus
+    this.score += clearedCount * 15 * this.gameProgress.comboMultiplier; // Reduced from 30
     this.gameProgress.score = this.score;
   }
 
@@ -329,8 +329,8 @@ export class EnhancedGameEngine {
         clearedCount++;
       }
     }
-    // BALANCED SCORING: Reduced from 300 to 30 per tile
-    this.score += clearedCount * 30 * this.gameProgress.comboMultiplier;
+    // HEAVILY REDUCED SCORING: Much lower per-tile bonus
+    this.score += clearedCount * 15 * this.gameProgress.comboMultiplier; // Reduced from 30
     this.gameProgress.score = this.score;
   }
 
@@ -353,8 +353,8 @@ export class EnhancedGameEngine {
       }
     }
     
-    // BALANCED SCORING: Reduced from 100 to 25 per tile
-    this.score += affected.length * 25 * this.gameProgress.comboMultiplier;
+    // HEAVILY REDUCED SCORING: Much lower per-tile bonus
+    this.score += affected.length * 12 * this.gameProgress.comboMultiplier; // Reduced from 25
     this.gameProgress.score = this.score;
   }
 
@@ -383,8 +383,8 @@ export class EnhancedGameEngine {
         }
       }
     }
-    // BALANCED SCORING: Reduced from 200 to 40 per tile
-    this.score += clearedCount * 40 * this.gameProgress.comboMultiplier;
+    // HEAVILY REDUCED SCORING: Much lower per-tile bonus
+    this.score += clearedCount * 20 * this.gameProgress.comboMultiplier; // Reduced from 40
     this.gameProgress.score = this.score;
   }
 
@@ -408,8 +408,8 @@ export class EnhancedGameEngine {
         }
       }
     }
-    // BALANCED SCORING: Reduced from 10000 to 2000
-    this.score += 2000;
+    // HEAVILY REDUCED SCORING: Much lower board-clear bonus
+    this.score += 800; // Reduced from 2000
     this.gameProgress.score = this.score;
   }
 
@@ -527,11 +527,11 @@ export class EnhancedGameEngine {
     let totalTilesCleared = 0;
     
     matches.forEach(match => {
-      // BALANCED SCORING: Reduced base points and bonuses
-      const basePoints = 50; // Reduced from 100
-      const lengthBonus = (match.length - 3) * 25; // Reduced from 50
-      const comboBonus = basePoints * (this.gameProgress.comboMultiplier - 1) * 0.5; // Reduced multiplier effect
-      const totalPoints = (basePoints + lengthBonus + comboBonus) * match.length * 0.5; // Overall reduction
+      // HEAVILY REDUCED SCORING: Much lower points to extend gameplay
+      const basePoints = 20; // Reduced from 50
+      const lengthBonus = (match.length - 3) * 10; // Reduced from 25
+      const comboBonus = basePoints * (this.gameProgress.comboMultiplier - 1) * 0.2; // Further reduced
+      const totalPoints = (basePoints + lengthBonus + comboBonus) * match.length * 0.3; // Major reduction
       
       this.score += totalPoints;
       totalTilesCleared += match.tiles.length;
@@ -571,7 +571,7 @@ export class EnhancedGameEngine {
       if (matches.length > 0) {
         cascadeCount++;
         this.gameProgress.cascades++;
-        this.gameProgress.comboMultiplier = 1 + (cascadeCount * 0.3); // Reduced from 0.5
+        this.gameProgress.comboMultiplier = 1 + (cascadeCount * 0.15); // Reduced from 0.3
         
         console.log(`🔄 Cascade ${cascadeCount} found: ${matches.length} matches, multiplier: ${this.gameProgress.comboMultiplier}`);
         
@@ -622,7 +622,7 @@ export class EnhancedGameEngine {
         if (targetTile && this.isValidPosition(targetTile.row, targetTile.col)) {
           this.board[targetTile.row][targetTile.col] = TileType.EMPTY;
           this.gameProgress.clearedTiles++;
-          this.score += 50; // Small bonus for using hammer
+          this.score += 25; // Small bonus for using hammer
           this.gameProgress.score = this.score;
           this.dropTiles();
           this.fillEmptySpaces();

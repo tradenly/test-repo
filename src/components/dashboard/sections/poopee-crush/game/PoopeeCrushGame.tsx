@@ -1,19 +1,25 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { EnhancedGameBoard } from "./EnhancedGameBoard";
 import { LevelHUD } from "./LevelHUD";
 import { LevelCompleteScreen } from "./LevelCompleteScreen";
 import { GameOverScreen } from "./GameOverScreen";
 import { BoosterPanel } from "./BoosterPanel";
 import { useEnhancedGameState } from "./useEnhancedGameState";
+import { usePoopeeCrushCredits } from "../usePoopeeCrushCredits";
+import { BoosterType } from "./BoosterSystem";
+import { toast } from "sonner";
 
 interface PoopeeCrushGameProps {
   onGameEnd: (score: number, moves: number) => void;
+  userId: string;
 }
 
-export const PoopeeCrushGame = ({ onGameEnd }: PoopeeCrushGameProps) => {
+export const PoopeeCrushGame = ({ onGameEnd, userId }: PoopeeCrushGameProps) => {
+  const [hammerMode, setHammerMode] = useState(false);
+  const { spendCredits, checkCanAfford } = usePoopeeCrushCredits(userId);
+  
   const {
     gameState,
     animations,
@@ -43,7 +49,65 @@ export const PoopeeCrushGame = ({ onGameEnd }: PoopeeCrushGameProps) => {
     }
   }, []);
 
+  const handleHammerTarget = async (row: number, col: number) => {
+    if (!hammerMode) return;
+    
+    try {
+      // Spend credits for hammer usage
+      await spendCredits.mutateAsync({
+        amount: 0.5,
+        description: "Used Hammer booster in POOPEE Crush"
+      });
+      
+      // Use the hammer booster with target tile
+      const success = useBooster(BoosterType.HAMMER, { row, col });
+      
+      if (success) {
+        toast.success("Hammer used successfully!");
+        setHammerMode(false); // Exit hammer mode after use
+      } else {
+        toast.error("Failed to use hammer");
+      }
+    } catch (error) {
+      console.error("Failed to use hammer:", error);
+      toast.error("Failed to use hammer");
+      setHammerMode(false);
+    }
+  };
+
+  const handleBoosterUse = (type: BoosterType, targetTile?: {row: number, col: number}) => {
+    // For hammer, we handle targeting separately
+    if (type === BoosterType.HAMMER && targetTile) {
+      return useBooster(type, targetTile);
+    }
+    
+    // For other boosters, use directly
+    return useBooster(type, targetTile);
+  };
+
+  const handleRestartWithCredit = async () => {
+    const canAfford = await checkCanAfford(1);
+    if (!canAfford) {
+      toast.error("You need 1 credit to restart the level");
+      return;
+    }
+    
+    try {
+      await spendCredits.mutateAsync({
+        amount: 1,
+        description: "Restarted level in POOPEE Crush"
+      });
+      
+      startNewLevel(gameState.gameProgress.currentLevel);
+      toast.success("Level restarted!");
+    } catch (error) {
+      console.error("Failed to restart level:", error);
+      toast.error("Failed to restart level");
+    }
+  };
+
   const handleQuit = () => {
+    setHammerMode(false); // Clear any active hammer mode
     quitGame();
   };
 
@@ -56,7 +120,7 @@ export const PoopeeCrushGame = ({ onGameEnd }: PoopeeCrushGameProps) => {
         starRating={gameState.starRating}
         levelConfig={gameState.levelConfig}
         onContinue={continueToNextLevel}
-        onRestart={restartLevel}
+        onRestart={handleRestartWithCredit}
         onQuit={handleQuit}
       />
     );
@@ -81,14 +145,17 @@ export const PoopeeCrushGame = ({ onGameEnd }: PoopeeCrushGameProps) => {
         gameProgress={gameState.gameProgress}
         levelConfig={gameState.levelConfig}
         onQuit={handleQuit}
-        onRestart={() => startNewLevel(gameState.gameProgress.currentLevel)}
+        onRestart={handleRestartWithCredit}
       />
 
       {/* Booster Panel */}
       <BoosterPanel
         gameActive={gameState.gameActive}
-        onUseBooster={useBooster}
+        onUseBooster={handleBoosterUse}
         gameProgress={gameState.gameProgress}
+        userId={userId}
+        onHammerModeChange={setHammerMode}
+        hammerMode={hammerMode}
       />
 
       {/* Game Board */}
@@ -100,6 +167,8 @@ export const PoopeeCrushGame = ({ onGameEnd }: PoopeeCrushGameProps) => {
             selectedTile={gameState.selectedTile}
             hintTiles={gameState.hintTiles}
             animations={animations}
+            hammerMode={hammerMode}
+            onHammerTarget={handleHammerTarget}
           />
         </CardContent>
       </Card>

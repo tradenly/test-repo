@@ -29,9 +29,9 @@ const calculateDifficulty = (level: number, moves: number, requiredScore: number
   else difficultyScore += 25;
   
   // Factor 3: Score requirement (0-20 points)
-  if (requiredScore >= 8000) difficultyScore += 20;
-  else if (requiredScore >= 5000) difficultyScore += 15;
-  else if (requiredScore >= 3000) difficultyScore += 8;
+  if (requiredScore >= 15000) difficultyScore += 20;
+  else if (requiredScore >= 10000) difficultyScore += 15;
+  else if (requiredScore >= 8000) difficultyScore += 8;
   else difficultyScore += 0;
   
   // Factor 4: Number of objectives (0-15 points)
@@ -50,16 +50,16 @@ const calculateDifficulty = (level: number, moves: number, requiredScore: number
 };
 
 export const getLevelConfig = (level: number): LevelConfig => {
-  // BALANCED LEVEL CONFIGURATIONS: Increased score requirements to prevent instant wins
+  // HEAVILY REBALANCED LEVEL CONFIGURATIONS: Much higher requirements for longer gameplay
   const baseConfig: LevelConfig = {
     level: level,
-    moves: 20,
-    requiredScore: 2000 + (level * 500), // Increased base requirement
+    moves: 25,
+    requiredScore: 8000 + (level * 2000), // Much higher base requirement
     objectives: [
       {
         type: 'score',
-        target: 2000 + (level * 500), // Increased score targets
-        description: `Reach ${2000 + (level * 500)} points`
+        target: 8000 + (level * 2000),
+        description: `Reach ${8000 + (level * 2000)} points`
       }
     ],
     availableTileTypes: Math.min(4 + Math.floor(level / 3), 6),
@@ -67,71 +67,79 @@ export const getLevelConfig = (level: number): LevelConfig => {
     difficulty: 'easy' // Will be calculated below
   };
 
-  // Level-specific configurations
+  // Level-specific configurations - MUCH MORE CHALLENGING
   let config: LevelConfig;
   
   switch (level) {
     case 1:
       config = {
         ...baseConfig,
-        moves: 25,
-        requiredScore: 3000, // Significantly increased from potential instant win scores
+        moves: 30, // More moves for tutorial level
+        requiredScore: 8000, // Significantly higher starting requirement
         objectives: [
           {
             type: 'score',
-            target: 3000,
-            description: 'Reach 3000 points'
+            target: 8000,
+            description: 'Reach 8000 points'
           },
           {
             type: 'clear_tiles',
-            target: 50,
-            description: 'Clear 50 tiles'
+            target: 100, // More tiles to clear
+            description: 'Clear 100 tiles'
           }
         ],
         availableTileTypes: 4,
-        specialTileSpawnRate: 0.03,
-        difficulty: 'easy' // Will be calculated
+        specialTileSpawnRate: 0.03
       };
       break;
 
     case 2:
       config = {
         ...baseConfig,
-        moves: 22,
-        requiredScore: 4000,
+        moves: 28,
+        requiredScore: 12000,
         objectives: [
           {
             type: 'score',
-            target: 4000,
-            description: 'Reach 4000 points'
+            target: 12000,
+            description: 'Reach 12000 points'
           },
           {
             type: 'special_tiles',
-            target: 2,
-            description: 'Create 2 special tiles'
+            target: 5, // More special tiles required
+            description: 'Create 5 special tiles'
+          },
+          {
+            type: 'clear_tiles',
+            target: 120,
+            description: 'Clear 120 tiles'
           }
         ],
         availableTileTypes: 4,
-        specialTileSpawnRate: 0.04,
-        difficulty: 'easy' // Will be calculated
+        specialTileSpawnRate: 0.04
       };
       break;
 
     case 3:
       config = {
         ...baseConfig,
-        moves: 20,
-        requiredScore: 5000,
+        moves: 25,
+        requiredScore: 15000,
         objectives: [
           {
             type: 'score',
-            target: 5000,
-            description: 'Reach 5000 points'
+            target: 15000,
+            description: 'Reach 15000 points'
           },
           {
             type: 'cascades',
-            target: 3,
-            description: 'Create 3 cascade combinations'
+            target: 8, // More cascades required
+            description: 'Create 8 cascade combinations'
+          },
+          {
+            type: 'clear_tiles',
+            target: 150,
+            description: 'Clear 150 tiles'
           }
         ],
         availableTileTypes: 5,
@@ -141,54 +149,62 @@ export const getLevelConfig = (level: number): LevelConfig => {
           {row: 3, col: 4},
           {row: 4, col: 3},
           {row: 4, col: 4}
-        ],
-        difficulty: 'easy' // Will be calculated
+        ]
       };
       break;
 
     case 4:
       config = {
         ...baseConfig,
-        moves: 18,
-        requiredScore: 6500,
+        moves: 22,
+        requiredScore: 18000,
         objectives: [
           {
             type: 'score',
-            target: 6500,
-            description: 'Reach 6500 points'
+            target: 18000,
+            description: 'Reach 18000 points'
           },
           {
             type: 'clear_tiles',
-            target: 80,
-            description: 'Clear 80 tiles'
+            target: 180,
+            description: 'Clear 180 tiles'
           },
           {
             type: 'special_tiles',
-            target: 3,
-            description: 'Create 3 special tiles'
+            target: 8,
+            description: 'Create 8 special tiles'
+          },
+          {
+            type: 'cascades',
+            target: 5,
+            description: 'Create 5 cascades'
           }
         ],
         availableTileTypes: 5,
-        specialTileSpawnRate: 0.06,
-        difficulty: 'easy' // Will be calculated
+        specialTileSpawnRate: 0.06
       };
       break;
 
     case 5:
       config = {
         ...baseConfig,
-        moves: 16,
-        requiredScore: 8000,
+        moves: 20,
+        requiredScore: 22000,
         objectives: [
           {
             type: 'score',
-            target: 8000,
-            description: 'Reach 8000 points'
+            target: 22000,
+            description: 'Reach 22000 points'
           },
           {
             type: 'cascades',
-            target: 5,
-            description: 'Create 5 cascade combinations'
+            target: 12,
+            description: 'Create 12 cascade combinations'
+          },
+          {
+            type: 'special_tiles',
+            target: 10,
+            description: 'Create 10 special tiles'
           }
         ],
         availableTileTypes: 6,
@@ -198,38 +214,41 @@ export const getLevelConfig = (level: number): LevelConfig => {
           {row: 6, col: 1}, {row: 6, col: 6},
           {row: 3, col: 3}, {row: 3, col: 4},
           {row: 4, col: 3}, {row: 4, col: 4}
-        ],
-        difficulty: 'easy' // Will be calculated
+        ]
       };
       break;
 
     default:
-      // Progressive difficulty for higher levels
+      // Progressive difficulty for higher levels - MUCH MORE CHALLENGING
       const progressiveLevel = Math.min(level, 50);
       config = {
         ...baseConfig,
-        moves: Math.max(12, 25 - Math.floor(progressiveLevel / 3)),
-        requiredScore: 3000 + (progressiveLevel * 750), // Continued scaling
+        moves: Math.max(15, 30 - Math.floor(progressiveLevel / 2)), // Gradually reduce moves
+        requiredScore: 8000 + (progressiveLevel * 3000), // Much higher scaling
         objectives: [
           {
             type: 'score',
-            target: 3000 + (progressiveLevel * 750),
-            description: `Reach ${3000 + (progressiveLevel * 750)} points`
+            target: 8000 + (progressiveLevel * 3000),
+            description: `Reach ${8000 + (progressiveLevel * 3000)} points`
           },
           {
             type: 'clear_tiles',
-            target: 40 + (progressiveLevel * 10),
-            description: `Clear ${40 + (progressiveLevel * 10)} tiles`
+            target: 100 + (progressiveLevel * 20), // More tiles to clear
+            description: `Clear ${100 + (progressiveLevel * 20)} tiles`
           },
           {
             type: 'special_tiles',
-            target: 1 + Math.floor(progressiveLevel / 5),
-            description: `Create ${1 + Math.floor(progressiveLevel / 5)} special tiles`
+            target: 3 + Math.floor(progressiveLevel / 3),
+            description: `Create ${3 + Math.floor(progressiveLevel / 3)} special tiles`
+          },
+          {
+            type: 'cascades',
+            target: 2 + Math.floor(progressiveLevel / 4),
+            description: `Create ${2 + Math.floor(progressiveLevel / 4)} cascades`
           }
         ],
         availableTileTypes: Math.min(4 + Math.floor(progressiveLevel / 3), 6),
-        specialTileSpawnRate: Math.min(0.05 + (progressiveLevel * 0.01), 0.15),
-        difficulty: 'easy' // Will be calculated
+        specialTileSpawnRate: Math.min(0.05 + (progressiveLevel * 0.01), 0.15)
       };
   }
 

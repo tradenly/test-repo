@@ -10,15 +10,17 @@ interface PoopeeCrushGameAreaProps {
   onGameStart: () => void;
   canPlay: boolean;
   credits: number;
+  userId: string;
 }
 
-const STORAGE_KEY = 'poopee-crush-game-state';
+const STORAGE_KEY = 'poopee-crush-enhanced-game-state';
 
 export const PoopeeCrushGameArea = ({ 
   onGameEnd, 
   onGameStart, 
   canPlay, 
-  credits 
+  credits,
+  userId 
 }: PoopeeCrushGameAreaProps) => {
   const [gameActive, setGameActive] = useState(false);
   const [hasResumableGame, setHasResumableGame] = useState(false);
@@ -71,7 +73,7 @@ export const PoopeeCrushGameArea = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <PoopeeCrushGame onGameEnd={handleEndGame} />
+          <PoopeeCrushGame onGameEnd={handleEndGame} userId={userId} />
         </CardContent>
       </Card>
     );
