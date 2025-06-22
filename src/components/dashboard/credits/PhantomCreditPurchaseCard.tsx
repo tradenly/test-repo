@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wallet, CreditCard } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Wallet, CreditCard, HelpCircle } from "lucide-react";
 import { PaymentAddressModal } from "./PaymentAddressModal";
 import { useCreatePaymentOrder } from "@/hooks/usePaymentOrders";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
@@ -125,6 +126,14 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
           <CardTitle className="text-white flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
             Purchase Credits with USDC
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-gray-400 hover:text-white cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="bg-gray-800 border-gray-600 text-white max-w-sm">
+                <p>Most payments are processed in under 30 minutes, but in rare cases of blockchain congestion, payment processing can take several hours. Please be patient and aware of this.</p>
+              </TooltipContent>
+            </Tooltip>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

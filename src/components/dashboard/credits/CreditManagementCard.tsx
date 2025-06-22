@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -130,6 +129,14 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
             <TabsTrigger value="cashout" className="data-[state=active]:bg-gray-600">
               <TrendingUp className="h-4 w-4 mr-2" />
               Cash Out
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-3 w-3 text-gray-400 hover:text-white cursor-help ml-1" />
+                </TooltipTrigger>
+                <TooltipContent className="bg-gray-800 border-gray-600 text-white max-w-sm">
+                  <p>Cashing out credits can take up to 24 hours for security reasons and to verify legitimacy of claim.</p>
+                </TooltipContent>
+              </Tooltip>
             </TabsTrigger>
             <TabsTrigger value="history" className="data-[state=active]:bg-gray-600">
               <History className="h-4 w-4 mr-2" />
