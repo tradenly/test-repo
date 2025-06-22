@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { GameBoard, GameProgress, Position, Animation, EnhancedGameEngine, BoosterResult } from './EnhancedGameEngine';
 import { BoosterType, BoosterManager } from './BoosterSystem';
@@ -84,12 +85,12 @@ export const useEnhancedGameState = (
       specialTilesCreated: 0,
       cascades: 0,
       comboMultiplier: 1,
-      targetScore: 4000,
+      targetScore: 250, // FIXED: Lower starting target
       maxMoves: 30,
       levelObjectives: {
         description: "Reach the target score!",
         requirements: [
-          { type: 'score', target: 4000, current: 0 }
+          { type: 'score', target: 250, current: 0 }
         ]
       }
     },
@@ -203,7 +204,7 @@ export const useEnhancedGameState = (
       gameProgress: {
         currentLevel: level,
         score: 0,
-        moves: 0,
+        moves: levelConfig.moves,
         objectives: {},
         clearedTiles: 0,
         specialTilesCreated: 0,

@@ -122,7 +122,7 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
           <p className="text-sm text-gray-400">Difficulty: {difficulty}</p>
         </div>
         <div className="flex gap-2">
-          <AudioControls />
+          <AudioControls gameActive={gameState.gameActive} />
           <Button
             onClick={quitGame}
             variant="outline"
@@ -134,7 +134,12 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
         </div>
       </div>
 
-      <LevelHUD gameProgress={gameState.gameProgress} levelConfig={gameState.levelConfig} />
+      <LevelHUD 
+        gameProgress={gameState.gameProgress} 
+        levelConfig={gameState.levelConfig} 
+        onQuit={quitGame}
+        onRestart={restartLevel}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <div className="lg:col-span-3">
@@ -151,7 +156,9 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
         <div className="lg:col-span-1">
           <BoosterPanel
             gameActive={gameState.gameActive}
-            onUseBooster={handleBoosterUse}
+            onUseBooster={(type, targetTile) => {
+              return handleBoosterUse(type, targetTile).then(result => result).catch(() => false);
+            }}
             gameProgress={gameState.gameProgress}
             userId={userId}
             onHammerModeChange={setHammerMode}
