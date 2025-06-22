@@ -2,7 +2,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { GameProgress, LevelConfig } from "./EnhancedGameEngine";
+import { GameProgress } from "./EnhancedGameEngine";
+import { LevelConfig } from "./LevelConfig";
 
 interface LevelHUDProps {
   gameProgress: GameProgress;
