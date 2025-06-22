@@ -119,25 +119,27 @@ export const BoosterPanel = ({
                   `Used ${booster.name} booster in POOPEE Crush`
                 )}
                 disabled={!gameActive || !booster.available || isSpending || booster.cooldown}
-                className={`w-full justify-start ${
+                className={`w-full justify-between ${
                   isHammerActive 
                     ? 'bg-red-600 hover:bg-red-700 text-white' 
                     : 'bg-gray-700 hover:bg-gray-600 text-white'
                 }`}
                 size="sm"
               >
-                {isSpending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <IconComponent className="h-4 w-4 mr-2" />
-                )}
-                <div className="flex-1 text-left">
-                  <div className="font-medium">{booster.name}</div>
-                  <div className="text-xs opacity-80">{booster.description}</div>
+                <div className="flex items-center flex-1 min-w-0">
+                  {isSpending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin flex-shrink-0" />
+                  ) : (
+                    <IconComponent className="h-4 w-4 mr-2 flex-shrink-0" />
+                  )}
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="font-medium truncate">{booster.name}</div>
+                    <div className="text-xs opacity-80 truncate">{booster.description}</div>
+                  </div>
                 </div>
                 <Badge 
                   variant="outline" 
-                  className={`text-xs ${
+                  className={`text-xs ml-2 flex-shrink-0 ${
                     booster.available ? 'text-yellow-400 border-yellow-400' : 'text-gray-500 border-gray-500'
                   }`}
                 >

@@ -11,14 +11,16 @@ import { useEnhancedGameState } from "./useEnhancedGameState";
 import { usePoopeeCrushCredits } from "../usePoopeeCrushCredits";
 import { useGameAudio } from "@/hooks/useGameAudio";
 import { BoosterType } from "./BoosterSystem";
+import { DifficultyLevel } from "./DifficultySelector";
 import { toast } from "sonner";
 
 interface PoopeeCrushGameProps {
   onGameEnd: (score: number, moves: number) => void;
   userId: string;
+  difficulty: DifficultyLevel;
 }
 
-export const PoopeeCrushGame = ({ onGameEnd, userId }: PoopeeCrushGameProps) => {
+export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGameProps) => {
   const [hammerMode, setHammerMode] = useState(false);
   const { spendCredits, checkCanAfford } = usePoopeeCrushCredits(userId);
   const { 
@@ -39,6 +41,7 @@ export const PoopeeCrushGame = ({ onGameEnd, userId }: PoopeeCrushGameProps) => 
     continueToNextLevel,
     restartLevel
   } = useEnhancedGameState(
+    difficulty,
     (level: number, score: number, stars: number) => {
       console.log(`🏆 Level ${level} completed with ${score} points and ${stars} stars`);
       playSoundEffect('levelComplete');

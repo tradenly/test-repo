@@ -1,8 +1,8 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { GameBoard, GameProgress, Position, Animation, EnhancedGameEngine, BoosterResult } from './EnhancedGameEngine';
 import { BoosterType, BoosterManager } from './BoosterSystem';
 import { LevelConfig, getLevelConfig } from './LevelConfig';
+import { DifficultyLevel } from './DifficultySelector';
 import { TileType } from './EnhancedTileTypes';
 import { useGameAudio } from '@/hooks/useGameAudio';
 
@@ -64,6 +64,7 @@ interface EnhancedGameState {
 }
 
 export const useEnhancedGameState = (
+  difficulty: DifficultyLevel,
   onLevelComplete: (level: number, score: number, stars: number) => void,
   onGameEnd: (finalScore: number) => void
 ) => {
@@ -83,12 +84,12 @@ export const useEnhancedGameState = (
       specialTilesCreated: 0,
       cascades: 0,
       comboMultiplier: 1,
-      targetScore: 1000,
-      maxMoves: 20,
+      targetScore: 4000,
+      maxMoves: 30,
       levelObjectives: {
         description: "Reach the target score!",
         requirements: [
-          { type: 'score', target: 1000, current: 0 }
+          { type: 'score', target: 4000, current: 0 }
         ]
       }
     },
@@ -97,7 +98,7 @@ export const useEnhancedGameState = (
     gameActive: false,
     levelComplete: false,
     gameOver: false,
-    levelConfig: getLevelConfig(1),
+    levelConfig: getLevelConfig(1, difficulty),
     starRating: 0
   }));
 
@@ -188,7 +189,7 @@ export const useEnhancedGameState = (
   }, [gameState.gameActive, gameState.board]);
 
   const startNewLevel = useCallback((level: number) => {
-    const levelConfig = getLevelConfig(level);
+    const levelConfig = getLevelConfig(level, difficulty);
     const engine = new EnhancedGameEngine(levelConfig);
     const boosterSystem = new BoosterManager();
     
@@ -211,10 +212,12 @@ export const useEnhancedGameState = (
         targetScore: levelConfig.requiredScore,
         maxMoves: levelConfig.moves,
         levelObjectives: {
-          description: "Reach the target score!",
-          requirements: [
-            { type: 'score', target: levelConfig.requiredScore, current: 0 }
-          ]
+          description: "Complete all objectives!",
+          requirements: levelConfig.objectives.map(obj => ({
+            type: obj.type,
+            target: obj.target,
+            current: 0
+          }))
         }
       },
       selectedTile: null,
@@ -229,8 +232,8 @@ export const useEnhancedGameState = (
     setGameState(newState);
     saveGameState(newState);
     
-    console.log(`🎮 [Enhanced Game] Started level ${level}`);
-  }, []);
+    console.log(`🎮 [Enhanced Game] Started level ${level} on ${difficulty} difficulty`);
+  }, [difficulty]);
 
   const resumeGame = useCallback((): boolean => {
     try {

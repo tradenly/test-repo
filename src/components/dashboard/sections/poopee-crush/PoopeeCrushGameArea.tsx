@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Coins, Play, RotateCcw } from "lucide-react";
 import { PoopeeCrushGame } from "./game/PoopeeCrushGame";
+import { DifficultySelector, DifficultyLevel } from "./game/DifficultySelector";
 
 interface PoopeeCrushGameAreaProps {
   onGameEnd: (score: number, moves: number) => void;
@@ -14,6 +15,7 @@ interface PoopeeCrushGameAreaProps {
 }
 
 const STORAGE_KEY = 'poopee-crush-enhanced-game-state';
+const DIFFICULTY_STORAGE_KEY = 'poopee-crush-difficulty';
 
 export const PoopeeCrushGameArea = ({ 
   onGameEnd, 
@@ -24,6 +26,19 @@ export const PoopeeCrushGameArea = ({
 }: PoopeeCrushGameAreaProps) => {
   const [gameActive, setGameActive] = useState(false);
   const [hasResumableGame, setHasResumableGame] = useState(false);
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>(() => {
+    try {
+      const saved = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
+      return (saved as DifficultyLevel) || 'easy';
+    } catch {
+      return 'easy';
+    }
+  });
+
+  // Save difficulty preference
+  useEffect(() => {
+    localStorage.setItem(DIFFICULTY_STORAGE_KEY, difficulty);
+  }, [difficulty]);
 
   // Check for resumable game on component mount
   useEffect(() => {
@@ -73,7 +88,11 @@ export const PoopeeCrushGameArea = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <PoopeeCrushGame onGameEnd={handleEndGame} userId={userId} />
+          <PoopeeCrushGame 
+            onGameEnd={handleEndGame} 
+            userId={userId}
+            difficulty={difficulty}
+          />
         </CardContent>
       </Card>
     );
@@ -106,6 +125,15 @@ export const PoopeeCrushGameArea = ({
               <li>• Chain combos for higher scores!</li>
               <li>• Game ends when you run out of moves</li>
             </ul>
+          </div>
+
+          {/* Difficulty Selection */}
+          <div className="max-w-sm mx-auto">
+            <DifficultySelector
+              difficulty={difficulty}
+              onDifficultyChange={setDifficulty}
+              disabled={gameActive}
+            />
           </div>
 
           <div className="flex gap-2 justify-center">
