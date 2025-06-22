@@ -9,6 +9,8 @@ export type DocumentationSection =
   | "nfts" 
   | "meme-coin"
   | "flappy-hippos-game"
+  | "poopee-crush-game"
+  | "falling-logs-game"
   | "wallets"
   | "staking"
   | "social"

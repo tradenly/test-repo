@@ -8,7 +8,9 @@ import {
   Users,
   TrendingUp,
   Coins,
-  Image
+  Image,
+  Puzzle,
+  Grid3X3
 } from "lucide-react";
 import { DocumentationSection } from "../DocumentsSection";
 
@@ -23,6 +25,8 @@ export const DocumentationSidebar = ({ activeSection, onSectionChange }: Documen
     { id: "nfts" as DocumentationSection, label: "NFT Collection", icon: Image },
     { id: "meme-coin" as DocumentationSection, label: "Meme Coin", icon: Coins },
     { id: "flappy-hippos-game" as DocumentationSection, label: "Flappy Hippos Game", icon: Gamepad2 },
+    { id: "poopee-crush-game" as DocumentationSection, label: "POOPEE Crush Game", icon: Grid3X3 },
+    { id: "falling-logs-game" as DocumentationSection, label: "Falling Logs Game", icon: Puzzle },
     { id: "wallets" as DocumentationSection, label: "Wallets & Credits", icon: Wallet },
     { id: "staking" as DocumentationSection, label: "Staking", icon: PiggyBank },
     { id: "social" as DocumentationSection, label: "Social Features", icon: Users },
