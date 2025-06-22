@@ -46,7 +46,7 @@ export const SneakPeekSection = () => {
         <h2 className="text-5xl md:text-6xl font-bold text-white mb-4 flex items-center justify-center gap-4">
           What is POOPEE?
           <img 
-            src="/lovable-uploads/d1dd9d64-7718-4b7e-aa7b-90db7bede0c1.png" 
+            src="/lovable-uploads/2a694db8-8afa-496f-ad9c-f549fe296d03.png" 
             alt="Hippo character" 
             className="w-16 h-16 md:w-20 md:h-20"
           />
