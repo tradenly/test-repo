@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { 
   User, 
@@ -47,11 +48,11 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
 
   if (isMobile) {
     return (
-      <Sidebar className="border-r border-gray-800">
-        <SidebarHeader className="p-6">
+      <Sidebar className="border-r border-gray-800 bg-gray-900 dark">
+        <SidebarHeader className="p-6 bg-gray-900">
           <h2 className="text-xl font-bold text-white">💩 POOPEE Dashboard</h2>
         </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="bg-gray-900">
           <SidebarMenu className="px-4">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -60,7 +61,11 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
                   <SidebarMenuButton
                     onClick={() => onSectionChange(item.id)}
                     isActive={activeSection === item.id}
-                    className="w-full justify-start text-left"
+                    className={`w-full justify-start text-left text-white hover:bg-gray-800 hover:text-white ${
+                      activeSection === item.id 
+                        ? "bg-gray-700 text-white font-medium" 
+                        : ""
+                    }`}
                   >
                     <Icon className="mr-3 h-4 w-4" />
                     <span>{item.label}</span>

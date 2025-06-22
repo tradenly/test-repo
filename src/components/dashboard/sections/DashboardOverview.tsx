@@ -15,7 +15,7 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
   const isMobile = useIsMobile();
 
   return (
-    <div className="space-y-6 md:space-y-8">
+    <div className={`space-y-6 md:space-y-8 ${isMobile ? "bg-black text-white" : ""}`}>
       <div>
         <h1 className={`font-bold text-white mb-2 ${
           isMobile ? "text-2xl" : "text-3xl"
