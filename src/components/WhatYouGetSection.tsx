@@ -26,7 +26,7 @@ export const WhatYouGetSection = () => {
                 className="w-20 h-20 mx-auto rounded-lg"
               />
             </div>
-            <h3 className="text-3xl font-bold text-white mb-4">🦛 Flappy Hippos</h3>
+            <h3 className="text-3xl font-bold text-white mb-4 text-center">Flappy Hippos</h3>
             <p className="text-lg text-gray-300 mb-6">
               <span className="font-bold">Tap, Cry, Repeat</span>
             </p>
