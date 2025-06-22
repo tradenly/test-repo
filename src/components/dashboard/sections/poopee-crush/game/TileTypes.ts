@@ -5,7 +5,8 @@ export enum TileType {
   TOILET_PAPER = 2,
   FART = 3,
   BANANA = 4,
-  BELL = 5
+  BELL = 5,
+  EMPTY = -1
 }
 
 export const TILE_TYPES = [

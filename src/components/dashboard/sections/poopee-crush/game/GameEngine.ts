@@ -159,9 +159,9 @@ export class GameEngine {
     const matchBonus = matches.length > 3 ? (matches.length - 3) * 50 : 0;
     this.score += basePoints * matches.length + matchBonus;
 
-    // Remove matched tiles (set to a special empty value)
+    // Remove matched tiles (set to empty)
     matches.forEach(match => {
-      this.board[match.row][match.col] = -1 as TileType; // Use -1 as empty marker
+      this.board[match.row][match.col] = TileType.EMPTY;
     });
   }
 
@@ -170,10 +170,10 @@ export class GameEngine {
       let writeIndex = this.boardSize - 1;
       
       for (let row = this.boardSize - 1; row >= 0; row--) {
-        if (this.board[row][col] !== -1) {
+        if (this.board[row][col] !== TileType.EMPTY) {
           this.board[writeIndex][col] = this.board[row][col];
           if (writeIndex !== row) {
-            this.board[row][col] = -1 as TileType;
+            this.board[row][col] = TileType.EMPTY;
           }
           writeIndex--;
         }
@@ -184,7 +184,7 @@ export class GameEngine {
   private fillEmptySpaces(): void {
     for (let row = 0; row < this.boardSize; row++) {
       for (let col = 0; col < this.boardSize; col++) {
-        if (this.board[row][col] === -1) {
+        if (this.board[row][col] === TileType.EMPTY) {
           this.board[row][col] = this.getRandomTileType();
         }
       }
