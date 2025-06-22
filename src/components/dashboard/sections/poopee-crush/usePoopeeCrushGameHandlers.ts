@@ -40,22 +40,26 @@ export const usePoopeeCrushGameHandlers = ({ user, highScore }: UsePoopeeCrushGa
 
   const handleGameEnd = async (score: number, moves: number) => {
     try {
-      // Calculate credits earned based on score
+      // CRITICAL FIX: Ensure score is always an integer to prevent database errors
+      const integerScore = Math.floor(score);
+      
+      // Calculate credits earned based on score with more generous rewards
       let creditsEarned = 0;
-      if (score >= 1000) creditsEarned = 0.5;
-      if (score >= 2500) creditsEarned = 1;
-      if (score >= 5000) creditsEarned = 2;
-      if (score >= 10000) creditsEarned = 5;
+      if (integerScore >= 500) creditsEarned = 0.5;    // Much lower threshold
+      if (integerScore >= 1000) creditsEarned = 1;     // Achievable threshold
+      if (integerScore >= 2000) creditsEarned = 2;     // Good performance
+      if (integerScore >= 4000) creditsEarned = 3;     // Great performance
+      if (integerScore >= 6000) creditsEarned = 5;     // Excellent performance
 
       // Bonus for new high score
-      if (score > highScore) {
+      if (integerScore > highScore) {
         creditsEarned += 1;
       }
 
-      // Create game session record
+      // Create game session record with integer score
       const gameSession = await createGameSessionMutation.mutateAsync({
         user_id: user.id,
-        score,
+        score: integerScore, // Always integer
         duration_seconds: 0, // POOPEE Crush is move-based, not time-based
         credits_spent: 1,
         credits_earned: creditsEarned,
@@ -63,7 +67,7 @@ export const usePoopeeCrushGameHandlers = ({ user, highScore }: UsePoopeeCrushGa
         metadata: {
           game_type: 'poopee_crush',
           moves_used: moves,
-          final_score: score
+          final_score: integerScore
         }
       });
 
@@ -72,16 +76,16 @@ export const usePoopeeCrushGameHandlers = ({ user, highScore }: UsePoopeeCrushGa
         await earnCreditsMutation.mutateAsync({
           userId: user.id,
           amount: creditsEarned,
-          description: `POOPEE Crush game reward - Score: ${score}`,
+          description: `POOPEE Crush game reward - Score: ${integerScore}`,
           gameSessionId: gameSession.id
         });
       }
 
-      let message = `Game over! Final score: ${score.toLocaleString()}`;
+      let message = `Game over! Final score: ${integerScore.toLocaleString()}`;
       if (creditsEarned > 0) {
         message += ` - Earned ${creditsEarned} credits!`;
       }
-      if (score > highScore) {
+      if (integerScore > highScore) {
         message += " 🎉 NEW HIGH SCORE!";
       }
 
@@ -94,7 +98,7 @@ export const usePoopeeCrushGameHandlers = ({ user, highScore }: UsePoopeeCrushGa
       logger.error("Error ending game:", error);
       toast({
         title: "Game Ended",
-        description: `Final score: ${score.toLocaleString()}`,
+        description: `Final score: ${Math.floor(score).toLocaleString()}`,
       });
     }
   };
