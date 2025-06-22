@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const Auth = () => {
@@ -17,6 +16,8 @@ const Auth = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get('ref');
 
   useEffect(() => {
     // Check if user is already logged in
@@ -28,15 +29,39 @@ const Auth = () => {
     });
 
     // Listen for OAuth redirect and other auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 Auth state change:', event, !!session);
       
       if (event === 'SIGNED_IN' && session) {
         console.log('✅ User signed in successfully');
-        toast({
-          title: "Welcome!",
-          description: "Successfully signed in!",
-        });
+        
+        // Process referral if there's a referral code and this is a new signup
+        if (referralCode && event === 'SIGNED_IN') {
+          try {
+            console.log('Processing referral for code:', referralCode);
+            const { data, error } = await supabase.rpc('process_referral_signup', {
+              new_user_id: session.user.id,
+              referral_code_param: referralCode
+            });
+            
+            if (data && !error) {
+              toast({
+                title: "Welcome! 🎉",
+                description: "Successfully signed up with referral! Your referrer has received 5 credits.",
+              });
+            } else if (error) {
+              console.log('Referral processing error:', error);
+            }
+          } catch (err) {
+            console.log('Referral processing failed:', err);
+          }
+        } else {
+          toast({
+            title: "Welcome!",
+            description: "Successfully signed in!",
+          });
+        }
+        
         navigate('/');
       } else if (event === 'SIGNED_OUT') {
         console.log('👋 User signed out');
@@ -44,7 +69,18 @@ const Auth = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, toast]);
+  }, [navigate, toast, referralCode]);
+
+  // Show referral info if there's a referral code
+  useEffect(() => {
+    if (referralCode && !isSignUp) {
+      setIsSignUp(true);
+      toast({
+        title: "Referral Link Detected! 🎁",
+        description: "Sign up now to activate your friend's referral bonus!",
+      });
+    }
+  }, [referralCode, isSignUp, toast]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +95,7 @@ const Auth = () => {
           data: {
             username,
             full_name: fullName,
+            referral_code: referralCode, // Store referral code in user metadata
           }
         }
       });
@@ -73,7 +110,9 @@ const Auth = () => {
       } else {
         toast({
           title: "Success",
-          description: "Check your email for verification link!",
+          description: referralCode ? 
+            "Check your email for verification link! Your referral will be processed after verification." :
+            "Check your email for verification link!",
         });
       }
     } catch (err) {
@@ -123,10 +162,14 @@ const Auth = () => {
     setGoogleLoading(true);
 
     try {
+      const redirectUrl = referralCode ? 
+        `${window.location.origin}/?ref=${referralCode}` : 
+        `${window.location.origin}/`;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'select_account',
@@ -164,10 +207,22 @@ const Auth = () => {
           <div className="text-4xl mb-4">💩 🦛</div>
           <CardTitle className="text-white">
             {isSignUp ? "Join the Fattys" : "Welcome Back"}
+            {referralCode && <span className="text-purple-400"> (Referred)</span>}
           </CardTitle>
           <CardDescription className="text-gray-400">
-            {isSignUp ? "Create your account to enter the toiletverse" : "Sign in to your account"}
+            {isSignUp ? 
+              (referralCode ? 
+                "Create your account to activate your friend's referral bonus!" : 
+                "Create your account to enter the toiletverse") : 
+              "Sign in to your account"}
           </CardDescription>
+          {referralCode && (
+            <div className="mt-2 p-2 bg-purple-900/20 border border-purple-600/30 rounded">
+              <p className="text-sm text-purple-300">
+                🎁 Referral Code: <span className="font-mono">{referralCode}</span>
+              </p>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {/* Google OAuth Button */}

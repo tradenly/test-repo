@@ -324,6 +324,39 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_transactions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          credits_awarded: number
+          id: string
+          referral_code: string
+          referred_user_id: string
+          referrer_user_id: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          credits_awarded?: number
+          id?: string
+          referral_code: string
+          referred_user_id: string
+          referrer_user_id: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          credits_awarded?: number
+          id?: string
+          referral_code?: string
+          referred_user_id?: string
+          referrer_user_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       staking_pools: {
         Row: {
           apy_percentage: number
@@ -483,6 +516,30 @@ export type Database = {
           balance?: number
           created_at?: string
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referral_code: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referral_code: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referral_code?: string
           updated_at?: string
           user_id?: string
         }
@@ -682,6 +739,10 @@ export type Database = {
       }
     }
     Functions: {
+      generate_referral_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -695,6 +756,10 @@ export type Database = {
       }
       process_confirmed_payment: {
         Args: { payment_order_id: string; transaction_hash: string }
+        Returns: boolean
+      }
+      process_referral_signup: {
+        Args: { new_user_id: string; referral_code_param: string }
         Returns: boolean
       }
     }

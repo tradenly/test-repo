@@ -33,8 +33,8 @@ export const SocialSection = ({ user }: SocialSectionProps) => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Social Accounts</h1>
-          <p className="text-gray-400">Link your social media accounts</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Social Accounts & Referrals</h1>
+          <p className="text-gray-400">Link your social media accounts and share your referral link</p>
         </div>
         <Button
           onClick={() => setShowAddForm(!showAddForm)}
@@ -60,6 +60,7 @@ export const SocialSection = ({ user }: SocialSectionProps) => {
         onDelete={(accountId) => deleteSocialMutation.mutate(accountId)}
         isDeleting={deleteSocialMutation.isPending}
         onAddClick={() => setShowAddForm(true)}
+        user={user}
       />
     </div>
   );
