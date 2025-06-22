@@ -5,6 +5,7 @@ import { DashboardOverview } from "./sections/DashboardOverview";
 import { ProfileSection } from "./sections/ProfileSection";
 import { FlappyHipposSection } from "./sections/FlappyHipposSection";
 import { FallingLogsSection } from "./sections/FallingLogsSection";
+import { PoopeeCrushSection } from "./sections/PoopeeCrushSection";
 import { LeaderboardSection } from "./sections/LeaderboardSection";
 import { DocumentsSection } from "./sections/DocumentsSection";
 import { WalletsSection } from "./sections/WalletsSection";
@@ -30,6 +31,8 @@ export const DashboardSectionRenderer = ({ activeSection, user }: DashboardSecti
         return <FlappyHipposSection user={user} />;
       case "falling-logs":
         return <FallingLogsSection user={user} />;
+      case "poopee-crush":
+        return <PoopeeCrushSection user={user} />;
       case "leaderboard":
         return <LeaderboardSection user={user} />;
       case "documents":

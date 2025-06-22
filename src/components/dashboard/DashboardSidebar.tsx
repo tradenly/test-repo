@@ -37,6 +37,7 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
     { id: "profile" as DashboardSection, label: "Profile", icon: User },
     { id: "flappy-hippos" as DashboardSection, label: "Flappy Hippos", icon: Gamepad2 },
     { id: "falling-logs" as DashboardSection, label: "Falling Logs", icon: TreePine },
+    { id: "poopee-crush" as DashboardSection, label: "POOPEE Crush", icon: "💩" },
     { id: "leaderboard" as DashboardSection, label: "Leaderboard", icon: Trophy },
     { id: "documents" as DashboardSection, label: "Documents", icon: FileText },
     { id: "wallets" as DashboardSection, label: "Wallets", icon: Wallet },
@@ -55,7 +56,7 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
         <SidebarContent className="bg-gray-900">
           <SidebarMenu className="px-4">
             {menuItems.map((item) => {
-              const Icon = item.icon;
+              const Icon = typeof item.icon === 'string' ? null : item.icon;
               return (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton
@@ -67,7 +68,7 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
                         : ""
                     }`}
                   >
-                    <Icon className="mr-3 h-4 w-4" />
+                    {Icon ? <Icon className="mr-3 h-4 w-4" /> : <span className="mr-3 text-lg">{item.icon}</span>}
                     <span>{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -86,7 +87,7 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
         <h2 className="text-xl font-bold text-white mb-6">💩 POOPEE Dashboard</h2>
         <nav className="space-y-2">
           {menuItems.map((item) => {
-            const Icon = item.icon;
+            const Icon = typeof item.icon === 'string' ? null : item.icon;
             return (
               <Button
                 key={item.id}
@@ -98,7 +99,7 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
                 }`}
                 onClick={() => onSectionChange(item.id)}
               >
-                <Icon className="mr-3 h-4 w-4" />
+                {Icon ? <Icon className="mr-3 h-4 w-4" /> : <span className="mr-3 text-lg">{item.icon}</span>}
                 {item.label}
               </Button>
             );

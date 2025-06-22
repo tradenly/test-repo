@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
@@ -14,6 +13,7 @@ export type DashboardSection =
   | "profile" 
   | "flappy-hippos"
   | "falling-logs"
+  | "poopee-crush"
   | "leaderboard"
   | "documents"
   | "wallets" 
