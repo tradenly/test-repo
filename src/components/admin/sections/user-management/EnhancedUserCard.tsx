@@ -98,9 +98,8 @@ export const EnhancedUserCard = ({
               {isAdmin ? (
                 <Button
                   onClick={onRemoveAdmin}
-                  variant="outline"
                   size="sm"
-                  className="border-yellow-600 text-yellow-400 hover:bg-yellow-600/20"
+                  className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
                   disabled={isProcessing || isCurrentUser}
                 >
                   <Shield className="h-4 w-4 mr-1" />
@@ -109,9 +108,8 @@ export const EnhancedUserCard = ({
               ) : (
                 <Button
                   onClick={onMakeAdmin}
-                  variant="outline"
                   size="sm"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
                   disabled={isProcessing}
                 >
                   <Crown className="h-4 w-4 mr-1" />
@@ -121,9 +119,8 @@ export const EnhancedUserCard = ({
               
               <Button
                 onClick={onBanUser}
-                variant="outline"
                 size="sm"
-                className="border-red-600 text-red-400 hover:bg-red-600/20"
+                className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
                 disabled={isProcessing || isCurrentUser}
               >
                 <Ban className="h-4 w-4 mr-1" />
@@ -133,9 +130,8 @@ export const EnhancedUserCard = ({
           ) : (
             <Button
               onClick={onUnbanUser}
-              variant="outline"
               size="sm"
-              className="border-green-600 text-green-400 hover:bg-green-600/20"
+              className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
               disabled={isProcessing}
             >
               <Shield className="h-4 w-4 mr-1" />
