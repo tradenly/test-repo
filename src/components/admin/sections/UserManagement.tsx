@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,14 +5,16 @@ import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Crown, Shield, Ban, Search, Users, Wallet, MessageSquare } from "lucide-react";
+import { Crown, Shield, Ban, Search, Users, Wallet, MessageSquare, UserPlus } from "lucide-react";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 import { EnhancedUserCard } from "./user-management/EnhancedUserCard";
 import { BanUserDialog } from "./user-management/BanUserDialog";
+import { CreateUserDialog } from "./user-management/CreateUserDialog";
 
 export const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [banDialogUser, setBanDialogUser] = useState<any>(null);
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
   const { user } = useUnifiedAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -267,6 +268,14 @@ export const UserManagement = () => {
     },
   });
 
+  const handleCreateUserSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+    toast({
+      title: "Success",
+      description: "User created successfully and will appear in the list shortly.",
+    });
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -279,14 +288,23 @@ export const UserManagement = () => {
           <CardTitle className="text-white">Search Users</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search by username or full name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white"
-            />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 flex-1">
+              <Search className="h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by username or full name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-gray-700 border-gray-600 text-white"
+              />
+            </div>
+            <Button
+              onClick={() => setCreateUserDialogOpen(true)}
+              className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              Create User
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -331,6 +349,12 @@ export const UserManagement = () => {
         onClose={() => setBanDialogUser(null)}
         onConfirm={(reason) => banUserMutation.mutate({ userId: banDialogUser.id, reason })}
         isProcessing={banUserMutation.isPending}
+      />
+
+      <CreateUserDialog
+        isOpen={createUserDialogOpen}
+        onClose={() => setCreateUserDialogOpen(false)}
+        onSuccess={handleCreateUserSuccess}
       />
     </div>
   );
