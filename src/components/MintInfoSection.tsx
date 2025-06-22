@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 
 export const MintInfoSection = () => {
@@ -65,8 +66,8 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
-            <p className="text-white font-bold">RGS Diary</p>
-            <p className="text-sm text-gray-300">What was Lost</p>
+            <p className="text-white font-bold">Flappy Hippos</p>
+            <p className="text-sm text-gray-300">Tap, Cry, Repeat</p>
           </div>
           
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
@@ -77,8 +78,8 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
-            <p className="text-white font-bold">2K</p>
-            <p className="text-sm text-gray-300">What we Bought</p>
+            <p className="text-white font-bold">Falling Logs</p>
+            <p className="text-sm text-gray-300">Tetris, But Worse</p>
           </div>
           
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
@@ -89,8 +90,8 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
-            <p className="text-white font-bold">Unlimited Ptoper</p>
-            <p className="text-sm text-gray-300">What Forever</p>
+            <p className="text-white font-bold">Meme Coin Launch</p>
+            <p className="text-sm text-gray-300">Probably Cardano, Maybe</p>
           </div>
 
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
@@ -101,8 +102,8 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
-            <p className="text-white font-bold">Lost All Ash</p>
-            <p className="text-sm text-gray-300">What's at Ash</p>
+            <p className="text-white font-bold">NFT Collection</p>
+            <p className="text-sm text-gray-300">SUI, We Guess</p>
           </div>
 
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
@@ -113,8 +114,8 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
-            <p className="text-white font-bold">Moon</p>
-            <p className="text-sm text-gray-300">What'd</p>
+            <p className="text-white font-bold">Roadmap Leak</p>
+            <p className="text-sm text-gray-300">There Isn't One</p>
           </div>
 
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
@@ -125,8 +126,8 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
-            <p className="text-white font-bold">Regret</p>
-            <p className="text-sm text-gray-300">What's</p>
+            <p className="text-white font-bold">Tech Integration</p>
+            <p className="text-sm text-gray-300">Somehow, It Works</p>
           </div>
         </div>
       </div>
