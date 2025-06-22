@@ -5,8 +5,8 @@ export const WhatYouGetSection = () => {
   return (
     <section className="py-20 px-4 bg-gradient-to-b from-gray-900 via-black to-gray-800">
       <div className="max-w-4xl mx-auto text-center">
-        <h2 className="text-5xl font-bold text-white mb-16">
-          What We Actually Built (Somehow) 🎮
+        <h2 className="text-5xl font-bold text-white mb-16 text-center">
+          What We Actually Built (Somehow)
         </h2>
         
         <div className="mb-16">
