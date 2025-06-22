@@ -1,3 +1,4 @@
+
 import React from "react";
 import { TileType } from "./EnhancedTileTypes";
 import { AnimationEvent } from "./EnhancedGameEngine";
@@ -72,8 +73,13 @@ export const EnhancedGameBoard = ({
   const handleTileClick = (row: number, col: number) => {
     const tile = board[row][col];
     
+    // Prevent clicks on blocked or empty tiles
+    if (tile === TileType.BLOCKED || tile === TileType.EMPTY) {
+      return;
+    }
+    
     // Handle hammer mode
-    if (hammerMode && onHammerTarget && tile !== TileType.BLOCKED && tile !== TileType.EMPTY) {
+    if (hammerMode && onHammerTarget) {
       onHammerTarget(row, col);
       return;
     }
@@ -84,38 +90,42 @@ export const EnhancedGameBoard = ({
     }
   };
 
+  // Simplified animation classes - only show active animations
   const getAnimationClasses = (row: number, col: number): string => {
-    const relevantAnimations = animations.filter(anim => 
-      anim.tiles?.some(tile => tile.row === row && tile.col === col) ||
-      (anim.fromTile && anim.fromTile.row === row && anim.fromTile.col === col) ||
-      (anim.toTile && anim.toTile.row === row && anim.toTile.col === col)
-    );
+    if (!animations || animations.length === 0) return "";
+    
+    const relevantAnimations = animations.filter(anim => {
+      if (!anim.tiles) return false;
+      return anim.tiles.some(tile => tile.row === row && tile.col === col);
+    });
     
     if (relevantAnimations.length === 0) return "";
     
-    let animClasses = "";
-    relevantAnimations.forEach(anim => {
-      switch (anim.type) {
-        case 'match':
-          animClasses += "animate-ping ";
-          break;
-        case 'drop':
-          animClasses += "animate-bounce ";
-          break;
-        case 'swap':
-          animClasses += "animate-pulse ";
-          break;
-        case 'invalid':
-          animClasses += "animate-shake ";
-          break;
-        case 'cascade':
-          animClasses += "animate-pulse ";
-          break;
-      }
-    });
+    // Only apply the most recent animation to prevent conflicts
+    const latestAnimation = relevantAnimations[relevantAnimations.length - 1];
     
-    return animClasses;
+    switch (latestAnimation.type) {
+      case 'match':
+        return "animate-ping ";
+      case 'drop':
+        return "animate-bounce ";
+      case 'invalid':
+        return "animate-pulse ";
+      default:
+        return "";
+    }
   };
+
+  // Ensure board exists and has proper dimensions
+  if (!board || board.length === 0 || !board[0] || board[0].length === 0) {
+    return (
+      <div className="flex flex-col items-center space-y-2">
+        <div className="bg-gray-900/30 rounded-lg border border-gray-700 p-8">
+          <div className="text-white text-center">Loading game board...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center space-y-2">
@@ -143,11 +153,11 @@ export const EnhancedGameBoard = ({
         )}
       </div>
       
-      {animations.length > 0 && (
+      {animations && animations.length > 0 && (
         <div className="text-xs text-gray-400 text-center">
           {animations.map(anim => (
             <div key={anim.id}>
-              {anim.type === 'cascade' && `🔄 Cascade x${anim.cascadeMultiplier?.toFixed(1)}`}
+              {anim.type === 'cascade' && `🔄 Cascade x${anim.cascadeMultiplier?.toFixed(1) || 1}`}
               {anim.type === 'match' && `✨ Match found!`}
               {anim.type === 'invalid' && `❌ Invalid move`}
             </div>
