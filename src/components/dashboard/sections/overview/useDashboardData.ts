@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 
 export const useDashboardData = (user: UnifiedUser) => {
-  const { data: stakes } = useQuery({
+  const { data: stakes, isLoading: stakesLoading } = useQuery({
     queryKey: ["userStakes", user.id],
     queryFn: async () => {
       if (user.authType !== 'supabase') {
@@ -26,7 +26,7 @@ export const useDashboardData = (user: UnifiedUser) => {
     enabled: user.authType === 'supabase',
   });
 
-  const { data: rewards } = useQuery({
+  const { data: rewards, isLoading: rewardsLoading } = useQuery({
     queryKey: ["userRewards", user.id],
     queryFn: async () => {
       if (user.authType !== 'supabase') {
@@ -45,7 +45,7 @@ export const useDashboardData = (user: UnifiedUser) => {
     enabled: user.authType === 'supabase',
   });
 
-  const { data: wallets } = useQuery({
+  const { data: wallets, isLoading: walletsLoading } = useQuery({
     queryKey: ["userWallets", user.id],
     queryFn: async () => {
       if (user.authType !== 'supabase') {
@@ -72,5 +72,6 @@ export const useDashboardData = (user: UnifiedUser) => {
     wallets,
     totalStaked,
     totalRewards,
+    isLoading: stakesLoading || rewardsLoading || walletsLoading,
   };
 };
