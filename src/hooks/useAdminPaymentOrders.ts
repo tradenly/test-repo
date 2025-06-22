@@ -84,19 +84,16 @@ export const useConfirmPaymentOrder = () => {
   return useMutation({
     mutationFn: async ({ 
       orderId, 
-      transactionHash,
-      adminUserId 
+      transactionHash 
     }: {
       orderId: string;
       transactionHash?: string;
-      adminUserId: string;
     }) => {
       logger.log("Confirming payment order:", { orderId, transactionHash });
       
-      const { data, error } = await supabase.rpc('confirm_credit_payment_order', {
-        order_id: orderId,
-        admin_user_id: adminUserId,
-        transaction_hash: transactionHash || null
+      const { data, error } = await supabase.rpc('process_confirmed_payment', {
+        payment_order_id: orderId,
+        transaction_hash: transactionHash || ''
       });
       
       if (error) {
