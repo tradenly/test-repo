@@ -155,7 +155,7 @@ export class EnhancedGameEngine {
   public makeMove(row1: number, col1: number, row2: number, col2: number): boolean {
     console.log(`🎮 Enhanced GameEngine: Attempting move: (${row1},${col1}) -> (${row2},${col2})`);
     
-    // Validate coordinates and blocked tiles
+    // CRITICAL FIX: Validate coordinates, blocked tiles, and ADJACENCY
     if (!this.isValidPosition(row1, col1) || !this.isValidPosition(row2, col2)) {
       console.log(`❌ Invalid coordinates`);
       return false;
@@ -163,6 +163,18 @@ export class EnhancedGameEngine {
     
     if (this.board[row1][col1] === TileType.BLOCKED || this.board[row2][col2] === TileType.BLOCKED) {
       console.log(`❌ Cannot move blocked tiles`);
+      return false;
+    }
+
+    // CRITICAL FIX: Enforce adjacency for ALL moves, including special tiles
+    if (!this.areAdjacent(row1, col1, row2, col2)) {
+      console.log(`❌ Tiles must be adjacent for swapping`);
+      this.addAnimation({
+        type: 'invalid',
+        fromTile: {row: row1, col: col1},
+        toTile: {row: row2, col: col2},
+        id: `invalid-${this.currentAnimationId++}`
+      });
       return false;
     }
     
@@ -264,8 +276,8 @@ export class EnhancedGameEngine {
       this.wrappedStripedCombination(row1, col1, isHorizontal);
     }
     
-    // Award combination bonus
-    this.score += 5000 * this.gameProgress.comboMultiplier;
+    // BALANCED SCORING: Reduced combination bonus
+    this.score += 500 * this.gameProgress.comboMultiplier;
     this.gameProgress.score = this.score;
   }
 
@@ -295,31 +307,37 @@ export class EnhancedGameEngine {
   }
 
   private clearRow(row: number): void {
+    let clearedCount = 0;
     for (let col = 0; col < this.boardSize; col++) {
       if (this.board[row][col] !== TileType.BLOCKED) {
         this.board[row][col] = TileType.EMPTY;
         this.gameProgress.clearedTiles++;
+        clearedCount++;
       }
     }
-    this.score += 300 * this.gameProgress.comboMultiplier;
+    // BALANCED SCORING: Reduced from 300 to 30 per tile
+    this.score += clearedCount * 30 * this.gameProgress.comboMultiplier;
     this.gameProgress.score = this.score;
   }
 
   private clearColumn(col: number): void {
+    let clearedCount = 0;
     for (let row = 0; row < this.boardSize; row++) {
       if (this.board[row][col] !== TileType.BLOCKED) {
         this.board[row][col] = TileType.EMPTY;
         this.gameProgress.clearedTiles++;
+        clearedCount++;
       }
     }
-    this.score += 300 * this.gameProgress.comboMultiplier;
+    // BALANCED SCORING: Reduced from 300 to 30 per tile
+    this.score += clearedCount * 30 * this.gameProgress.comboMultiplier;
     this.gameProgress.score = this.score;
   }
 
   private clearRowAndColumn(row: number, col: number): void {
     this.clearRow(row);
     this.clearColumn(col);
-    this.score += 500; // Bonus for combination
+    this.score += 100; // Small bonus for combination
   }
 
   private wrappedExplosion(centerRow: number, centerCol: number): void {
@@ -335,7 +353,8 @@ export class EnhancedGameEngine {
       }
     }
     
-    this.score += affected.length * 100 * this.gameProgress.comboMultiplier;
+    // BALANCED SCORING: Reduced from 100 to 25 per tile
+    this.score += affected.length * 25 * this.gameProgress.comboMultiplier;
     this.gameProgress.score = this.score;
   }
 
@@ -364,7 +383,8 @@ export class EnhancedGameEngine {
         }
       }
     }
-    this.score += clearedCount * 200 * this.gameProgress.comboMultiplier;
+    // BALANCED SCORING: Reduced from 200 to 40 per tile
+    this.score += clearedCount * 40 * this.gameProgress.comboMultiplier;
     this.gameProgress.score = this.score;
   }
 
@@ -388,7 +408,8 @@ export class EnhancedGameEngine {
         }
       }
     }
-    this.score += 10000; // Massive bonus for clearing entire board
+    // BALANCED SCORING: Reduced from 10000 to 2000
+    this.score += 2000;
     this.gameProgress.score = this.score;
   }
 
@@ -506,11 +527,11 @@ export class EnhancedGameEngine {
     let totalTilesCleared = 0;
     
     matches.forEach(match => {
-      // Award points based on match length and type
-      const basePoints = 100;
-      const lengthBonus = (match.length - 3) * 50;
-      const comboBonus = basePoints * (this.gameProgress.comboMultiplier - 1);
-      const totalPoints = (basePoints + lengthBonus + comboBonus) * match.length;
+      // BALANCED SCORING: Reduced base points and bonuses
+      const basePoints = 50; // Reduced from 100
+      const lengthBonus = (match.length - 3) * 25; // Reduced from 50
+      const comboBonus = basePoints * (this.gameProgress.comboMultiplier - 1) * 0.5; // Reduced multiplier effect
+      const totalPoints = (basePoints + lengthBonus + comboBonus) * match.length * 0.5; // Overall reduction
       
       this.score += totalPoints;
       totalTilesCleared += match.tiles.length;
@@ -550,7 +571,7 @@ export class EnhancedGameEngine {
       if (matches.length > 0) {
         cascadeCount++;
         this.gameProgress.cascades++;
-        this.gameProgress.comboMultiplier = 1 + (cascadeCount * 0.5);
+        this.gameProgress.comboMultiplier = 1 + (cascadeCount * 0.3); // Reduced from 0.5
         
         console.log(`🔄 Cascade ${cascadeCount} found: ${matches.length} matches, multiplier: ${this.gameProgress.comboMultiplier}`);
         
