@@ -39,10 +39,25 @@ export const useAdminCashoutRequests = () => {
       }
       
       console.log("Admin cashout requests data:", data);
-      return (data || []).map(item => ({
-        ...item,
-        status: item.status as 'pending' | 'approved' | 'completed' | 'rejected'
-      }));
+      
+      // Safely map and cast the response data
+      return (data || []).map(item => {
+        // Handle potential query errors in related tables
+        const userProfile = item.user_profile && typeof item.user_profile === 'object' && !('error' in item.user_profile)
+          ? item.user_profile as { id: string; username?: string | null; full_name?: string | null; }
+          : null;
+          
+        const userWallet = item.user_wallet && typeof item.user_wallet === 'object' && !('error' in item.user_wallet)
+          ? item.user_wallet as { id: string; wallet_address: string; blockchain: string; wallet_name?: string | null; }
+          : null;
+
+        return {
+          ...item,
+          status: item.status as 'pending' | 'approved' | 'completed' | 'rejected',
+          user_profile: userProfile,
+          user_wallet: userWallet,
+        };
+      });
     },
   });
 };

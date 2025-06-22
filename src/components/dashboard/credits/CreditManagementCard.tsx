@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
   const { data: transactionsData, isLoading: transactionsLoading } = useCreditTransactions(user.id);
   const { data: cashoutRequestsData } = useCashoutRequests(user.id);
   const { toast } = useToast();
-  const [cashoutAmount, setCashoutAmount] = useState("");
+  const [cashoutAmount, setCashoutAmount] = useState<number>(0);
   const [selectedWallet, setSelectedWallet] = useState("");
   
   const createCashoutMutation = useCreateCashoutRequest();
@@ -185,7 +186,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                       max={Math.floor((creditsData?.balance || 0) / 5) * 5}
                       step="5"
                     />
-                    <div className="absolute right-3 top-1/2 transform -y-1/2 text-gray-400 text-sm">
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">
                       ≈ {(cashoutAmount / 5).toFixed(2)} USDC
                     </div>
                   </div>
