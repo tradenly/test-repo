@@ -44,12 +44,9 @@ export const PayoutManagement = () => {
   };
 
   const handleConfirmPayment = (orderId: string) => {
-    if (!user?.id) return;
-
     confirmPaymentMutation.mutate({
       orderId,
       transactionHash: transactionId || undefined,
-      adminUserId: user.id,
     }, {
       onSuccess: () => {
         setTransactionId("");
