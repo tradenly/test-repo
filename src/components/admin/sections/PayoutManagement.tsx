@@ -1,24 +1,438 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAdminCashoutRequests, useUpdateCashoutStatus, CashoutRequestWithUser } from "@/hooks/usePayoutManagement";
+import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
+import { CheckCircle, XCircle, Eye, DollarSign, User, Wallet } from "lucide-react";
 
 export const PayoutManagement = () => {
+  const { user } = useUnifiedAuth();
+  const { data: cashoutRequests, isLoading } = useAdminCashoutRequests();
+  const updateStatusMutation = useUpdateCashoutStatus();
+  const [selectedRequest, setSelectedRequest] = useState<CashoutRequestWithUser | null>(null);
+  const [adminNotes, setAdminNotes] = useState("");
+  const [transactionId, setTransactionId] = useState("");
+
+  const handleStatusUpdate = (requestId: string, status: 'approved' | 'completed' | 'rejected') => {
+    if (!user?.id) return;
+
+    updateStatusMutation.mutate({
+      requestId,
+      status,
+      adminNotes: adminNotes || undefined,
+      transactionId: status === 'completed' ? transactionId : undefined,
+      adminUserId: user.id,
+    }, {
+      onSuccess: () => {
+        setAdminNotes("");
+        setTransactionId("");
+        setSelectedRequest(null);
+      }
+    });
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-600';
+      case 'approved': return 'bg-blue-600';
+      case 'completed': return 'bg-green-600';
+      case 'rejected': return 'bg-red-600';
+      default: return 'bg-gray-600';
+    }
+  };
+
+  const pendingRequests = cashoutRequests?.filter(r => r.status === 'pending') || [];
+  const approvedRequests = cashoutRequests?.filter(r => r.status === 'approved') || [];
+  const completedRequests = cashoutRequests?.filter(r => ['completed', 'rejected'].includes(r.status)) || [];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Payout Management</h1>
+          <p className="text-gray-400">Loading cashout requests...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Payout Management</h1>
-        <p className="text-gray-400">Authorize and manage user payouts</p>
+        <p className="text-gray-400">Authorize and manage user credit cashouts</p>
       </div>
 
-      <Card className="bg-gray-800/40 border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-white">Coming Soon</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-400">
-            Payout management features will be implemented when payment integration is added to the system.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-yellow-400" />
+              <div>
+                <div className="text-2xl font-bold text-white">{pendingRequests.length}</div>
+                <div className="text-gray-400 text-sm">Pending Requests</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-blue-400" />
+              <div>
+                <div className="text-2xl font-bold text-white">{approvedRequests.length}</div>
+                <div className="text-gray-400 text-sm">Approved</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-400" />
+              <div>
+                <div className="text-2xl font-bold text-white">
+                  {completedRequests.filter(r => r.status === 'completed').length}
+                </div>
+                <div className="text-gray-400 text-sm">Completed</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-green-400" />
+              <div>
+                <div className="text-2xl font-bold text-white">
+                  {completedRequests
+                    .filter(r => r.status === 'completed')
+                    .reduce((sum, r) => sum + r.amount_crypto, 0)
+                    .toFixed(2)}
+                </div>
+                <div className="text-gray-400 text-sm">Total Paid (USDC)</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="pending" className="space-y-4">
+        <TabsList className="bg-gray-700">
+          <TabsTrigger value="pending" className="data-[state=active]:bg-gray-600">
+            Pending ({pendingRequests.length})
+          </TabsTrigger>
+          <TabsTrigger value="approved" className="data-[state=active]:bg-gray-600">
+            Approved ({approvedRequests.length})
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="data-[state=active]:bg-gray-600">
+            History ({completedRequests.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pending">
+          <Card className="bg-gray-800/40 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white">Pending Cashout Requests</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pendingRequests.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">No pending cashout requests</p>
+              ) : (
+                <div className="space-y-4">
+                  {pendingRequests.map((request) => (
+                    <div key={request.id} className="bg-gray-900/40 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <User className="h-8 w-8 text-gray-400" />
+                          <div>
+                            <div className="text-white font-medium">
+                              {request.user_profile?.full_name || request.user_profile?.username || 'Unknown User'}
+                            </div>
+                            <div className="text-gray-400 text-sm">
+                              {request.amount_credits} credits → {request.amount_crypto} USDC
+                            </div>
+                            <div className="text-gray-400 text-xs">
+                              Requested: {new Date(request.requested_at).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setSelectedRequest(request)}
+                                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Review
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Cashout Request Details</DialogTitle>
+                              </DialogHeader>
+                              {selectedRequest && (
+                                <div className="space-y-6">
+                                  {/* User Info */}
+                                  <div className="bg-gray-900/40 rounded-lg p-4">
+                                    <h3 className="text-white font-medium mb-3">User Information</h3>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                      <div>
+                                        <span className="text-gray-400">Name:</span>
+                                        <span className="text-white ml-2">
+                                          {selectedRequest.user_profile?.full_name || 'Not provided'}
+                                        </span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-400">Username:</span>
+                                        <span className="text-white ml-2">
+                                          {selectedRequest.user_profile?.username || 'Not provided'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Transaction Details */}
+                                  <div className="bg-gray-900/40 rounded-lg p-4">
+                                    <h3 className="text-white font-medium mb-3">Transaction Details</h3>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                      <div>
+                                        <span className="text-gray-400">Credits:</span>
+                                        <span className="text-white ml-2">{selectedRequest.amount_credits}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-400">USDC:</span>
+                                        <span className="text-white ml-2">{selectedRequest.amount_crypto}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-400">Previous Balance:</span>
+                                        <span className="text-white ml-2">{selectedRequest.previous_balance}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-400">New Balance:</span>
+                                        <span className="text-white ml-2">{selectedRequest.new_balance}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Wallet Info */}
+                                  <div className="bg-gray-900/40 rounded-lg p-4">
+                                    <h3 className="text-white font-medium mb-3">Destination Wallet</h3>
+                                    <div className="flex items-center gap-2">
+                                      <Wallet className="h-4 w-4 text-gray-400" />
+                                      <div>
+                                        <div className="text-white text-sm">
+                                          {selectedRequest.user_wallet?.wallet_name || `${selectedRequest.user_wallet?.blockchain} Wallet`}
+                                        </div>
+                                        <div className="text-gray-400 text-xs font-mono">
+                                          {selectedRequest.user_wallet?.wallet_address}
+                                        </div>
+                                        <Badge className="bg-blue-600 text-xs mt-1">
+                                          {selectedRequest.user_wallet?.blockchain}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Admin Actions */}
+                                  <div className="space-y-4">
+                                    <div>
+                                      <Label className="text-gray-300">Admin Notes (Optional)</Label>
+                                      <Textarea
+                                        value={adminNotes}
+                                        onChange={(e) => setAdminNotes(e.target.value)}
+                                        className="bg-gray-700 border-gray-600 text-white mt-1"
+                                        placeholder="Add notes about this request..."
+                                      />
+                                    </div>
+                                    
+                                    <div className="flex gap-2">
+                                      <Button
+                                        onClick={() => handleStatusUpdate(selectedRequest.id, 'approved')}
+                                        disabled={updateStatusMutation.isPending}
+                                        className="bg-green-600 hover:bg-green-700"
+                                      >
+                                        <CheckCircle className="h-4 w-4 mr-1" />
+                                        Approve
+                                      </Button>
+                                      <Button
+                                        onClick={() => handleStatusUpdate(selectedRequest.id, 'rejected')}
+                                        disabled={updateStatusMutation.isPending}
+                                        variant="destructive"
+                                      >
+                                        <XCircle className="h-4 w-4 mr-1" />
+                                        Reject
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="approved">
+          <Card className="bg-gray-800/40 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white">Approved Requests - Ready for Payout</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {approvedRequests.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">No approved requests awaiting payout</p>
+              ) : (
+                <div className="space-y-4">
+                  {approvedRequests.map((request) => (
+                    <div key={request.id} className="bg-gray-900/40 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <User className="h-8 w-8 text-gray-400" />
+                          <div>
+                            <div className="text-white font-medium">
+                              {request.user_profile?.full_name || request.user_profile?.username || 'Unknown User'}
+                            </div>
+                            <div className="text-gray-400 text-sm">
+                              Send {request.amount_crypto} USDC to {request.user_wallet?.blockchain} wallet
+                            </div>
+                            <div className="text-gray-400 text-xs font-mono">
+                              {request.user_wallet?.wallet_address}
+                            </div>
+                            <Badge className="bg-blue-600 text-xs mt-1">
+                              Approved: {new Date(request.approved_at!).toLocaleDateString()}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => setSelectedRequest(request)}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Mark Complete
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-gray-800 border-gray-700 text-white">
+                              <DialogHeader>
+                                <DialogTitle>Mark Payout as Complete</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div className="bg-gray-900/40 rounded-lg p-4">
+                                  <p className="text-gray-300">
+                                    Confirm that you have sent <strong>{selectedRequest?.amount_crypto} USDC</strong> to:
+                                  </p>
+                                  <p className="text-gray-400 font-mono text-sm mt-2">
+                                    {selectedRequest?.user_wallet?.wallet_address}
+                                  </p>
+                                </div>
+                                
+                                <div>
+                                  <Label className="text-gray-300">Transaction ID/Hash</Label>
+                                  <Input
+                                    value={transactionId}
+                                    onChange={(e) => setTransactionId(e.target.value)}
+                                    className="bg-gray-700 border-gray-600 text-white mt-1"
+                                    placeholder="Enter blockchain transaction hash..."
+                                  />
+                                </div>
+
+                                <div>
+                                  <Label className="text-gray-300">Completion Notes (Optional)</Label>
+                                  <Textarea
+                                    value={adminNotes}
+                                    onChange={(e) => setAdminNotes(e.target.value)}
+                                    className="bg-gray-700 border-gray-600 text-white mt-1"
+                                    placeholder="Add completion notes..."
+                                  />
+                                </div>
+                                
+                                <Button
+                                  onClick={() => selectedRequest && handleStatusUpdate(selectedRequest.id, 'completed')}
+                                  disabled={updateStatusMutation.isPending || !transactionId.trim()}
+                                  className="w-full bg-green-600 hover:bg-green-700"
+                                >
+                                  {updateStatusMutation.isPending ? "Processing..." : "Confirm Completion"}
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="completed">
+          <Card className="bg-gray-800/40 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white">Cashout History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {completedRequests.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">No completed cashouts yet</p>
+              ) : (
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {completedRequests.map((request) => (
+                    <div key={request.id} className="bg-gray-900/40 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <User className="h-8 w-8 text-gray-400" />
+                          <div>
+                            <div className="text-white font-medium">
+                              {request.user_profile?.full_name || request.user_profile?.username || 'Unknown User'}
+                            </div>
+                            <div className="text-gray-400 text-sm">
+                              {request.amount_credits} credits → {request.amount_crypto} USDC
+                            </div>
+                            <div className="text-gray-400 text-xs">
+                              {request.status === 'completed' ? 'Completed' : 'Rejected'}: {' '}
+                              {new Date(request.completed_at || request.updated_at).toLocaleDateString()}
+                            </div>
+                            {request.transaction_id && (
+                              <div className="text-blue-400 text-xs font-mono">
+                                TX: {request.transaction_id}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <Badge className={getStatusBadgeColor(request.status)}>
+                          {request.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

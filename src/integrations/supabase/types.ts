@@ -59,6 +59,71 @@ export type Database = {
           },
         ]
       }
+      credit_cashout_requests: {
+        Row: {
+          admin_notes: string | null
+          amount_credits: number
+          amount_crypto: number
+          approved_at: string | null
+          approved_by: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          new_balance: number
+          previous_balance: number
+          requested_at: string
+          selected_wallet_id: string
+          status: string
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_credits: number
+          amount_crypto: number
+          approved_at?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          new_balance: number
+          previous_balance: number
+          requested_at?: string
+          selected_wallet_id: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_credits?: number
+          amount_crypto?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          new_balance?: number
+          previous_balance?: number
+          requested_at?: string
+          selected_wallet_id?: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_cashout_requests_selected_wallet_id_fkey"
+            columns: ["selected_wallet_id"]
+            isOneToOne: false
+            referencedRelation: "user_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_payment_orders: {
         Row: {
           blockchain: string
