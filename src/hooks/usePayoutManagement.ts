@@ -7,21 +7,21 @@ import { CashoutRequest } from "./useCashoutOperations";
 export interface CashoutRequestWithUser extends CashoutRequest {
   user_profile?: {
     id: string;
-    username?: string;
-    full_name?: string;
-  };
+    username?: string | null;
+    full_name?: string | null;
+  } | null;
   user_wallet?: {
     id: string;
     wallet_address: string;
     blockchain: string;
-    wallet_name?: string;
-  };
+    wallet_name?: string | null;
+  } | null;
 }
 
 export const useAdminCashoutRequests = () => {
-  return useQuery<CashoutRequestWithUser[]>({
+  return useQuery({
     queryKey: ["admin-cashout-requests"],
-    queryFn: async () => {
+    queryFn: async (): Promise<CashoutRequestWithUser[]> => {
       console.log("Fetching admin cashout requests");
       
       const { data, error } = await supabase
@@ -39,7 +39,10 @@ export const useAdminCashoutRequests = () => {
       }
       
       console.log("Admin cashout requests data:", data);
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        status: item.status as 'pending' | 'approved' | 'completed' | 'rejected'
+      }));
     },
   });
 };

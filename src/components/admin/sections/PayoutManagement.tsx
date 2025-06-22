@@ -48,9 +48,11 @@ export const PayoutManagement = () => {
     }
   };
 
-  const pendingRequests = cashoutRequests?.filter(r => r.status === 'pending') || [];
-  const approvedRequests = cashoutRequests?.filter(r => r.status === 'approved') || [];
-  const completedRequests = cashoutRequests?.filter(r => ['completed', 'rejected'].includes(r.status)) || [];
+  // Safe array operations with proper type guards
+  const safeRequests = Array.isArray(cashoutRequests) ? cashoutRequests : [];
+  const pendingRequests = safeRequests.filter(r => r.status === 'pending');
+  const approvedRequests = safeRequests.filter(r => r.status === 'approved');
+  const completedRequests = safeRequests.filter(r => ['completed', 'rejected'].includes(r.status));
 
   if (isLoading) {
     return (

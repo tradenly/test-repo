@@ -20,6 +20,11 @@ interface ActivityItem {
   metadata?: any;
 }
 
+// Type guard for metadata
+const isMetadataObject = (metadata: any): metadata is Record<string, any> => {
+  return metadata && typeof metadata === 'object' && !Array.isArray(metadata);
+};
+
 export const DashboardActivity = ({ user }: DashboardActivityProps) => {
   const { data: activities, isLoading } = useQuery({
     queryKey: ["dashboard-activity", user.id],
@@ -72,11 +77,11 @@ export const DashboardActivity = ({ user }: DashboardActivityProps) => {
         let description = transaction.description || transaction.transaction_type;
         let type = transaction.transaction_type;
         
-        // Special handling for cashout completion notifications
-        if (transaction.metadata?.cashout_completed) {
+        // Special handling for cashout completion notifications with safe metadata access
+        if (isMetadataObject(transaction.metadata) && transaction.metadata.cashout_completed) {
           description = `Cashout Complete • ${transaction.metadata.crypto_amount} USDC`;
           if (transaction.metadata.transaction_id) {
-            description += ` • TX: ${transaction.metadata.transaction_id.substring(0, 8)}...`;
+            description += ` • TX: ${String(transaction.metadata.transaction_id).substring(0, 8)}...`;
           }
           type = 'cashout_completed';
         }

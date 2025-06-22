@@ -13,19 +13,19 @@ export interface CashoutRequest {
   selected_wallet_id: string;
   status: 'pending' | 'approved' | 'completed' | 'rejected';
   requested_at: string;
-  approved_at?: string;
-  completed_at?: string;
-  approved_by?: string;
-  transaction_id?: string;
-  admin_notes?: string;
+  approved_at?: string | null;
+  completed_at?: string | null;
+  approved_by?: string | null;
+  transaction_id?: string | null;
+  admin_notes?: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export const useCashoutRequests = (userId: string) => {
-  return useQuery<CashoutRequest[]>({
+  return useQuery({
     queryKey: ["cashout-requests", userId],
-    queryFn: async () => {
+    queryFn: async (): Promise<CashoutRequest[]> => {
       console.log("Fetching cashout requests for user:", userId);
       
       const { data, error } = await supabase
@@ -40,7 +40,10 @@ export const useCashoutRequests = (userId: string) => {
       }
       
       console.log("Cashout requests data:", data);
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        status: item.status as 'pending' | 'approved' | 'completed' | 'rejected'
+      }));
     },
     enabled: !!userId,
   });
