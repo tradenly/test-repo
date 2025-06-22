@@ -6,7 +6,7 @@ import { Loader2, Shuffle, Lightbulb, Hammer } from "lucide-react";
 import { BoosterType } from "./BoosterSystem";
 import { GameProgress } from "./EnhancedGameEngine";
 import { usePoopeeCrushCredits } from "../usePoopeeCrushCredits";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useCredits } from "@/hooks/useCredits";
 
 interface BoosterPanelProps {
@@ -28,30 +28,6 @@ export const BoosterPanel = ({
 }: BoosterPanelProps) => {
   const { spendCredits, checkCanAfford, isSpending } = usePoopeeCrushCredits(userId);
   const { data: credits } = useCredits(userId);
-  const [boosterAvailability, setBoosterAvailability] = useState({
-    shuffle: true,
-    hint: true,
-    hammer: true
-  });
-
-  // Check affordability when credits change
-  useEffect(() => {
-    const checkAllAffordability = async () => {
-      const shuffleAfford = await checkCanAfford(1);
-      const hintAfford = await checkCanAfford(0.5);
-      const hammerAfford = await checkCanAfford(0.5);
-      
-      setBoosterAvailability({
-        shuffle: shuffleAfford,
-        hint: hintAfford,
-        hammer: hammerAfford
-      });
-    };
-
-    if (credits) {
-      checkAllAffordability();
-    }
-  }, [credits?.balance, checkCanAfford]);
 
   const handleBoosterUse = async (type: BoosterType, cost: number, description: string) => {
     if (!gameActive || isSpending) return;
@@ -59,12 +35,15 @@ export const BoosterPanel = ({
     try {
       console.log(`🔧 [BoosterPanel] Using ${type} booster`);
       
+      // Check affordability first
+      const canAfford = await checkCanAfford(cost);
+      if (!canAfford) {
+        console.log(`❌ [BoosterPanel] Cannot afford ${type} booster (cost: ${cost})`);
+        return;
+      }
+      
       // Special handling for hammer - enter targeting mode
       if (type === BoosterType.HAMMER) {
-        const canAfford = await checkCanAfford(cost);
-        if (!canAfford) {
-          return;
-        }
         onHammerModeChange(true);
         return;
       }
@@ -95,7 +74,7 @@ export const BoosterPanel = ({
       description: "Shuffle the board",
       cost: 1,
       icon: Shuffle,
-      available: boosterAvailability.shuffle && gameProgress.moves > 0,
+      available: currentBalance >= 1 && gameProgress.moves > 0,
       cooldown: false
     },
     {
@@ -104,7 +83,7 @@ export const BoosterPanel = ({
       description: "Show possible moves",
       cost: 0.5,
       icon: Lightbulb,
-      available: boosterAvailability.hint && gameProgress.moves > 0,
+      available: currentBalance >= 0.5 && gameProgress.moves > 0,
       cooldown: false
     },
     {
@@ -113,7 +92,7 @@ export const BoosterPanel = ({
       description: "Destroy any tile",
       cost: 0.5,
       icon: Hammer,
-      available: boosterAvailability.hammer && gameProgress.moves > 0,
+      available: currentBalance >= 0.5 && gameProgress.moves > 0,
       cooldown: false
     }
   ];

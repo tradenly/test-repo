@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCallback } from "react";
 
 export const usePoopeeCrushCredits = (userId: string) => {
   const queryClient = useQueryClient();
@@ -133,8 +134,17 @@ export const usePoopeeCrushCredits = (userId: string) => {
     }
   });
 
-  const checkCanAfford = async (amount: number): Promise<boolean> => {
+  const checkCanAfford = useCallback(async (amount: number): Promise<boolean> => {
     try {
+      // Use cached data from React Query instead of making a new request
+      const cachedCredits = queryClient.getQueryData(["user-credits", userId]) as any;
+      
+      if (cachedCredits && cachedCredits.balance !== undefined) {
+        const canAfford = cachedCredits.balance >= amount;
+        return canAfford;
+      }
+      
+      // Fallback to direct query only if no cached data
       const { data: credits, error } = await (supabase as any)
         .from("user_credits")
         .select("balance")
@@ -147,13 +157,12 @@ export const usePoopeeCrushCredits = (userId: string) => {
       }
       
       const canAfford = credits.balance >= amount;
-      console.log(`💰 [POOPEE Crush] Can afford ${amount} credits: ${canAfford} (current: ${credits.balance})`);
       return canAfford;
     } catch (error) {
       console.error("❌ [POOPEE Crush] Error checking credit balance:", error);
       return false;
     }
-  };
+  }, [userId, queryClient]);
 
   return {
     spendCredits,
