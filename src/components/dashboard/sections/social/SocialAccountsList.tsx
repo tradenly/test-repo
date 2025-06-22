@@ -4,15 +4,9 @@ import { EmptyStateCard } from "./EmptyStateCard";
 import { LoadingCard } from "./LoadingCard";
 import { ReferralCard } from "./ReferralCard";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
+import { Database } from "@/integrations/supabase/types";
 
-interface SocialAccount {
-  id: string;
-  platform: string;
-  username: string;
-  profile_url?: string;
-  verified: boolean;
-  created_at: string;
-}
+type SocialAccount = Database["public"]["Tables"]["user_social_accounts"]["Row"];
 
 interface SocialAccountsListProps {
   socialAccounts: SocialAccount[];
