@@ -1,5 +1,6 @@
 
--- Update the handle_new_user function to better support Google OAuth users
+
+-- Update the handle_new_user function to better support Google OAuth users AND award welcome credits
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -21,10 +22,27 @@ BEGIN
     )
   );
   
-  -- Initialize user credits for new users
+  -- Initialize user credits for new users (10 credits welcome bonus)
   INSERT INTO public.user_credits (user_id, balance)
-  VALUES (NEW.id, 10.0) -- Give new users 10 credits to start
+  VALUES (NEW.id, 10.0)
   ON CONFLICT (user_id) DO NOTHING;
+  
+  -- Record the welcome credit transaction
+  INSERT INTO public.credit_transactions (
+    user_id,
+    transaction_type,
+    amount,
+    description,
+    status,
+    completed_at
+  ) VALUES (
+    NEW.id,
+    'bonus',
+    10.0,
+    'Welcome bonus for new user signup',
+    'completed',
+    now()
+  );
   
   -- Assign default user role
   INSERT INTO public.user_roles (user_id, role)
@@ -34,3 +52,4 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
