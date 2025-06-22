@@ -16,7 +16,7 @@ interface MatchResult {
 
 const calculateStarRating = (gameProgress: GameProgress, levelConfig: LevelConfig): number => {
   const { score, targetScore } = gameProgress;
-  const perfectScore = levelConfig.requiredScore * 2; // Calculate perfect score
+  const perfectScore = levelConfig.requiredScore * 2;
 
   if (score >= perfectScore) {
     return 3;
@@ -85,7 +85,7 @@ export const useEnhancedGameState = (
       specialTilesCreated: 0,
       cascades: 0,
       comboMultiplier: 1,
-      targetScore: 250, // FIXED: Lower starting target
+      targetScore: 250,
       maxMoves: 30,
       levelObjectives: {
         description: "Reach the target score!",

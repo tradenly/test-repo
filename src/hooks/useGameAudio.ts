@@ -32,6 +32,26 @@ export const useGameAudio = () => {
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
   const soundEffectsRef = useRef<{ [key in SoundEffect]?: HTMLAudioElement }>({});
 
+  // Computed properties for audio controls
+  const isMuted = !settings.musicEnabled && !settings.sfxEnabled;
+  
+  const toggleMute = useCallback(() => {
+    const newMusicEnabled = !settings.musicEnabled;
+    const newSfxEnabled = !settings.sfxEnabled;
+    
+    setSettings(prev => ({
+      ...prev,
+      musicEnabled: newMusicEnabled,
+      sfxEnabled: newSfxEnabled
+    }));
+    
+    // Stop music if muting
+    if (!newMusicEnabled && backgroundMusicRef.current) {
+      backgroundMusicRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, [settings.musicEnabled, settings.sfxEnabled]);
+
   // Save settings to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('poopee-crush-audio-settings', JSON.stringify(settings));
@@ -127,7 +147,6 @@ export const useGameAudio = () => {
       console.log('🎵 [Audio] Background music started');
     } catch (error) {
       console.warn('⚠️ [Audio] Failed to play background music:', error);
-      // Autoplay might be blocked, we'll try again on user interaction
     }
   }, [settings.musicEnabled]);
 
@@ -143,7 +162,6 @@ export const useGameAudio = () => {
   const playSoundEffect = useCallback((effect: SoundEffect) => {
     if (!settings.sfxEnabled) return;
     
-    // For now, create a simple beep using Web Audio API
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
@@ -152,7 +170,6 @@ export const useGameAudio = () => {
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       
-      // Different frequencies for different effects
       const frequencies: { [key in SoundEffect]: number } = {
         match: 440,
         booster: 660,
@@ -184,6 +201,8 @@ export const useGameAudio = () => {
   return {
     settings,
     isPlaying,
+    isMuted,
+    toggleMute,
     playBackgroundMusic,
     stopBackgroundMusic,
     playSoundEffect,

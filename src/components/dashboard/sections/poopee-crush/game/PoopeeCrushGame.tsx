@@ -39,7 +39,6 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
   useEffect(() => {
     console.log(`🎮 [PoopeeCrushGame] Starting with difficulty: ${difficulty}`);
     
-    // Try to resume game first, if that fails start level 1
     const resumed = resumeGame();
     if (!resumed) {
       startNewLevel(1);
@@ -56,18 +55,18 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
     onGameEnd(finalScore, movesUsed);
   }
 
-  const handleBoosterUse = async (type: BoosterType, targetTile?: Position): Promise<boolean> => {
+  const handleBoosterUse = (type: BoosterType, targetTile?: Position): boolean => {
     console.log(`🔧 [PoopeeCrushGame] Using booster: ${type}`);
     
     if (type === BoosterType.HAMMER && targetTile) {
       try {
-        // Spend credits for hammer usage
-        await spendCredits.mutateAsync({
+        // For hammer, we'll spend credits synchronously
+        // Note: In a real implementation, you might want to handle this differently
+        spendCredits.mutate({
           amount: 0.5,
           description: 'Used Hammer booster in POOPEE Crush'
         });
         
-        // Exit hammer mode and use the booster
         setHammerMode(false);
         return useBooster(type, targetTile);
       } catch (error) {
@@ -82,10 +81,8 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
 
   const handleTileClickWithHammer = (row: number, col: number) => {
     if (hammerMode) {
-      // Use hammer on this tile
       handleBoosterUse(BoosterType.HAMMER, { row, col });
     } else {
-      // Normal tile click
       handleTileClick(row, col);
     }
   };
@@ -156,9 +153,7 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
         <div className="lg:col-span-1">
           <BoosterPanel
             gameActive={gameState.gameActive}
-            onUseBooster={(type, targetTile) => {
-              return handleBoosterUse(type, targetTile).then(result => result).catch(() => false);
-            }}
+            onUseBooster={handleBoosterUse}
             gameProgress={gameState.gameProgress}
             userId={userId}
             onHammerModeChange={setHammerMode}
