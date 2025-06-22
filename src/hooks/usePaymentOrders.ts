@@ -43,7 +43,7 @@ export const usePaymentOrders = (userId?: string) => {
       console.log("Payment orders data:", data);
       return (data || []) as PaymentOrder[];
     },
-    enabled: true,
+    enabled: !!userId,
   });
 };
 
@@ -84,6 +84,7 @@ export const useCreatePaymentOrder = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["payment-orders"] });
       queryClient.invalidateQueries({ queryKey: ["payment-orders", variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-payment-orders"] });
     },
   });
 };
