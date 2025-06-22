@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -134,7 +135,7 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
                   <HelpCircle className="h-3 w-3 text-gray-400 hover:text-white cursor-help ml-1" />
                 </TooltipTrigger>
                 <TooltipContent className="bg-gray-800 border-gray-600 text-white max-w-sm">
-                  <p>Cashing out credits can take up to<br />24 hours for security reasons and to verify legitimacy of claim.</p>
+                  <p>Cashing out credits can take up to<br />24 hours for security reasons and<br />to verify legitimacy of claim.</p>
                 </TooltipContent>
               </Tooltip>
             </TabsTrigger>
