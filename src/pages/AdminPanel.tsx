@@ -1,10 +1,13 @@
-
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminContent } from "@/components/admin/AdminContent";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export type AdminSection = 
   | "overview" 
@@ -17,6 +20,7 @@ export type AdminSection =
 const AdminPanel = () => {
   const { isAdmin, isLoading, user } = useAdminAuth();
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
+  const isMobile = useIsMobile();
 
   console.log('🏛️ AdminPanel: Render - isAdmin:', isAdmin, 'isLoading:', isLoading, 'user exists:', !!user);
 
@@ -42,7 +46,38 @@ const AdminPanel = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Render admin panel
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-black w-full">
+        <Navigation />
+        <SidebarProvider>
+          <div className="flex w-full min-h-screen">
+            <AdminSidebar 
+              activeSection={activeSection} 
+              onSectionChange={setActiveSection} 
+            />
+            <SidebarInset>
+              <div className="pt-20 p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <SidebarTrigger asChild>
+                    <Button variant="outline" size="icon" className="md:hidden">
+                      <Menu className="h-4 w-4" />
+                    </Button>
+                  </SidebarTrigger>
+                  <h1 className="text-xl font-semibold text-white capitalize">
+                    Admin {activeSection.replace('-', ' ')}
+                  </h1>
+                </div>
+                <AdminContent activeSection={activeSection} />
+              </div>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
+      </div>
+    );
+  }
+
+  // Desktop layout (unchanged)
   console.log('✅ AdminPanel: Rendering admin panel');
   return (
     <div className="min-h-screen bg-black">

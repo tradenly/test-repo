@@ -13,6 +13,7 @@ import { User as UserIcon, LogOut, Coins, Settings } from "lucide-react";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 import { useCredits } from "@/hooks/useCredits";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Navigation = () => {
   const { user, logout } = useUnifiedAuth();
@@ -20,6 +21,7 @@ export const Navigation = () => {
   const location = useLocation();
   const { data: credits } = useCredits(user?.id || "");
   const { isAdmin, isLoading: adminLoading } = useAdminAuth();
+  const isMobile = useIsMobile();
 
   console.log('🧭 Navigation: isAdmin:', isAdmin, 'adminLoading:', adminLoading);
 
@@ -42,39 +44,50 @@ export const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-gray-800">
       <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
         <div 
-          className="text-2xl font-bold cursor-pointer text-white"
+          className={`font-bold cursor-pointer text-white ${
+            isMobile ? "text-lg" : "text-2xl"
+          }`}
           onClick={() => navigate('/')}
         >
           💩 POOPEE 🦛
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 md:space-x-4">
           {user && (
             <>
               {/* Credit Balance Display */}
-              <div className="flex items-center gap-2 bg-gray-800/60 rounded-lg px-3 py-2">
-                <Coins className="h-4 w-4 text-yellow-400" />
-                <span className="text-white font-medium">
+              <div className={`flex items-center gap-2 bg-gray-800/60 rounded-lg px-3 py-2 ${
+                isMobile ? "px-2 py-1" : ""
+              }`}>
+                <Coins className={`text-yellow-400 ${isMobile ? "h-3 w-3" : "h-4 w-4"}`} />
+                <span className={`text-white font-medium ${
+                  isMobile ? "text-sm" : ""
+                }`}>
                   {credits?.balance?.toFixed(2) || "0.00"}
                 </span>
-                <span className="text-gray-400 text-sm">Credits</span>
+                {!isMobile && (
+                  <span className="text-gray-400 text-sm">Credits</span>
+                )}
               </div>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
-                    className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
+                    className={`bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0 ${
+                      isMobile ? "h-9 px-3 text-sm" : ""
+                    }`}
                   >
-                    <UserIcon className="h-4 w-4 mr-2" />
-                    Account
+                    <UserIcon className={`mr-2 ${isMobile ? "h-3 w-3" : "h-4 w-4"}`} />
+                    {isMobile ? "Menu" : "Account"}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
-                  className="w-56 bg-gray-900 border-gray-700" 
+                  className="w-56 bg-gray-900 border-gray-700 z-50" 
                   align="end"
+                  sideOffset={8}
                 >
                   <DropdownMenuLabel className="text-gray-300">
-                    {getUserDisplayName()}
+                    {isMobile ? getUserDisplayName().split('@')[0] : getUserDisplayName()}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-gray-700" />
                   {!isOnDashboard && (
@@ -114,7 +127,9 @@ export const Navigation = () => {
           {!user && (
             <Button 
               onClick={() => navigate('/auth')}
-              className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
+              className={`bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0 ${
+                isMobile ? "h-9 px-3 text-sm" : ""
+              }`}
             >
               Sign In
             </Button>

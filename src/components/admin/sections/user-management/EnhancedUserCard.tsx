@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Crown, Shield, Ban, ChevronDown, ChevronRight, AlertTriangle, Wallet, MessageSquare } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface EnhancedUserCardProps {
   user: any;
@@ -25,6 +26,7 @@ export const EnhancedUserCard = ({
   isProcessing
 }: EnhancedUserCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const isMobile = useIsMobile();
   
   const isAdmin = user.user_roles?.some((role: any) => role.role === 'admin');
   const credits = user.user_credits?.[0]?.balance || 0;
@@ -37,7 +39,9 @@ export const EnhancedUserCard = ({
         ? 'bg-red-900/20 border-2 border-red-600/50' 
         : 'bg-gray-900/50 border border-gray-700'
     }`}>
-      <div className="flex items-center justify-between">
+      <div className={`flex ${
+        isMobile ? "flex-col space-y-4" : "items-center justify-between"
+      }`}>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <h3 className="text-white font-medium">
@@ -83,7 +87,9 @@ export const EnhancedUserCard = ({
           )}
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-2 ${
+          isMobile ? "flex-wrap" : ""
+        }`}>
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="text-gray-400">
@@ -99,7 +105,9 @@ export const EnhancedUserCard = ({
                 <Button
                   onClick={onRemoveAdmin}
                   size="sm"
-                  className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
+                  className={`bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0 ${
+                    isMobile ? "text-xs px-2" : ""
+                  }`}
                   disabled={isProcessing || isCurrentUser}
                 >
                   <Shield className="h-4 w-4 mr-1" />
@@ -109,7 +117,9 @@ export const EnhancedUserCard = ({
                 <Button
                   onClick={onMakeAdmin}
                   size="sm"
-                  className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
+                  className={`bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0 ${
+                    isMobile ? "text-xs px-2" : ""
+                  }`}
                   disabled={isProcessing}
                 >
                   <Crown className="h-4 w-4 mr-1" />
@@ -120,7 +130,9 @@ export const EnhancedUserCard = ({
               <Button
                 onClick={onBanUser}
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
+                className={`bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0 ${
+                  isMobile ? "text-xs px-2" : ""
+                }`}
                 disabled={isProcessing || isCurrentUser}
               >
                 <Ban className="h-4 w-4 mr-1" />
@@ -131,7 +143,9 @@ export const EnhancedUserCard = ({
             <Button
               onClick={onUnbanUser}
               size="sm"
-              className="bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0"
+              className={`bg-blue-600 hover:bg-blue-400 hover:text-black text-white border-0 ${
+                isMobile ? "text-xs px-2" : ""
+              }`}
               disabled={isProcessing}
             >
               <Shield className="h-4 w-4 mr-1" />
@@ -150,7 +164,9 @@ export const EnhancedUserCard = ({
                 <MessageSquare className="h-4 w-4" />
                 Connected Social Accounts
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className={`grid gap-2 ${
+                isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+              }`}>
                 {user.social_accounts.map((social: any, index: number) => (
                   <div key={index} className="p-2 bg-gray-800/50 rounded text-sm">
                     <div className="flex items-center gap-2">
@@ -194,8 +210,13 @@ export const EnhancedUserCard = ({
                       {wallet.wallet_name && (
                         <span className="font-medium">{wallet.wallet_name}: </span>
                       )}
-                      <code className="text-xs bg-gray-700 px-1 py-0.5 rounded">
-                        {wallet.wallet_address}
+                      <code className={`bg-gray-700 px-1 py-0.5 rounded ${
+                        isMobile ? "text-xs break-all" : "text-xs"
+                      }`}>
+                        {isMobile 
+                          ? `${wallet.wallet_address.slice(0, 6)}...${wallet.wallet_address.slice(-4)}`
+                          : wallet.wallet_address
+                        }
                       </code>
                     </p>
                   </div>

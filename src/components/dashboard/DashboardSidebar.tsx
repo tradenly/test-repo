@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { 
   User, 
@@ -14,6 +13,15 @@ import {
   TreePine
 } from "lucide-react";
 import { DashboardSection } from "@/pages/Dashboard";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
 
 interface DashboardSidebarProps {
   activeSection: DashboardSection;
@@ -21,6 +29,8 @@ interface DashboardSidebarProps {
 }
 
 export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSidebarProps) => {
+  const isMobile = useIsMobile();
+  
   const menuItems = [
     { id: "overview" as DashboardSection, label: "Overview", icon: LayoutDashboard },
     { id: "profile" as DashboardSection, label: "Profile", icon: User },
@@ -35,6 +45,36 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
     { id: "rewards" as DashboardSection, label: "Rewards", icon: Gift },
   ];
 
+  if (isMobile) {
+    return (
+      <Sidebar className="border-r border-gray-800">
+        <SidebarHeader className="p-6">
+          <h2 className="text-xl font-bold text-white">💩 POOPEE Dashboard</h2>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu className="px-4">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    onClick={() => onSectionChange(item.id)}
+                    isActive={activeSection === item.id}
+                    className="w-full justify-start text-left"
+                  >
+                    <Icon className="mr-3 h-4 w-4" />
+                    <span>{item.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+    );
+  }
+
+  // Desktop sidebar (unchanged)
   return (
     <aside className="w-64 bg-gray-900/50 backdrop-blur-sm border-r border-gray-800 min-h-screen">
       <div className="p-6">
