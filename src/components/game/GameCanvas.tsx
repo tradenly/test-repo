@@ -8,7 +8,7 @@ import { GameControls } from './components/GameControls';
 import { MobileGameControls } from './components/MobileGameControls';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
-import { Play } from 'lucide-react';
+import { Play, RotateCcw } from 'lucide-react';
 
 interface GameCanvasProps {
   onGameEnd: (score: number, pipesPassedCount: number, duration: number) => void;
@@ -140,7 +140,10 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
             maxWidth: isMobile ? '100%' : '800px',
             width: isMobile ? '350px' : '800px',
             height: isMobile ? '500px' : '600px',
-            touchAction: 'none'
+            touchAction: 'none',
+            // Improved emoji font rendering
+            fontFamily: isMobile ? '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", system-ui, sans-serif' : 'system-ui, sans-serif',
+            fontWeight: 'bold'
           }}
           tabIndex={gameState === 'playing' ? 0 : -1}
           role="application"
@@ -178,10 +181,46 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           </div>
         )}
 
+        {/* Mobile-only centered game over overlay */}
+        {isMobile && gameState === 'gameOver' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg">
+            <div className="bg-gray-800/95 rounded-xl p-6 text-center shadow-xl border border-gray-600 max-w-xs w-full mx-4">
+              <h3 className="text-2xl font-bold text-white mb-3">Game Over!</h3>
+              <div className="text-4xl mb-3">💩</div>
+              <p className="text-xl text-yellow-400 mb-4">Score: {score}</p>
+              <p className="text-sm text-gray-300 mb-6">
+                Shields: {gameRef.current?.getCurrentShields() || 0}/{totalShields}
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={handleStartGame}
+                  disabled={!canPlay || !isInitialized}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 text-lg font-bold rounded-full shadow-lg transform transition-transform active:scale-95"
+                  style={{ minHeight: '50px' }}
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  Play Again
+                </Button>
+                
+                <Button
+                  onClick={handleResetGame}
+                  variant="outline"
+                  className="border-gray-500 text-white hover:bg-gray-700 px-6 py-3 text-base rounded-full shadow-lg transform transition-transform active:scale-95"
+                  style={{ minHeight: '50px' }}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Reset Game
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Mobile touch instruction overlay when playing */}
         {isMobile && gameState === 'playing' && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full text-sm animate-fade-in">
-            Tap anywhere to flap!
+            Tap anywhere to flap! 💩
           </div>
         )}
         

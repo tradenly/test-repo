@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Coins, Play, RotateCcw, Shield, Gauge } from "lucide-react";
+import { Coins, RotateCcw, Shield, Gauge } from "lucide-react";
 import type { GameSpeed } from '../useGameState';
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -48,7 +48,7 @@ export const MobileGameControls = ({
       <div className="flex flex-col gap-3">
         {/* Game Info */}
         <div className="text-center">
-          <h3 className="text-lg font-bold text-white mb-2">🦛 Flappy Hippos</h3>
+          <h3 className="text-lg font-bold text-white mb-2">💩 Flappy Hippos</h3>
           {gameState === 'starting' && (
             <p className="text-xl text-yellow-400 mb-2">Get Ready! {countdown}</p>
           )}
@@ -74,22 +74,12 @@ export const MobileGameControls = ({
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2">
-          {/* Only show start button for gameOver state, not menu state on mobile */}
+          {/* Only show reset button for gameOver state - Play Again is now centered on canvas */}
           {gameState === 'gameOver' && (
-            <>
-              <Button onClick={onResetGame} variant="outline" className="w-full text-base py-3">
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Reset Game
-              </Button>
-              <Button 
-                onClick={onStartGame} 
-                disabled={!canPlay || !isInitialized}
-                className="bg-green-600 hover:bg-green-500 w-full text-base py-3"
-              >
-                <Play className="h-4 w-4 mr-2" />
-                Play Again
-              </Button>
-            </>
+            <Button onClick={onResetGame} variant="outline" className="w-full text-base py-3">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset Game
+            </Button>
           )}
 
           {/* Shield Purchase - available in menu and gameOver states */}
