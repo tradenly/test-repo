@@ -210,6 +210,20 @@ export const useEarnCredits = () => {
   });
 };
 
+// Legacy alias for backwards compatibility
+export const useCreditOperations = () => {
+  const spendCredits = useSpendCredits();
+  const earnCredits = useEarnCredits();
+  
+  return {
+    deductCredits: async (amount: number, description: string) => {
+      // This would need a user ID - this is a compatibility shim
+      throw new Error("Use useSpendCredits hook directly instead");
+    },
+    earnCredits: earnCredits.mutateAsync
+  };
+};
+
 // New hook for checking if user can afford something
 export const useCanAffordCredits = () => {
   return {
