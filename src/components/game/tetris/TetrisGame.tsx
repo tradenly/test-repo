@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { TetrisEngine } from './TetrisEngine';
 import { TetrisRenderer } from './TetrisRenderer';
@@ -249,7 +248,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         <TetrisGameStats gameState={currentGameState} />
         
         {/* Game Controls - Prominent when not playing */}
-        {gameState !== 'playing' && (
+        {(gameState === 'menu' || gameState === 'gameOver') && (
           <TetrisGameControls
             isPlaying={false}
             isPaused={gameState === 'paused'}
