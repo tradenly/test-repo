@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Users, Coins, Share2, ExternalLink } from "lucide-react";
+import { Copy, Users, Coins, Share2, RefreshCw } from "lucide-react";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { useReferralData } from "@/hooks/useReferralData";
 
@@ -16,7 +16,8 @@ interface ReferralCardProps {
 export const ReferralCard = ({ user }: ReferralCardProps) => {
   const { toast } = useToast();
   const [copiedLink, setCopiedLink] = useState(false);
-  const { referral, referralStats, isLoadingReferral, isLoadingStats } = useReferralData(user.id);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const { referral, referralStats, isLoadingReferral, isLoadingStats, refetchReferral } = useReferralData(user.id);
 
   console.log("ReferralCard - referral data:", referral);
   console.log("ReferralCard - user ID:", user.id);
@@ -97,6 +98,25 @@ export const ReferralCard = ({ user }: ReferralCardProps) => {
     }
   };
 
+  const handleRetryFetch = async () => {
+    setIsRetrying(true);
+    try {
+      await refetchReferral();
+      toast({
+        title: "Refreshed!",
+        description: "Referral data has been refreshed",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to refresh referral data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
   if (isLoadingReferral) {
     return (
       <Card className="bg-gray-900/50 border-gray-800">
@@ -110,26 +130,42 @@ export const ReferralCard = ({ user }: ReferralCardProps) => {
     );
   }
 
-  // Show error state if no referral code is available
+  // Show setup state if no referral code is available
   if (!referral?.referral_code) {
     return (
-      <Card className="bg-red-900/20 border-red-600/30">
+      <Card className="bg-blue-900/20 border-blue-600/30">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <Share2 className="h-5 w-5 text-red-400" />
+            <Share2 className="h-5 w-5 text-blue-400" />
             Referral Link Setup
           </CardTitle>
           <CardDescription className="text-gray-300">
-            There was an issue setting up your referral link. Please try refreshing the page.
+            Your referral link is being set up. This usually happens automatically when you sign up.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button 
-            onClick={() => window.location.reload()} 
-            className="bg-red-600 hover:bg-red-700 text-white"
-          >
-            Refresh Page
-          </Button>
+        <CardContent className="space-y-4">
+          <div className="bg-blue-900/30 border border-blue-600/30 rounded-lg p-4">
+            <p className="text-sm text-blue-200 mb-3">
+              If you just signed up, your referral code might still be generating. Try refreshing to check if it's ready.
+            </p>
+            <Button 
+              onClick={handleRetryFetch}
+              disabled={isRetrying}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isRetrying ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Checking...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Check for Referral Code
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );

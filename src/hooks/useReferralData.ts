@@ -28,16 +28,16 @@ export interface ReferralStats {
 }
 
 export const useReferralData = (userId: string) => {
-  const referralQuery = useQuery<UserReferral>({
+  const referralQuery = useQuery<UserReferral | null>({
     queryKey: ["user-referral", userId],
     queryFn: async () => {
       console.log("Fetching referral code for user:", userId);
       
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("user_referrals")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle(); // Changed from .single() to .maybeSingle()
       
       if (error) {
         console.log("Referral fetch error:", error);
@@ -45,7 +45,7 @@ export const useReferralData = (userId: string) => {
       }
       
       console.log("Referral data:", data);
-      return data as UserReferral;
+      return data as UserReferral | null;
     },
     enabled: !!userId,
   });
@@ -55,7 +55,7 @@ export const useReferralData = (userId: string) => {
     queryFn: async () => {
       console.log("Fetching referral stats for user:", userId);
       
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("referral_transactions")
         .select("*")
         .eq("referrer_user_id", userId)
