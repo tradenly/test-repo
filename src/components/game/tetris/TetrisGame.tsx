@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { TetrisEngine } from './TetrisEngine';
 import { TetrisRenderer } from './TetrisRenderer';
@@ -63,29 +64,31 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
     };
   }, [handleKeyDown]);
 
-  const handleMoveLeft = useCallback(() => {
-    if (gameRef.current && gameState === 'playing') {
-      gameRef.current.moveLeft();
-    }
-  }, [gameState]);
-
-  const handleMoveRight = useCallback(() => {
-    if (gameRef.current && gameState === 'playing') {
-      gameRef.current.moveRight();
-    }
-  }, [gameState]);
-
-  const handleMoveDown = useCallback(() => {
-    if (gameRef.current && gameState === 'playing') {
-      gameRef.current.moveDown();
-    }
-  }, [gameState]);
-
-  const handleRotate = useCallback(() => {
-    if (gameRef.current && gameState === 'playing') {
-      gameRef.current.rotate();
-    }
-  }, [gameState]);
+  const handleMobileControls = {
+    moveLeft: useCallback(() => {
+      if (gameRef.current && gameState === 'playing') {
+        gameRef.current.moveLeft();
+      }
+    }, [gameState]),
+    
+    moveRight: useCallback(() => {
+      if (gameRef.current && gameState === 'playing') {
+        gameRef.current.moveRight();
+      }
+    }, [gameState]),
+    
+    moveDown: useCallback(() => {
+      if (gameRef.current && gameState === 'playing') {
+        gameRef.current.moveDown();
+      }
+    }, [gameState]),
+    
+    rotate: useCallback(() => {
+      if (gameRef.current && gameState === 'playing') {
+        gameRef.current.rotate();
+      }
+    }, [gameState])
+  };
 
   const handlePause = useCallback(() => {
     if (gameRef.current && gameState === 'playing') {
@@ -102,7 +105,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
 
     const canvas = canvasRef.current;
     
-    // Set proper canvas dimensions - larger for desktop
+    // Set proper canvas dimensions
     const canvasWidth = 600;
     const canvasHeight = 800;
     
@@ -233,10 +236,10 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         {isMobile && gameState === 'playing' && (
           <div className="mt-6 w-full flex justify-center">
             <MobileTetrisControls
-              onMoveLeft={handleMoveLeft}
-              onMoveRight={handleMoveRight}
-              onMoveDown={handleMoveDown}
-              onRotate={handleRotate}
+              onMoveLeft={handleMobileControls.moveLeft}
+              onMoveRight={handleMobileControls.moveRight}
+              onMoveDown={handleMobileControls.moveDown}
+              onRotate={handleMobileControls.rotate}
             />
           </div>
         )}
@@ -247,10 +250,10 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         {/* Game Stats */}
         <TetrisGameStats gameState={currentGameState} />
         
-        {/* Game Controls - Show for menu and game over states */}
+        {/* Game Controls - Show for menu and game over states only */}
         {(gameState === 'menu' || gameState === 'gameOver') && (
           <TetrisGameControls
-            isPlaying={gameState === 'playing'}
+            isPlaying={false}
             isPaused={false}
             isGameOver={gameState === 'gameOver'}
             selectedSpeed={selectedSpeed}
