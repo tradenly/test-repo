@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { TetrisEngine } from './TetrisEngine';
 import { TetrisRenderer } from './TetrisRenderer';
@@ -58,11 +57,13 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
   }, [gameState]);
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [handleKeyDown]);
+    if (!isMobile) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [handleKeyDown, isMobile]);
 
   const handleMobileControls = {
     moveLeft: useCallback(() => {
@@ -111,9 +112,9 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
 
     const canvas = canvasRef.current;
     
-    // Reduced canvas dimensions for better desktop experience
-    const canvasWidth = 600;
-    const canvasHeight = 600; // Reduced from 800 to 600 (25% reduction)
+    // Responsive canvas dimensions
+    const canvasWidth = isMobile ? 280 : 600;
+    const canvasHeight = isMobile ? 420 : 600;
     
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
@@ -186,7 +187,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         gameRef.current.stop();
       }
     };
-  }, [user.id, refetchSessions, toast]);
+  }, [user.id, refetchSessions, toast, isMobile]);
 
   const startGame = async (speed: GameSpeed = selectedSpeed) => {
     if (creditsBalance < 1) {
@@ -228,6 +229,102 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
     }
   };
 
+  if (isMobile) {
+    return (
+      <div className="w-full max-w-sm mx-auto bg-black min-h-screen">
+        {/* Mobile Layout - Vertical Stack */}
+        <div className="flex flex-col gap-4 p-4">
+          
+          {/* Mobile Game Stats - Horizontal */}
+          <div className="w-full">
+            <TetrisGameStats gameState={currentGameState} />
+          </div>
+
+          {/* Mobile Game Canvas */}
+          <div className="flex justify-center">
+            <div className="relative">
+              <canvas
+                ref={canvasRef}
+                className="border-2 border-gray-300 rounded-lg bg-black"
+                style={{ 
+                  touchAction: 'none',
+                  maxWidth: '100%',
+                  height: 'auto'
+                }}
+              />
+              
+              {/* Game Status Overlay */}
+              {gameState === 'paused' && (
+                <div className="absolute inset-0 bg-black/80 flex items-center justify-center rounded-lg">
+                  <div className="text-white text-xl font-bold">PAUSED</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Mobile Controls - Always visible when playing */}
+          {gameState === 'playing' && (
+            <div className="w-full">
+              <MobileTetrisControls
+                onMoveLeft={handleMobileControls.moveLeft}
+                onMoveRight={handleMobileControls.moveRight}
+                onMoveDown={handleMobileControls.moveDown}
+                onRotate={handleMobileControls.rotate}
+                onDrop={handleMobileControls.drop}
+              />
+            </div>
+          )}
+
+          {/* Mobile Next Piece - Show when playing */}
+          {gameState === 'playing' && currentGameState?.nextPiece && (
+            <div className="w-full">
+              <TetrisNextPiece gameState={currentGameState} />
+            </div>
+          )}
+
+          {/* Mobile Game Controls - Show for menu and game over */}
+          {(gameState === 'menu' || gameState === 'gameOver') && (
+            <div className="w-full">
+              <TetrisGameControls
+                isPlaying={false}
+                isPaused={false}
+                isGameOver={gameState === 'gameOver'}
+                selectedSpeed={selectedSpeed}
+                creditsBalance={creditsBalance}
+                onStart={startGame}
+                onPause={handlePause}
+                onReset={resetGame}
+                onSpeedChange={setSelectedSpeed}
+              />
+            </div>
+          )}
+          
+          {/* Mobile Pause/Resume controls when playing or paused */}
+          {(gameState === 'playing' || gameState === 'paused') && (
+            <div className="w-full bg-gray-800/40 border border-gray-700 rounded-lg p-4">
+              <div className="flex gap-2">
+                <button 
+                  onClick={handlePause}
+                  className="flex-1 px-4 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium text-lg"
+                >
+                  {gameState === 'paused' ? 'Resume' : 'Pause'}
+                </button>
+                <button 
+                  onClick={resetGame}
+                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium text-lg"
+                >
+                  Quit
+                </button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop layout (unchanged)
   return (
     <div className="flex gap-8 items-start justify-center p-6 max-w-7xl mx-auto">
       {/* Game Canvas */}
@@ -237,23 +334,10 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
           className="border-4 border-gray-300 rounded-xl shadow-2xl bg-black"
           style={{ 
             touchAction: 'none',
-            maxWidth: isMobile ? '100%' : '600px',
+            maxWidth: '600px',
             height: 'auto'
           }}
         />
-        
-        {/* Mobile Controls - Enhanced with directional arrows */}
-        {isMobile && gameState === 'playing' && (
-          <div className="mt-4 w-full flex justify-center">
-            <MobileTetrisControls
-              onMoveLeft={handleMobileControls.moveLeft}
-              onMoveRight={handleMobileControls.moveRight}
-              onMoveDown={handleMobileControls.moveDown}
-              onRotate={handleMobileControls.rotate}
-              onDrop={handleMobileControls.drop}
-            />
-          </div>
-        )}
       </div>
 
       {/* Side Panel */}

@@ -23,81 +23,72 @@ export const MobileTetrisControls = ({
   };
 
   return (
-    <div className="flex flex-col gap-3 w-full max-w-[280px] bg-gray-800/60 p-4 rounded-lg">
-      <div className="text-sm text-white text-center mb-2 font-medium">Game Controls</div>
+    <div className="w-full bg-gray-800/80 border border-gray-600 rounded-lg p-3">
+      <div className="text-xs text-white text-center mb-3 font-medium">Touch Controls</div>
       
-      {/* Top row - Rotate and Drop */}
-      <div className="flex justify-center gap-3">
+      {/* Top row - Rotate and Hard Drop */}
+      <div className="flex justify-center gap-4 mb-3">
         <Button
           onTouchStart={handleTouchAction(onRotate)}
           onMouseDown={handleTouchAction(onRotate)}
-          className="w-14 h-14 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 transition-colors flex flex-col items-center justify-center"
+          className="w-16 h-16 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 transition-colors flex flex-col items-center justify-center rounded-xl"
           size="sm"
         >
-          <RotateCw className="h-5 w-5" />
-          <span className="text-xs mt-1">↻</span>
+          <RotateCw className="h-6 w-6" />
+          <span className="text-xs mt-1 font-bold">ROTATE</span>
         </Button>
         
         {onDrop && (
           <Button
             onTouchStart={handleTouchAction(onDrop)}
             onMouseDown={handleTouchAction(onDrop)}
-            className="w-14 h-14 bg-red-600 hover:bg-red-700 active:bg-red-800 transition-colors flex flex-col items-center justify-center"
+            className="w-16 h-16 bg-red-600 hover:bg-red-700 active:bg-red-800 transition-colors flex flex-col items-center justify-center rounded-xl"
             size="sm"
           >
-            <ArrowDown className="h-5 w-5" />
-            <span className="text-xs mt-1">Drop</span>
+            <ArrowDown className="h-6 w-6" />
+            <span className="text-xs mt-1 font-bold">DROP</span>
           </Button>
         )}
       </div>
 
-      {/* Middle row - Directional movement */}
-      <div className="grid grid-cols-3 gap-2 place-items-center">
-        {/* Empty space */}
-        <div></div>
-        
-        {/* Soft Drop */}
-        <Button
-          onTouchStart={handleTouchAction(onMoveDown)}
-          onMouseDown={handleTouchAction(onMoveDown)}
-          className="w-14 h-14 bg-green-600 hover:bg-green-700 active:bg-green-800 transition-colors flex flex-col items-center justify-center"
-          size="sm"
-        >
-          <ArrowDown className="h-5 w-5" />
-          <span className="text-xs mt-1">↓</span>
-        </Button>
-        
-        {/* Empty space */}
-        <div></div>
-        
+      {/* Bottom row - Movement controls */}
+      <div className="flex justify-center items-center gap-2">
         {/* Move Left */}
         <Button
           onTouchStart={handleTouchAction(onMoveLeft)}
           onMouseDown={handleTouchAction(onMoveLeft)}
-          className="w-14 h-14 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors flex flex-col items-center justify-center"
+          className="w-16 h-16 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors flex flex-col items-center justify-center rounded-xl"
           size="sm"
         >
-          <ArrowLeft className="h-5 w-5" />
-          <span className="text-xs mt-1">←</span>
+          <ArrowLeft className="h-6 w-6" />
+          <span className="text-xs mt-1 font-bold">LEFT</span>
         </Button>
         
-        {/* Empty space for center */}
-        <div></div>
+        {/* Soft Drop (Center) */}
+        <Button
+          onTouchStart={handleTouchAction(onMoveDown)}
+          onMouseDown={handleTouchAction(onMoveDown)}
+          className="w-16 h-16 bg-green-600 hover:bg-green-700 active:bg-green-800 transition-colors flex flex-col items-center justify-center rounded-xl"
+          size="sm"
+        >
+          <ArrowDown className="h-6 w-6" />
+          <span className="text-xs mt-1 font-bold">DOWN</span>
+        </Button>
         
         {/* Move Right */}
         <Button
           onTouchStart={handleTouchAction(onMoveRight)}
           onMouseDown={handleTouchAction(onMoveRight)}
-          className="w-14 h-14 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors flex flex-col items-center justify-center"
+          className="w-16 h-16 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors flex flex-col items-center justify-center rounded-xl"
           size="sm"
         >
-          <ArrowRight className="h-5 w-5" />
-          <span className="text-xs mt-1">→</span>
+          <ArrowRight className="h-6 w-6" />
+          <span className="text-xs mt-1 font-bold">RIGHT</span>
         </Button>
       </div>
       
-      <div className="text-xs text-gray-300 text-center mt-2">
-        Touch controls • ← → move • ↓ soft drop • Drop = hard drop • ↻ rotate
+      <div className="text-xs text-gray-300 text-center mt-3 leading-tight">
+        Touch and hold for continuous movement • Use rotate to turn pieces
       </div>
     </div>
   );
