@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { TetrisEngine } from './TetrisEngine';
 import { UnifiedUser } from '@/hooks/useUnifiedAuth';
@@ -60,6 +61,11 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);
+
+  const handleMobileControls = useCallback(() => {
+    // Mobile control handlers - only active when playing and on mobile
+    if (!gameRef.current || gameState !== 'playing' || !isMobile) return;
+  }, [gameState, isMobile]);
 
   const handleMoveLeft = useCallback(() => {
     if (gameRef.current && gameState === 'playing') {
@@ -167,7 +173,8 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
     };
   }, [user.id, refetchSessions, toast, isMobile]);
 
-  const startGame = async () => {
+  // Fixed startGame function to accept GameSpeed parameter
+  const startGame = async (speed: GameSpeed = selectedSpeed) => {
     if (creditsBalance < 1) {
       toast({
         title: "Insufficient Credits",
@@ -186,7 +193,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
       
       setGameState('playing');
       if (gameRef.current) {
-        gameRef.current.start(selectedSpeed);
+        gameRef.current.start(speed);
       }
     } catch (error) {
       console.error('Error deducting credits:', error);
@@ -238,7 +245,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         {/* Game Controls - Show when not playing */}
         {gameState !== 'playing' && (
           <TetrisGameControls
-            isPlaying={false}
+            isPlaying={gameState === 'playing'}
             isPaused={gameState === 'paused'}
             isGameOver={gameState === 'gameOver'}
             selectedSpeed={selectedSpeed}
