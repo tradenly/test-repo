@@ -62,11 +62,6 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
     };
   }, [handleKeyDown]);
 
-  const handleMobileControls = useCallback(() => {
-    // Mobile control handlers - only active when playing and on mobile
-    if (!gameRef.current || gameState !== 'playing' || !isMobile) return;
-  }, [gameState, isMobile]);
-
   const handleMoveLeft = useCallback(() => {
     if (gameRef.current && gameState === 'playing') {
       gameRef.current.moveLeft();
@@ -245,7 +240,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         {/* Game Controls - Show when not playing */}
         {gameState !== 'playing' && (
           <TetrisGameControls
-            isPlaying={gameState === 'playing'}
+            isPlaying={false}
             isPaused={gameState === 'paused'}
             isGameOver={gameState === 'gameOver'}
             selectedSpeed={selectedSpeed}
