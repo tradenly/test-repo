@@ -238,7 +238,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         {/* Game Controls - Show when not playing */}
         {gameState !== 'playing' && (
           <TetrisGameControls
-            isPlaying={gameState === 'playing'}
+            isPlaying={false}
             isPaused={gameState === 'paused'}
             isGameOver={gameState === 'gameOver'}
             selectedSpeed={selectedSpeed}
