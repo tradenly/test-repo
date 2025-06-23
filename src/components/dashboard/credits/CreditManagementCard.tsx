@@ -14,6 +14,7 @@ import { CreditStatsDisplay } from "./CreditStatsDisplay";
 import { CashoutForm } from "./CashoutForm";
 import { CreditTransactionHistory } from "./CreditTransactionHistory";
 import { RecentCashoutRequests } from "./RecentCashoutRequests";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CreditManagementCardProps {
   user: UnifiedUser;
@@ -25,6 +26,8 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
   const { data: cashoutRequestsData } = useCashoutRequests(user.id);
   const [cashoutAmount, setCashoutAmount] = useState<number>(0);
   const [selectedWallet, setSelectedWallet] = useState("");
+  const [showMobileTitle, setShowMobileTitle] = useState<string | null>(null);
+  const isMobile = useIsMobile();
   
   const createCashoutMutation = useCreateCashoutRequest();
 
@@ -54,6 +57,13 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
     });
   };
 
+  const handleMobileTitleShow = (title: string) => {
+    if (isMobile) {
+      setShowMobileTitle(title);
+      setTimeout(() => setShowMobileTitle(null), 1500);
+    }
+  };
+
   return (
     <Card className="bg-gray-800/40 border-gray-700">
       <CardHeader>
@@ -73,28 +83,53 @@ export const CreditManagementCard = ({ user }: CreditManagementCardProps) => {
         />
 
         <Tabs defaultValue="redeem" className="mt-6">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-700">
-            <TabsTrigger value="redeem" className="data-[state=active]:bg-gray-600">
-              <Gift className="h-4 w-4 mr-2" />
-              Redeem Credits
-            </TabsTrigger>
-            <TabsTrigger value="cashout" className="data-[state=active]:bg-gray-600">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Cash Out
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="h-3 w-3 text-gray-400 hover:text-white cursor-help ml-1" />
-                </TooltipTrigger>
-                <TooltipContent className="bg-gray-800 border-gray-600 text-white max-w-sm">
-                  <p>Cashing out credits can take up to<br />24 hours for security reasons and<br />to verify legitimacy of claim.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-gray-600">
-              <History className="h-4 w-4 mr-2" />
-              History
-            </TabsTrigger>
-          </TabsList>
+          <div className="relative">
+            <TabsList className="grid w-full grid-cols-3 bg-gray-700">
+              <TabsTrigger 
+                value="redeem" 
+                className="data-[state=active]:bg-gray-600 relative min-h-[44px] flex items-center justify-center"
+                onClick={() => handleMobileTitleShow("Redeem Credits")}
+              >
+                <Gift className="h-4 w-4" />
+                {!isMobile && <span className="ml-2">Redeem Credits</span>}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="cashout" 
+                className="data-[state=active]:bg-gray-600 relative min-h-[44px] flex items-center justify-center"
+                onClick={() => handleMobileTitleShow("Cash Out")}
+              >
+                <TrendingUp className="h-4 w-4" />
+                {!isMobile && <span className="ml-2">Cash Out</span>}
+                {!isMobile && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-3 w-3 text-gray-400 hover:text-white cursor-help ml-1" />
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-gray-800 border-gray-600 text-white max-w-sm">
+                      <p>Cashing out credits can take up to<br />24 hours for security reasons and<br />to verify legitimacy of claim.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="history" 
+                className="data-[state=active]:bg-gray-600 relative min-h-[44px] flex items-center justify-center"
+                onClick={() => handleMobileTitleShow("History")}
+              >
+                <History className="h-4 w-4" />
+                {!isMobile && <span className="ml-2">History</span>}
+              </TabsTrigger>
+            </TabsList>
+            
+            {/* Mobile Title Popup */}
+            {isMobile && showMobileTitle && (
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50">
+                <div className="bg-gray-800 border border-gray-600 text-white px-3 py-2 rounded-md shadow-lg animate-fade-in">
+                  <p className="text-sm font-medium">{showMobileTitle}</p>
+                </div>
+              </div>
+            )}
+          </div>
 
           <TabsContent value="redeem" className="space-y-4">
             <WalletVerificationForm user={user} />
