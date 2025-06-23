@@ -11,28 +11,26 @@ import {
   Gamepad2,
   Trophy,
   FileText,
-  TreePine
+  TreePine,
+  X
 } from "lucide-react";
 import { DashboardSection } from "@/pages/Dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
 
 interface DashboardSidebarProps {
   activeSection: DashboardSection;
   onSectionChange: (section: DashboardSection) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSidebarProps) => {
+export const DashboardSidebar = ({ 
+  activeSection, 
+  onSectionChange, 
+  isOpen = false, 
+  onClose 
+}: DashboardSidebarProps) => {
   const isMobile = useIsMobile();
-  const { setOpenMobile } = useSidebar();
   
   const menuItems = [
     { id: "overview" as DashboardSection, label: "Overview", icon: LayoutDashboard, isIconComponent: true },
@@ -49,48 +47,66 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
     { id: "rewards" as DashboardSection, label: "Rewards", icon: Gift, isIconComponent: true },
   ];
 
-  const handleMobileMenuClick = (sectionId: DashboardSection) => {
+  const handleMenuClick = (sectionId: DashboardSection) => {
     onSectionChange(sectionId);
-    if (isMobile) {
-      setOpenMobile(false);
+    if (isMobile && onClose) {
+      onClose();
     }
   };
 
   if (isMobile) {
     return (
-      <Sidebar className="border-r border-gray-800 bg-gray-900 dark">
-        <SidebarHeader className="p-6 bg-gray-900">
-          <h2 className="text-xl font-bold text-white">💩 POOPEE Dashboard</h2>
-        </SidebarHeader>
-        <SidebarContent className="bg-gray-900">
-          <SidebarMenu className="px-4">
-            {menuItems.map((item) => {
-              const IconComponent = item.isIconComponent ? item.icon : null;
-              
-              return (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    onClick={() => handleMobileMenuClick(item.id)}
-                    isActive={activeSection === item.id}
-                    className={`w-full justify-start text-left text-white hover:bg-gray-800 hover:text-white ${
+      <>
+        {/* Backdrop */}
+        {isOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={onClose}
+          />
+        )}
+        
+        {/* Mobile Menu */}
+        <div className={`fixed left-0 top-0 h-full w-80 bg-gray-900 z-50 transform transition-transform duration-300 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white">💩 POOPEE Dashboard</h2>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <nav className="space-y-2">
+              {menuItems.map((item) => {
+                const IconComponent = item.isIconComponent ? item.icon : null;
+                
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleMenuClick(item.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                       activeSection === item.id 
                         ? "bg-gray-700 text-white font-medium" 
-                        : ""
+                        : "text-gray-300 hover:text-white hover:bg-gray-800"
                     }`}
                   >
                     {item.isIconComponent && IconComponent ? (
-                      <IconComponent className="mr-3 h-4 w-4" />
+                      <IconComponent className="h-4 w-4" />
                     ) : (
-                      <span className="mr-3 text-lg">{item.icon as string}</span>
+                      <span className="text-lg">{item.icon as string}</span>
                     )}
                     <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarContent>
-      </Sidebar>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      </>
     );
   }
 
