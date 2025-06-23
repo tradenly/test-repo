@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 import { useNavigate } from "react-router-dom";
@@ -89,8 +88,8 @@ export const WhatYouGetSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-6">
               <img 
-                src="/lovable-uploads/5d48fcd1-825e-49ca-86d5-7701ab393070.png" 
-                alt="Cute sitting hippo with pink accents" 
+                src="/lovable-uploads/70b8ec5d-bdc5-497f-823d-a9526fdc2baa.png" 
+                alt="Cool blue hippo with gold chain and sunglasses" 
                 className="w-20 h-20 mx-auto rounded-lg"
               />
             </div>
