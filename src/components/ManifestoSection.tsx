@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
@@ -21,29 +20,34 @@ export const ManifestoSection = () => {
 
   const manifestoItems = [
     {
-      icon: "🧠",
-      title: "ZERO UTILITY",
-      description: "Designed for intellectual rot."
+      icon: "🍩",
+      title: "THICC HIPPO ENERGY",
+      description: "Weights vary. Morals do not. (No known use case, but vibes are high.)"
     },
     {
-      icon: "📉",
-      title: "GOING TO ZERO", 
-      description: "We expect nothing, and so should you."
+      icon: "💩",
+      title: "FULL DEGEN MODE", 
+      description: "We built a toiletverse and we call it Tropical Fatty's. You entered willingly."
     },
     {
-      icon: "🦛",
-      title: "TROPICAL FATTY-BORN",
-      description: "Raised by degenerates, ignored by adults."
+      icon: "🎮",
+      title: "GAMES NO ONE ASKED FOR",
+      description: "Play Flappy Hippos, Falling Logs, and POOPEE Crush. Earn credits. Cry in silence."
     },
     {
-      icon: "🌈",
-      title: "MULTICHAIN MAYHEM",
-      description: "SUI and Cardano, because why not."
+      icon: "🛠",
+      title: "STAKING, SORTA",
+      description: "Stake NFTs. Stake tokens. Wonder why you did."
     },
     {
-      icon: "📜",
-      title: "NO ROADMAP",
-      description: "If there was one, it would've been forgotten already."
+      icon: "🪙",
+      title: "USDC IN, USDC OUT",
+      description: "Buy credits with USDC on 3 chains. Regret available instantly."
+    },
+    {
+      icon: "🌪",
+      title: "CHAOTIC NONSENSE",
+      description: "We work on vibes and peer pressure. Multichain? Sure. Roadmap? Nah."
     }
   ];
 
