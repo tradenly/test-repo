@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useGameSessions } from "@/hooks/useGameSessions";
 import { useCredits } from "@/hooks/useCredits";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Target, Clock, Zap } from "lucide-react";
+import { Trophy, Target, Clock, Zap, Play } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FallingLogsSectionProps {
