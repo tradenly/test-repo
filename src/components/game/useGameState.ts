@@ -42,16 +42,26 @@ export const useGameState = () => {
     setGameState('gameOver');
   }, []);
 
-  const resetGame = useCallback(() => {
-    console.log("🔄 Resetting game to fresh state");
+  // NEW: Play Again function that preserves purchased shields
+  const playAgain = useCallback(() => {
+    console.log("🔄 Play Again - preserving purchased shields:", purchasedShields);
     setGameState('menu');
     setScore(0);
     setCountdown(0);
-    // CRITICAL: Reset purchased shields to 0 when resetting game
+    // CRITICAL: DO NOT reset purchased shields for Play Again
+    console.log("🔄 Play Again complete - shields preserved at:", 3 + purchasedShields);
+  }, [purchasedShields]);
+
+  // MODIFIED: Full reset function for complete game reset
+  const resetGame = useCallback(() => {
+    console.log("🔄 Full Reset - clearing all purchased shields");
+    setGameState('menu');
+    setScore(0);
+    setCountdown(0);
+    // CRITICAL: Reset purchased shields to 0 ONLY for full reset
     console.log("🔄 Clearing purchased shields from", purchasedShields, "to 0");
     setPurchasedShields(0);
-    // Keep speed setting when resetting
-    console.log("🔄 Game reset complete - shields back to 3, speed remains:", gameSpeed);
+    console.log("🔄 Full reset complete - shields back to 3, speed remains:", gameSpeed);
   }, [gameSpeed, purchasedShields]);
 
   const buyShields = useCallback(() => {
@@ -76,7 +86,8 @@ export const useGameState = () => {
     countdown,
     startGame,
     endGame,
-    resetGame,
+    playAgain, // NEW: Play Again preserves shields
+    resetGame, // MODIFIED: Full reset clears shields
     buyShields,
     changeSpeed
   };

@@ -1,4 +1,3 @@
-
 import { HippoState } from './GamePhysics';
 import { Pipe, Missile } from './CollisionDetector';
 
@@ -100,18 +99,19 @@ export class GameRenderer {
     this.ctx.save();
     this.ctx.translate(missile.x + missile.width/2, missile.y + missile.height/2);
     
-    this.ctx.shadowColor = 'rgba(255, 0, 0, 0.8)';
-    this.ctx.shadowBlur = 15;
+    // Enhanced emoji rendering with proper font stack
+    this.ctx.font = 'bold 60px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", "EmojiOne Mozilla", "Twemoji Mozilla", "Segoe UI Symbol", "Noto Color Emoji", system-ui, sans-serif';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    
+    // Clear shadow effects that might interfere with emoji
+    this.ctx.shadowColor = 'transparent';
+    this.ctx.shadowBlur = 0;
     this.ctx.shadowOffsetX = 0;
     this.ctx.shadowOffsetY = 0;
     
-    this.ctx.font = 'bold 60px Arial';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
+    // Render the poop emoji directly without shadow effects
     this.ctx.fillText('🦛', 0, 0);
-    
-    this.ctx.shadowColor = 'transparent';
-    this.ctx.shadowBlur = 0;
     
     this.ctx.restore();
   }
@@ -145,23 +145,21 @@ export class GameRenderer {
       this.ctx.globalAlpha = 0.5;
     }
     
-    this.ctx.font = 'bold 50px Arial';
+    // FIXED: Enhanced emoji font rendering for poop emoji
+    this.ctx.font = 'bold 50px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", "EmojiOne Mozilla", "Twemoji Mozilla", "Segoe UI Symbol", system-ui, sans-serif';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     
-    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    this.ctx.shadowBlur = 8;
-    this.ctx.shadowOffsetX = 2;
-    this.ctx.shadowOffsetY = 2;
-    
-    this.ctx.fillText('💩', 0, 0);
-    
+    // Remove shadow effects that interfere with emoji rendering
     this.ctx.shadowColor = 'transparent';
     this.ctx.shadowBlur = 0;
     this.ctx.shadowOffsetX = 0;
     this.ctx.shadowOffsetY = 0;
-    this.ctx.globalAlpha = 1;
     
+    // Render the poop emoji with enhanced font support
+    this.ctx.fillText('💩', 0, 0);
+    
+    this.ctx.globalAlpha = 1;
     this.ctx.restore();
   }
 

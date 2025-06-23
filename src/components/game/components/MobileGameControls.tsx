@@ -74,11 +74,11 @@ export const MobileGameControls = ({
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2">
-          {/* Only show reset button for gameOver state - Play Again is now centered on canvas */}
+          {/* UPDATED: Only show Full Reset button for gameOver state - Play Again is now centered on canvas */}
           {gameState === 'gameOver' && (
             <Button onClick={onResetGame} variant="outline" className="w-full text-base py-3">
               <RotateCcw className="h-4 w-4 mr-2" />
-              Reset Game
+              Full Reset
             </Button>
           )}
 

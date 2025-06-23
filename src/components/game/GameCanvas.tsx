@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useGameState } from './useGameState';
 import { useGameCanvasState } from './hooks/useGameCanvasState';
@@ -38,7 +37,8 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     countdown,
     startGame: startGameState,
     endGame,
-    resetGame: resetGameState,
+    playAgain, // NEW: Use playAgain instead of resetGame for preserving shields
+    resetGame: resetGameState, // Keep full reset for Reset button
     buyShields: buyShieldsState,
     changeSpeed
   } = useGameState();
@@ -87,8 +87,17 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     }
   };
 
+  // NEW: Handle Play Again (preserves shields)
+  const handlePlayAgain = () => {
+    console.log("🔄 Play Again clicked - preserving shields");
+    playAgain(); // Use playAgain instead of resetGame
+    engineResetGame();
+  };
+
+  // MODIFIED: Handle Full Reset (clears shields)
   const handleResetGame = () => {
-    resetGameState();
+    console.log("🔄 Full Reset clicked - clearing shields");
+    resetGameState(); // Full reset clears purchased shields
     engineResetGame();
   };
 
@@ -141,8 +150,8 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
             width: isMobile ? '350px' : '800px',
             height: isMobile ? '500px' : '600px',
             touchAction: 'none',
-            // Improved emoji font rendering
-            fontFamily: isMobile ? '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", system-ui, sans-serif' : 'system-ui, sans-serif',
+            // Enhanced emoji font rendering
+            fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", system-ui, sans-serif',
             fontWeight: 'bold'
           }}
           tabIndex={gameState === 'playing' ? 0 : -1}
@@ -181,7 +190,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           </div>
         )}
 
-        {/* Mobile-only centered game over overlay */}
+        {/* UPDATED: Mobile-only centered game over overlay with Play Again */}
         {isMobile && gameState === 'gameOver' && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg">
             <div className="bg-gray-800/95 rounded-xl p-6 text-center shadow-xl border border-gray-600 max-w-xs w-full mx-4">
@@ -194,7 +203,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
               
               <div className="flex flex-col gap-3">
                 <Button
-                  onClick={handleStartGame}
+                  onClick={handlePlayAgain}
                   disabled={!canPlay || !isInitialized}
                   className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 text-lg font-bold rounded-full shadow-lg transform transition-transform active:scale-95"
                   style={{ minHeight: '50px' }}
