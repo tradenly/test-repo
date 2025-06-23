@@ -1,6 +1,7 @@
+
 import { useState, useCallback, useEffect } from 'react';
 
-export type GameState = 'menu' | 'playing' | 'gameOver';
+export type GameState = 'menu' | 'starting' | 'playing' | 'gameOver';
 export type GameSpeed = 'beginner' | 'moderate' | 'advanced';
 
 export const useGameState = () => {
@@ -9,6 +10,7 @@ export const useGameState = () => {
   const [gameStartTime, setGameStartTime] = useState<number>(0);
   const [purchasedShields, setPurchasedShields] = useState(0);
   const [gameSpeed, setGameSpeed] = useState<GameSpeed>('moderate');
+  const [countdown, setCountdown] = useState(0);
 
   // Always start with 3 base shields + any purchased shields
   const totalShields = 3 + purchasedShields;
@@ -17,9 +19,22 @@ export const useGameState = () => {
 
   const startGame = useCallback(() => {
     console.log("🎮 Starting game with shields:", totalShields, "and speed:", gameSpeed);
-    setGameState('playing');
+    setGameState('starting');
     setScore(0);
-    setGameStartTime(Date.now());
+    setCountdown(3);
+    
+    // Countdown timer
+    const countdownInterval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          setGameState('playing');
+          setGameStartTime(Date.now());
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   }, [totalShields, gameSpeed]);
 
   const endGame = useCallback(() => {
@@ -31,6 +46,7 @@ export const useGameState = () => {
     console.log("🔄 Resetting game to fresh state");
     setGameState('menu');
     setScore(0);
+    setCountdown(0);
     // CRITICAL: Reset purchased shields to 0 when resetting game
     console.log("🔄 Clearing purchased shields from", purchasedShields, "to 0");
     setPurchasedShields(0);
@@ -57,6 +73,7 @@ export const useGameState = () => {
     purchasedShields,
     totalShields,
     gameSpeed,
+    countdown,
     startGame,
     endGame,
     resetGame,

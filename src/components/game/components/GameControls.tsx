@@ -70,5 +70,6 @@ export const GameControls = ({
     );
   }
 
+  // During 'starting' and 'playing' states, don't show desktop controls
   return null;
 };

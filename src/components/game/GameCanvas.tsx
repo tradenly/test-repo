@@ -35,6 +35,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     setScore,
     totalShields,
     gameSpeed,
+    countdown,
     startGame: startGameState,
     endGame,
     resetGame: resetGameState,
@@ -75,7 +76,15 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     
     onGameStart();
     startGameState();
-    engineStartGame();
+    
+    // Delay the engine start for mobile countdown
+    if (isMobile) {
+      setTimeout(() => {
+        engineStartGame();
+      }, 3000); // 3 second countdown
+    } else {
+      engineStartGame();
+    }
   };
 
   const handleResetGame = () => {
@@ -112,6 +121,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
             canPlay={canPlay}
             isInitialized={isInitialized}
             gameSpeed={gameSpeed}
+            countdown={countdown}
             onStartGame={handleStartGame}
             onResetGame={handleResetGame}
             onBuyShields={buyShields}
@@ -147,7 +157,8 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
             <Button
               onClick={handleStartGame}
               disabled={!canPlay || !isInitialized}
-              className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg font-bold rounded-full shadow-lg"
+              className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg font-bold rounded-full shadow-lg transform transition-transform active:scale-95"
+              style={{ minHeight: '60px', minWidth: '160px' }}
             >
               <Play className="h-6 w-6 mr-2" />
               {!isInitialized ? 'Loading...' : canPlay ? 'TAP TO START' : 'No Credits'}
@@ -155,9 +166,21 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           </div>
         )}
 
+        {/* Mobile countdown overlay when starting */}
+        {isMobile && gameState === 'starting' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
+            <div className="text-center">
+              <div className="text-6xl font-bold text-white mb-2 animate-pulse">
+                {countdown > 0 ? countdown : 'GO!'}
+              </div>
+              <div className="text-lg text-gray-200">Get Ready!</div>
+            </div>
+          </div>
+        )}
+
         {/* Mobile touch instruction overlay when playing */}
         {isMobile && gameState === 'playing' && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full text-sm">
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full text-sm animate-fade-in">
             Tap anywhere to flap!
           </div>
         )}
