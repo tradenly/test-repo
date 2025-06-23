@@ -2,6 +2,7 @@
 import React from "react";
 import { TileType } from "./EnhancedTileTypes";
 import { AnimationEvent } from "./EnhancedGameEngine";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface EnhancedGameBoardProps {
   board: TileType[][];
@@ -22,6 +23,8 @@ export const EnhancedGameBoard = ({
   hammerMode = false,
   onHammerTarget
 }: EnhancedGameBoardProps) => {
+  const isMobile = useIsMobile();
+
   const getTileEmoji = (tile: TileType): string => {
     switch (tile) {
       case TileType.POOP: return "💩";
@@ -41,7 +44,11 @@ export const EnhancedGameBoard = ({
   };
 
   const getTileClassName = (row: number, col: number, tile: TileType): string => {
-    let className = "w-12 h-12 flex items-center justify-center text-2xl rounded-lg border-2 cursor-pointer transition-all duration-200 ";
+    // Adjust tile size based on mobile/desktop
+    const baseSize = isMobile ? "w-10 h-10" : "w-12 h-12";
+    const textSize = isMobile ? "text-xl" : "text-2xl";
+    
+    let className = `${baseSize} flex items-center justify-center ${textSize} rounded-lg border-2 cursor-pointer transition-all duration-200 `;
     
     // Handle hammer mode styling
     if (hammerMode && tile !== TileType.BLOCKED && tile !== TileType.EMPTY) {
@@ -127,6 +134,10 @@ export const EnhancedGameBoard = ({
     );
   }
 
+  // Adjust grid gap and padding based on mobile/desktop
+  const gridGap = isMobile ? "gap-2" : "gap-1";
+  const containerPadding = isMobile ? "p-2" : "p-4";
+
   return (
     <div className="flex flex-col items-center space-y-2">
       {hammerMode && (
@@ -138,7 +149,7 @@ export const EnhancedGameBoard = ({
         </div>
       )}
       
-      <div className="grid grid-cols-8 gap-1 p-4 bg-gray-900/30 rounded-lg border border-gray-700">
+      <div className={`grid grid-cols-8 ${gridGap} ${containerPadding} bg-gray-900/30 rounded-lg border border-gray-700`}>
         {board.map((row, rowIndex) =>
           row.map((tile, colIndex) => (
             <div
