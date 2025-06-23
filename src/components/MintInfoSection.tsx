@@ -113,8 +113,8 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
-            <p className="text-white font-bold">Roadmap Leak</p>
-            <p className="text-sm text-gray-300">There Isn't One</p>
+            <p className="text-white font-bold">Poopee Crush</p>
+            <p className="text-sm text-gray-300">Candy Crush Rip Off</p>
           </div>
 
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
