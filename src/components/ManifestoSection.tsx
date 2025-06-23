@@ -60,7 +60,7 @@ export const ManifestoSection = () => {
               <img 
                 src="/lovable-uploads/1685e826-20ea-4727-8b05-018c7d548dc4.png" 
                 alt="Gray hippo with cap" 
-                className="w-16 h-16 mx-auto rounded-lg"
+                className="w-20 h-20 mx-auto rounded-lg"
               />
             </div>
             <h3 className="text-2xl font-bold text-white mb-4">Create Account, Play games</h3>
@@ -80,7 +80,7 @@ export const ManifestoSection = () => {
               <img 
                 src="/lovable-uploads/4c9f27b8-fa39-4c01-998a-eca0b6f095d3.png" 
                 alt="Blue hippo sitting" 
-                className="w-16 h-16 mx-auto rounded-lg"
+                className="w-20 h-20 mx-auto rounded-lg"
               />
             </div>
             <h3 className="text-2xl font-bold text-white mb-4">Refer & Corrupt Friends</h3>
