@@ -18,13 +18,10 @@ export const useLeaderboardData = () => {
   return useQuery<LeaderboardEntry[]>({
     queryKey: ["leaderboard-data"],
     queryFn: async () => {
-      console.log("Fetching leaderboard data...");
+      console.log("Fetching leaderboard data using function...");
       
-      const { data, error } = await (supabase as any)
-        .from("leaderboard_stats")
-        .select("*")
-        .order("highest_score", { ascending: false })
-        .limit(100);
+      // Call the PostgreSQL function instead of querying the view
+      const { data, error } = await supabase.rpc('get_leaderboard_stats');
       
       if (error) {
         console.error("Leaderboard fetch error:", error);

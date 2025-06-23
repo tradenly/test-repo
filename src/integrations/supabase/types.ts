@@ -720,28 +720,29 @@ export type Database = {
       }
     }
     Views: {
-      leaderboard_stats: {
-        Row: {
-          average_score: number | null
-          full_name: string | null
-          highest_level: number | null
-          highest_score: number | null
-          last_played: string | null
-          longest_survival: number | null
-          total_credits_earned: number | null
-          total_games: number | null
-          total_lines_cleared: number | null
-          total_pipes_passed: number | null
-          user_id: string | null
-          username: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       generate_referral_code: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_leaderboard_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          username: string
+          full_name: string
+          highest_score: number
+          total_games: number
+          longest_survival: number
+          average_score: number
+          total_credits_earned: number
+          last_played: string
+          total_pipes_passed: number
+          highest_level: number
+          total_lines_cleared: number
+        }[]
       }
       get_user_role: {
         Args: { _user_id: string }
