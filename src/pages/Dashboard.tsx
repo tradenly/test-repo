@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
@@ -66,7 +67,7 @@ const Dashboard = () => {
             </h1>
           </div>
           <div className="bg-black">
-            <DashboardContent activeSection={activeSection} user={user} />
+            <DashboardContent activeSection={activeSection} user={user} onSectionChange={setActiveSection} />
           </div>
         </div>
         
@@ -90,7 +91,7 @@ const Dashboard = () => {
           onSectionChange={setActiveSection} 
         />
         <main className="flex-1 p-8">
-          <DashboardContent activeSection={activeSection} user={user} />
+          <DashboardContent activeSection={activeSection} user={user} onSectionChange={setActiveSection} />
         </main>
       </div>
     </div>

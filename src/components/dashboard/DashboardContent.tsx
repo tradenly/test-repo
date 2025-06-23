@@ -7,12 +7,13 @@ import { DashboardSectionRenderer } from "./DashboardSectionRenderer";
 interface DashboardContentProps {
   activeSection: DashboardSection;
   user: UnifiedUser;
+  onSectionChange: (section: DashboardSection) => void;
 }
 
-export const DashboardContent = ({ activeSection, user }: DashboardContentProps) => {
+export const DashboardContent = ({ activeSection, user, onSectionChange }: DashboardContentProps) => {
   return (
     <DashboardLayout>
-      <DashboardSectionRenderer activeSection={activeSection} user={user} />
+      <DashboardSectionRenderer activeSection={activeSection} user={user} onSectionChange={onSectionChange} />
     </DashboardLayout>
   );
 };

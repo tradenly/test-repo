@@ -18,13 +18,14 @@ import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 interface DashboardSectionRendererProps {
   activeSection: DashboardSection;
   user: UnifiedUser;
+  onSectionChange: (section: DashboardSection) => void;
 }
 
-export const DashboardSectionRenderer = ({ activeSection, user }: DashboardSectionRendererProps) => {
+export const DashboardSectionRenderer = ({ activeSection, user, onSectionChange }: DashboardSectionRendererProps) => {
   const renderSection = () => {
     switch (activeSection) {
       case "overview":
-        return <DashboardOverview user={user} />;
+        return <DashboardOverview user={user} onSectionChange={onSectionChange} />;
       case "profile":
         return <ProfileSection user={user} />;
       case "flappy-hippos":
@@ -48,7 +49,7 @@ export const DashboardSectionRenderer = ({ activeSection, user }: DashboardSecti
       case "rewards":
         return <RewardsSection user={user} />;
       default:
-        return <DashboardOverview user={user} />;
+        return <DashboardOverview user={user} onSectionChange={onSectionChange} />;
     }
   };
 

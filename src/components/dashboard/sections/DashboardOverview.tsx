@@ -5,12 +5,14 @@ import { DashboardQuickActions } from "./overview/DashboardQuickActions";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { useDashboardData } from "./overview/useDashboardData";
 import { SkeletonStats, SkeletonCard } from "@/components/ui/enhanced-skeleton";
+import { DashboardSection } from "@/pages/Dashboard";
 
 interface DashboardOverviewProps {
   user: UnifiedUser;
+  onSectionChange: (section: DashboardSection) => void;
 }
 
-export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
+export const DashboardOverview = ({ user, onSectionChange }: DashboardOverviewProps) => {
   const { totalStaked, totalRewards, stakes, rewards, wallets, isLoading } = useDashboardData(user);
   
   // Get user display name from different possible sources
@@ -70,7 +72,7 @@ export const DashboardOverview = ({ user }: DashboardOverviewProps) => {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <DashboardActivity user={user} />
-        <DashboardQuickActions totalRewards={totalRewards} />
+        <DashboardQuickActions totalRewards={totalRewards} onSectionChange={onSectionChange} />
       </div>
     </div>
   );
