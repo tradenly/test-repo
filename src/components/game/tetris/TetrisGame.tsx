@@ -1,201 +1,258 @@
-
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { TetrisEngine, TetrisGameState, GameSpeed } from './TetrisEngine';
-import { TetrisRenderer } from './TetrisRenderer';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { TetrisEngine } from './TetrisEngine';
+import { UnifiedUser } from '@/hooks/useUnifiedAuth';
 import { TetrisGameStats } from './TetrisGameStats';
 import { TetrisNextPiece } from './TetrisNextPiece';
 import { TetrisGameControls } from './TetrisGameControls';
-import { Card, CardContent } from '@/components/ui/card';
-import { useCreateGameSession } from '@/hooks/useGameSessions';
-import { UnifiedUser } from '@/hooks/useUnifiedAuth';
+import { MobileTetrisControls } from './MobileTetrisControls';
+import { useCreditOperations } from '@/hooks/useCreditOperations';
+import { useGameSessions } from '@/hooks/useGameSessions';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TetrisGameProps {
   user: UnifiedUser;
-  onGameEnd?: () => void;
+  onGameEnd: () => void;
   creditsBalance: number;
 }
 
 export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const engineRef = useRef<TetrisEngine | null>(null);
-  const rendererRef = useRef<TetrisRenderer | null>(null);
-  const [gameState, setGameState] = useState<TetrisGameState | null>(null);
-  const [gameStartTime, setGameStartTime] = useState<number>(0);
-  const [selectedSpeed, setSelectedSpeed] = useState<GameSpeed>('moderate');
-  const createGameSession = useCreateGameSession();
+  const gameRef = useRef<TetrisEngine | null>(null);
+  const [gameState, setGameState] = useState<'menu' | 'playing' | 'paused' | 'gameOver'>('menu');
+  const [score, setScore] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [lines, setLines] = useState(0);
+  const [nextPiece, setNextPiece] = useState<number[][]>([]);
+  const { deductCredits } = useCreditOperations();
+  const { refetch: refetchSessions } = useGameSessions(user.id);
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
 
-  // Initialize game engine and renderer
-  useEffect(() => {
-    if (canvasRef.current) {
-      engineRef.current = new TetrisEngine();
-      rendererRef.current = new TetrisRenderer(canvasRef.current);
-      
-      engineRef.current.setCallbacks(
-        (state) => {
-          console.log("🔄 Game state updated:", { score: state.score, lines: state.lines, level: state.level });
-          setGameState({ ...state }); // Create new object to ensure React re-renders
-          rendererRef.current?.render(state);
-        },
-        handleGameOver
-      );
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (!gameRef.current || gameState !== 'playing') return;
+
+    switch (event.key) {
+      case 'ArrowLeft':
+        gameRef.current.movePiece(-1, 0);
+        break;
+      case 'ArrowRight':
+        gameRef.current.movePiece(1, 0);
+        break;
+      case 'ArrowDown':
+        gameRef.current.movePiece(0, 1);
+        break;
+      case ' ': // Spacebar
+        event.preventDefault(); // Prevent page scrolling
+        gameRef.current.rotatePiece();
+        break;
+      default:
+        break;
     }
-  }, []);
+  }, [gameState]);
 
-  // Resize canvas when container changes
   useEffect(() => {
-    const resizeCanvas = () => {
-      if (canvasRef.current && rendererRef.current) {
-        const container = canvasRef.current.parentElement;
-        if (container) {
-          const rect = container.getBoundingClientRect();
-          const size = Math.min(rect.width - 32, rect.height - 32);
-          rendererRef.current.setCanvasSize(size, size);
-          if (gameState) {
-            rendererRef.current.render(gameState);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
+  const handleMoveLeft = useCallback(() => {
+    if (gameRef.current && gameState === 'playing') {
+      gameRef.current.movePiece(-1, 0);
+    }
+  }, [gameState]);
+
+  const handleMoveRight = useCallback(() => {
+    if (gameRef.current && gameState === 'playing') {
+      gameRef.current.movePiece(1, 0);
+    }
+  }, [gameState]);
+
+  const handleMoveDown = useCallback(() => {
+    if (gameRef.current && gameState === 'playing') {
+      gameRef.current.movePiece(0, 1);
+    }
+  }, [gameState]);
+
+  const handleRotate = useCallback(() => {
+    if (gameRef.current && gameState === 'playing') {
+      gameRef.current.rotatePiece();
+    }
+  }, [gameState]);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Adjust canvas size for mobile
+    const canvasWidth = isMobile ? Math.min(300, window.innerWidth - 40) : 400;
+    const canvasHeight = isMobile ? Math.min(600, window.innerHeight * 0.6) : 800;
+    
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    const game = new TetrisEngine(ctx, canvas.width, canvas.height);
+    
+    game.onScoreUpdate = (newScore, newLevel, newLines) => {
+      setScore(newScore);
+      setLevel(newLevel);
+      setLines(newLines);
+    };
+
+    game.onNextPieceUpdate = (piece) => {
+      setNextPiece(piece);
+    };
+
+    game.onGameOver = async (finalScore, finalLevel, finalLines) => {
+      console.log('Game over! Final stats:', { finalScore, finalLevel, finalLines });
+      setGameState('gameOver');
+      
+      // Calculate credits earned based on score
+      let creditsEarned = 0;
+      if (finalScore >= 1000) creditsEarned = 0.5;
+      if (finalScore >= 5000) creditsEarned = 1;
+      if (finalScore >= 10000) creditsEarned = 2;
+      if (finalScore >= 25000) creditsEarned = 5;
+      
+      try {
+        const { error } = await supabase.from('game_sessions').insert({
+          user_id: user.id,
+          game_type: 'falling_logs',
+          score: finalScore,
+          credits_earned: creditsEarned,
+          metadata: {
+            game_type: 'falling_logs',
+            level: finalLevel,
+            lines_cleared: finalLines,
+            duration: Math.floor(Date.now() / 1000)
           }
+        });
+
+        if (error) {
+          console.error('Error saving game session:', error);
+          toast({
+            title: "Error",
+            description: "Failed to save game session",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Game Over!",
+            description: `Score: ${finalScore} | Earned: ${creditsEarned} credits`,
+          });
+          refetchSessions();
         }
+      } catch (err) {
+        console.error('Unexpected error saving game session:', err);
       }
     };
 
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    return () => window.removeEventListener('resize', resizeCanvas);
-  }, [gameState]);
+    gameRef.current = game;
 
-  const handleGameOver = useCallback(async (score: number, level: number, lines: number) => {
-    if (!gameStartTime) return;
+    return () => {
+      if (gameRef.current) {
+        gameRef.current.cleanup();
+      }
+    };
+  }, [user.id, refetchSessions, toast, isMobile]);
 
-    const duration = Math.floor((Date.now() - gameStartTime) / 1000);
-    
-    console.log("🏁 Tetris game ended:", { score, level, lines, duration });
-    
-    try {
-      await createGameSession.mutateAsync({
-        user_id: user.id,
-        score,
-        duration_seconds: duration,
-        credits_spent: 1,
-        credits_earned: Math.floor(score / 1000),
-        pipes_passed: 0,
-        metadata: {
-          game_type: 'falling_logs',
-          level,
-          lines_cleared: lines,
-          speed: selectedSpeed
-        }
+  const startGame = async () => {
+    if (creditsBalance < 1) {
+      toast({
+        title: "Insufficient Credits",
+        description: "You need at least 1 credit to play.",
+        variant: "destructive",
       });
-      
-      console.log("✅ Tetris game session saved successfully");
-    } catch (error) {
-      console.error("❌ Failed to save Tetris game session:", error);
+      return;
     }
-    
-    onGameEnd?.();
-  }, [gameStartTime, user.id, createGameSession, onGameEnd, selectedSpeed]);
 
-  const startGame = (speed: GameSpeed) => {
-    console.log("🎯 Starting new Tetris game with speed:", speed);
-    setGameStartTime(Date.now());
-    setSelectedSpeed(speed);
-    engineRef.current?.start(speed);
-  };
-
-  const pauseGame = () => {
-    console.log("⏸️ Pausing/resuming game");
-    engineRef.current?.pause();
+    try {
+      await deductCredits(1, 'Falling Logs Game');
+      setGameState('playing');
+      if (gameRef.current) {
+        gameRef.current.start();
+      }
+    } catch (error) {
+      console.error('Error deducting credits:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start game",
+        variant: "destructive",
+      });
+    }
   };
 
   const resetGame = () => {
-    console.log("🔄 Resetting game");
-    engineRef.current?.stop();
-    setGameState(null);
-    setGameStartTime(0);
+    setGameState('menu');
+    setScore(0);
+    setLevel(1);
+    setLines(0);
+    if (gameRef.current) {
+      gameRef.current.reset();
+    }
   };
 
-  // Handle keyboard input
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (!engineRef.current || !gameState) return;
-
-      switch (event.key) {
-        case 'ArrowLeft':
-          event.preventDefault();
-          engineRef.current.moveLeft();
-          break;
-        case 'ArrowRight':
-          event.preventDefault();
-          engineRef.current.moveRight();
-          break;
-        case 'ArrowUp':
-          event.preventDefault();
-          engineRef.current.rotate();
-          break;
-        case 'ArrowDown':
-          event.preventDefault();
-          engineRef.current.moveDown();
-          break;
-        case ' ':
-          event.preventDefault();
-          engineRef.current.drop();
-          break;
-        case 'p':
-        case 'P':
-          event.preventDefault();
-          engineRef.current.pause();
-          break;
-        case 'r':
-        case 'R':
-          if (gameState.isGameOver) {
-            event.preventDefault();
-            startGame(selectedSpeed);
-          }
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameState, selectedSpeed]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      engineRef.current?.stop();
-    };
-  }, []);
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
-      {/* Main Gameplay Area */}
-      <div className="lg:col-span-2">
-        <Card className="bg-gray-800/40 border-gray-700 h-full">
-          <CardContent className="p-4 h-full flex items-center justify-center">
-            <canvas
-              ref={canvasRef}
-              className="border-2 border-gray-600 rounded-lg bg-black max-w-full max-h-full"
-              style={{ imageRendering: 'pixelated' }}
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Side Panel with Stats and Controls */}
-      <div className="space-y-3">
-        <TetrisGameControls
-          isPlaying={!!gameState && !gameState.isGameOver}
-          isPaused={gameState?.isPaused || false}
-          isGameOver={gameState?.isGameOver || false}
-          selectedSpeed={selectedSpeed}
-          creditsBalance={creditsBalance}
-          onStart={startGame}
-          onPause={pauseGame}
-          onReset={resetGame}
-          onSpeedChange={setSelectedSpeed}
+    <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4 items-start justify-center p-4`}>
+      {/* Game Canvas */}
+      <div className="flex flex-col items-center">
+        <canvas
+          ref={canvasRef}
+          className="border-2 border-gray-300 rounded-lg shadow-lg bg-black"
+          style={{ touchAction: 'none' }}
         />
         
-        <TetrisGameStats gameState={gameState} />
+        {/* Mobile Controls - Show below canvas on mobile */}
+        {isMobile && gameState === 'playing' && (
+          <div className="mt-4 w-full flex justify-center">
+            <MobileTetrisControls
+              onMoveLeft={handleMoveLeft}
+              onMoveRight={handleMoveRight}
+              onMoveDown={handleMoveDown}
+              onRotate={handleRotate}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Side Panel */}
+      <div className={`flex flex-col gap-4 ${isMobile ? 'w-full' : 'min-w-[250px]'}`}>
+        <TetrisGameStats
+          score={score}
+          level={level}
+          lines={lines}
+          creditsBalance={creditsBalance}
+        />
         
-        <TetrisNextPiece gameState={gameState} />
+        {gameState !== 'playing' && (
+          <TetrisGameControls
+            gameState={gameState}
+            onStart={startGame}
+            onReset={resetGame}
+            onBack={onGameEnd}
+            canPlay={creditsBalance >= 1}
+          />
+        )}
+        
+        {gameState === 'playing' && (
+          <TetrisNextPiece piece={nextPiece} />
+        )}
+        
+        {/* Desktop Mobile Controls - Show in sidebar on desktop */}
+        {!isMobile && gameState === 'playing' && (
+          <MobileTetrisControls
+            onMoveLeft={handleMoveLeft}
+            onMoveRight={handleMoveRight}
+            onMoveDown={handleMoveDown}
+            onRotate={handleRotate}
+          />
+        )}
       </div>
     </div>
   );

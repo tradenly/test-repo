@@ -8,6 +8,7 @@ import { useGameSessions } from "@/hooks/useGameSessions";
 import { useCredits } from "@/hooks/useCredits";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Target, Clock, Zap } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FallingLogsSectionProps {
   user: UnifiedUser;
@@ -17,6 +18,7 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const { data: gameSessions, isLoading: sessionsLoading } = useGameSessions(user.id);
   const { data: credits } = useCredits(user.id);
+  const isMobile = useIsMobile();
 
   // Filter for Tetris games only
   const tetrisGames = gameSessions?.filter(session => 
@@ -46,6 +48,7 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
           <h1 className="text-3xl font-bold text-white mb-2">🪵 Falling Logs</h1>
           <p className="text-gray-400">
             Stack those logs perfectly! Clear lines to earn points and credits.
+            {isMobile && " Use the on-screen controls to move and rotate blocks."}
           </p>
         </div>
         
@@ -70,7 +73,7 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-6`}>
         <Card className="bg-gray-800/40 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-300">Highest Score</CardTitle>
@@ -142,7 +145,7 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
           <div className="text-sm text-gray-400">
             <p><strong>How to play:</strong></p>
             <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>Use arrow keys to move and rotate falling pieces</li>
+              <li>{isMobile ? 'Use on-screen controls' : 'Use arrow keys'} to move and rotate falling pieces</li>
               <li>Fill complete horizontal lines to clear them</li>
               <li>Game speeds up as you progress through levels</li>
               <li>Earn credits based on your final score</li>
@@ -160,8 +163,8 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
           <CardContent>
             <div className="space-y-4">
               {tetrisGames.slice(0, 5).map((game) => (
-                <div key={game.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-700/30">
-                  <div className="flex items-center gap-4">
+                <div key={game.id} className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between'} p-3 rounded-lg bg-gray-700/30`}>
+                  <div className={`flex ${isMobile ? 'justify-around' : 'items-center gap-4'}`}>
                     <div className="text-center">
                       <div className="text-lg font-bold text-white">{game.score.toLocaleString()}</div>
                       <div className="text-xs text-gray-400">Score</div>
@@ -180,7 +183,7 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
                     </div>
                   </div>
                   
-                  <div className="text-right">
+                  <div className={`text-${isMobile ? 'center' : 'right'}`}>
                     <Badge variant="outline" className="text-yellow-400 border-yellow-400">
                       +{game.credits_earned} credits
                     </Badge>
