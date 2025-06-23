@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Navigate } from "react-router-dom";
+
+import { useState, useEffect } from "react";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardContent } from "@/components/dashboard/DashboardContent";
@@ -24,8 +25,17 @@ export type DashboardSection =
 
 const Dashboard = () => {
   const { user, loading } = useUnifiedAuth();
+  const [searchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
   const isMobile = useIsMobile();
+
+  // Handle direct game navigation from URL parameters
+  useEffect(() => {
+    const section = searchParams.get('section');
+    if (section && ['flappy-hippos', 'falling-logs', 'poopee-crush'].includes(section)) {
+      setActiveSection(section as DashboardSection);
+    }
+  }, [searchParams]);
 
   if (loading) {
     return (

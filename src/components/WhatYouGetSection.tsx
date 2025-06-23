@@ -1,7 +1,22 @@
 
 import { Button } from "@/components/ui/button";
+import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
+import { useNavigate } from "react-router-dom";
 
 export const WhatYouGetSection = () => {
+  const { user } = useUnifiedAuth();
+  const navigate = useNavigate();
+
+  const handleGameNavigation = (gameSection: string) => {
+    if (user) {
+      // Navigate to dashboard with the specific game section
+      navigate(`/dashboard?section=${gameSection}`);
+    } else {
+      // Redirect to auth page if not logged in
+      navigate('/auth');
+    }
+  };
+
   return (
     <section className="py-20 px-4 bg-gradient-to-b from-gray-900 via-black to-gray-800">
       <div className="max-w-4xl mx-auto text-center">
@@ -14,11 +29,11 @@ export const WhatYouGetSection = () => {
             We said we'd build games. We actually did. Shocking, we know.
           </p>
           <p className="text-lg text-gray-400 italic">
-            Two games that will make you question your life choices
+            Three games that will make you question your life choices
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-16">
+        <div className="grid md:grid-cols-3 gap-8 mb-16">
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-6">
               <img 
@@ -39,7 +54,7 @@ export const WhatYouGetSection = () => {
             </div>
             <Button 
               className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 border border-green-500"
-              onClick={() => window.location.href = '/dashboard'}
+              onClick={() => handleGameNavigation('flappy-hippos')}
             >
               Play & Suffer 🎮
             </Button>
@@ -65,9 +80,35 @@ export const WhatYouGetSection = () => {
             </div>
             <Button 
               className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 border border-purple-500"
-              onClick={() => window.location.href = '/dashboard'}
+              onClick={() => handleGameNavigation('falling-logs')}
             >
               Stack Some Logs 🪵
+            </Button>
+          </div>
+
+          <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
+            <div className="mb-6">
+              <img 
+                src="/lovable-uploads/5d48fcd1-825e-49ca-86d5-7701ab393070.png" 
+                alt="Cute sitting hippo with pink accents" 
+                className="w-20 h-20 mx-auto rounded-lg"
+              />
+            </div>
+            <h3 className="text-3xl font-bold text-white mb-4 text-center">POOPEE Crush</h3>
+            <p className="text-lg text-gray-300 mb-6">
+              <span className="font-bold">Match 3, Regret Forever</span>
+            </p>
+            <div className="space-y-3 text-left text-gray-300 mb-6">
+              <p>• Match 3 or more POOPEE tiles</p>
+              <p>• Costs 1 credit per game</p>
+              <p>• Special boosters for maximum chaos</p>
+              <p>• Addictive puzzle madness</p>
+            </div>
+            <Button 
+              className="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 border border-pink-500"
+              onClick={() => handleGameNavigation('poopee-crush')}
+            >
+              Crush Some POOPEE 💎
             </Button>
           </div>
         </div>
