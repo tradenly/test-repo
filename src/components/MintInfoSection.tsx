@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 
 export const MintInfoSection = () => {
@@ -41,7 +40,7 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto"
               />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">meme token</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">Meme Token</h3>
             <div className="space-y-3 text-left">
               <p className="text-lg text-gray-300"><span className="font-bold">Token:</span> POOPEE</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Supply:</span> 420,069,000</p>
