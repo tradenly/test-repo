@@ -37,15 +37,21 @@ export const useReferralData = (userId: string) => {
         .from("user_referrals")
         .select("*")
         .eq("user_id", userId)
-        .maybeSingle(); // Changed from .single() to .maybeSingle()
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single();
       
       if (error) {
         console.log("Referral fetch error:", error);
+        // If no referral code exists, return null instead of throwing
+        if (error.code === 'PGRST116') {
+          return null;
+        }
         throw error;
       }
       
       console.log("Referral data:", data);
-      return data as UserReferral | null;
+      return data as UserReferral;
     },
     enabled: !!userId,
   });
@@ -84,6 +90,7 @@ export const useReferralData = (userId: string) => {
   return {
     referral: referralQuery.data,
     isLoadingReferral: referralQuery.isLoading,
+    referralError: referralQuery.error,
     referralStats: referralStatsQuery.data,
     isLoadingStats: referralStatsQuery.isLoading,
     refetchReferral: referralQuery.refetch,

@@ -17,9 +17,10 @@ export const ReferralCard = ({ user }: ReferralCardProps) => {
   const { toast } = useToast();
   const [copiedLink, setCopiedLink] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
-  const { referral, referralStats, isLoadingReferral, isLoadingStats, refetchReferral } = useReferralData(user.id);
+  const { referral, referralStats, isLoadingReferral, isLoadingStats, referralError, refetchReferral } = useReferralData(user.id);
 
   console.log("ReferralCard - referral data:", referral);
+  console.log("ReferralCard - referral error:", referralError);
   console.log("ReferralCard - user ID:", user.id);
 
   const getReferralLink = () => {
@@ -130,23 +131,64 @@ export const ReferralCard = ({ user }: ReferralCardProps) => {
     );
   }
 
-  // Show setup state if no referral code is available
+  // Show error state if there's an error and no referral data
+  if (referralError && !referral) {
+    return (
+      <Card className="bg-red-900/20 border-red-600/30">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Share2 className="h-5 w-5 text-red-400" />
+            Referral System Issue
+          </CardTitle>
+          <CardDescription className="text-gray-300">
+            There was an issue loading your referral data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-red-900/30 border border-red-600/30 rounded-lg p-4">
+            <p className="text-sm text-red-200 mb-3">
+              We encountered an error while fetching your referral information. Please try refreshing or contact support if this persists.
+            </p>
+            <Button 
+              onClick={handleRetryFetch}
+              disabled={isRetrying}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isRetrying ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Retrying...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show setup state if no referral code is available but no error
   if (!referral?.referral_code) {
     return (
       <Card className="bg-blue-900/20 border-blue-600/30">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Share2 className="h-5 w-5 text-blue-400" />
-            Referral Link Setup
+            Setting Up Your Referral Link
           </CardTitle>
           <CardDescription className="text-gray-300">
-            Your referral link is being set up. This usually happens automatically when you sign up.
+            Your referral link is being generated. This usually happens automatically.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-blue-900/30 border border-blue-600/30 rounded-lg p-4">
             <p className="text-sm text-blue-200 mb-3">
-              If you just signed up, your referral code might still be generating. Try refreshing to check if it's ready.
+              Your unique referral code is being set up. Please refresh to check if it's ready.
             </p>
             <Button 
               onClick={handleRetryFetch}
@@ -161,7 +203,7 @@ export const ReferralCard = ({ user }: ReferralCardProps) => {
               ) : (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Check for Referral Code
+                  Refresh
                 </>
               )}
             </Button>
