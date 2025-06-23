@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { TetrisEngine } from './TetrisEngine';
 import { UnifiedUser } from '@/hooks/useUnifiedAuth';
@@ -217,7 +216,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
           style={{ touchAction: 'none' }}
         />
         
-        {/* Mobile Controls - Show below canvas on mobile */}
+        {/* Mobile Controls - Show below canvas on mobile only when playing */}
         {isMobile && gameState === 'playing' && (
           <div className="mt-4 w-full flex justify-center">
             <MobileTetrisControls
@@ -236,6 +235,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
           gameState={currentGameState}
         />
         
+        {/* Game Controls - Show when not playing */}
         {gameState !== 'playing' && (
           <TetrisGameControls
             isPlaying={gameState === 'playing'}
@@ -250,20 +250,9 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
           />
         )}
         
+        {/* Next Piece Preview - Show when playing and next piece exists */}
         {gameState === 'playing' && currentGameState?.nextPiece && (
           <TetrisNextPiece gameState={currentGameState} />
-        )}
-        
-        {/* Desktop Mobile Controls - Show in sidebar on desktop */}
-        {!isMobile && gameState === 'playing' && (
-          <div className="mt-4">
-            <MobileTetrisControls
-              onMoveLeft={handleMoveLeft}
-              onMoveRight={handleMoveRight}
-              onMoveDown={handleMoveDown}
-              onRotate={handleRotate}
-            />
-          </div>
         )}
       </div>
     </div>

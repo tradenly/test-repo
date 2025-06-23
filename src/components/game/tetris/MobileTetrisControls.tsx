@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, ArrowDown, RotateCw } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MobileTetrisControlsProps {
   onMoveLeft: () => void;
@@ -16,12 +15,6 @@ export const MobileTetrisControls = ({
   onMoveDown,
   onRotate
 }: MobileTetrisControlsProps) => {
-  const isMobile = useIsMobile();
-
-  if (!isMobile) {
-    return null;
-  }
-
   const handleTouchStart = (action: () => void) => (e: React.TouchEvent) => {
     e.preventDefault();
     action();
