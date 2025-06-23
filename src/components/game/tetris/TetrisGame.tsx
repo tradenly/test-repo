@@ -102,9 +102,9 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
 
     const canvas = canvasRef.current;
     
-    // Set proper canvas dimensions - larger for desktop, responsive for mobile
-    const canvasWidth = isMobile ? Math.min(320, window.innerWidth - 40) : 480;
-    const canvasHeight = isMobile ? Math.min(640, window.innerHeight * 0.7) : 960;
+    // Set proper canvas dimensions - larger for desktop
+    const canvasWidth = 600;
+    const canvasHeight = 800;
     
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
@@ -177,7 +177,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         gameRef.current.stop();
       }
     };
-  }, [user.id, refetchSessions, toast, isMobile]);
+  }, [user.id, refetchSessions, toast]);
 
   const startGame = async (speed: GameSpeed = selectedSpeed) => {
     if (creditsBalance < 1) {
@@ -221,7 +221,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
 
   return (
     <div className="flex gap-8 items-start justify-center p-6 max-w-7xl mx-auto">
-      {/* Game Canvas - Main focus */}
+      {/* Game Canvas */}
       <div className="flex flex-col items-center">
         <canvas
           ref={canvasRef}
@@ -242,16 +242,16 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         )}
       </div>
 
-      {/* Side Panel - More prominent */}
+      {/* Side Panel */}
       <div className="flex flex-col gap-6 min-w-[320px]">
-        {/* Game Stats - Always visible */}
+        {/* Game Stats */}
         <TetrisGameStats gameState={currentGameState} />
         
-        {/* Game Controls - Prominent when not playing */}
+        {/* Game Controls - Show for menu and game over states */}
         {(gameState === 'menu' || gameState === 'gameOver') && (
           <TetrisGameControls
-            isPlaying={false}
-            isPaused={gameState === 'paused'}
+            isPlaying={gameState === 'playing'}
+            isPaused={false}
             isGameOver={gameState === 'gameOver'}
             selectedSpeed={selectedSpeed}
             creditsBalance={creditsBalance}
@@ -267,8 +267,8 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
           <TetrisNextPiece gameState={currentGameState} />
         )}
         
-        {/* Pause/Resume controls when playing */}
-        {gameState === 'playing' && (
+        {/* Pause/Resume controls when playing or paused */}
+        {(gameState === 'playing' || gameState === 'paused') && (
           <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-4">
             <div className="flex gap-2">
               <button 
