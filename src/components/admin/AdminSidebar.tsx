@@ -17,6 +17,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 interface AdminSidebarProps {
@@ -35,6 +36,14 @@ const adminSections = [
 
 export const AdminSidebar = ({ activeSection, onSectionChange }: AdminSidebarProps) => {
   const isMobile = useIsMobile();
+  const { setOpenMobile } = useSidebar();
+
+  const handleMobileMenuClick = (sectionId: AdminSection) => {
+    onSectionChange(sectionId);
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   if (isMobile) {
     return (
@@ -52,7 +61,7 @@ export const AdminSidebar = ({ activeSection, onSectionChange }: AdminSidebarPro
               return (
                 <SidebarMenuItem key={section.id}>
                   <SidebarMenuButton
-                    onClick={() => onSectionChange(section.id)}
+                    onClick={() => handleMobileMenuClick(section.id)}
                     isActive={activeSection === section.id}
                     className={`w-full justify-start text-left text-white hover:bg-gray-800 hover:text-white ${
                       activeSection === section.id

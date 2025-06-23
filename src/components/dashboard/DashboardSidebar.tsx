@@ -22,6 +22,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 interface DashboardSidebarProps {
@@ -31,6 +32,7 @@ interface DashboardSidebarProps {
 
 export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSidebarProps) => {
   const isMobile = useIsMobile();
+  const { setOpenMobile } = useSidebar();
   
   const menuItems = [
     { id: "overview" as DashboardSection, label: "Overview", icon: LayoutDashboard, isIconComponent: true },
@@ -47,6 +49,13 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
     { id: "rewards" as DashboardSection, label: "Rewards", icon: Gift, isIconComponent: true },
   ];
 
+  const handleMobileMenuClick = (sectionId: DashboardSection) => {
+    onSectionChange(sectionId);
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   if (isMobile) {
     return (
       <Sidebar className="border-r border-gray-800 bg-gray-900 dark">
@@ -61,7 +70,7 @@ export const DashboardSidebar = ({ activeSection, onSectionChange }: DashboardSi
               return (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton
-                    onClick={() => onSectionChange(item.id)}
+                    onClick={() => handleMobileMenuClick(item.id)}
                     isActive={activeSection === item.id}
                     className={`w-full justify-start text-left text-white hover:bg-gray-800 hover:text-white ${
                       activeSection === item.id 
