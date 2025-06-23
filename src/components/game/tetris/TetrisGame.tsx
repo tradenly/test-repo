@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { TetrisEngine } from './TetrisEngine';
+import { TetrisRenderer } from './TetrisRenderer';
 import { UnifiedUser } from '@/hooks/useUnifiedAuth';
 import { TetrisGameStats } from './TetrisGameStats';
 import { TetrisNextPiece } from './TetrisNextPiece';
@@ -22,6 +23,7 @@ interface TetrisGameProps {
 export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<TetrisEngine | null>(null);
+  const rendererRef = useRef<TetrisRenderer | null>(null);
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'paused' | 'gameOver'>('menu');
   const [currentGameState, setCurrentGameState] = useState<any>(null);
   const [selectedSpeed, setSelectedSpeed] = useState<GameSpeed>('moderate');
@@ -101,18 +103,28 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
 
     const canvas = canvasRef.current;
     
-    // Adjust canvas size for mobile
-    const canvasWidth = isMobile ? Math.min(300, window.innerWidth - 40) : 400;
-    const canvasHeight = isMobile ? Math.min(600, window.innerHeight * 0.6) : 800;
+    // Set proper canvas dimensions - larger for desktop, responsive for mobile
+    const canvasWidth = isMobile ? Math.min(320, window.innerWidth - 40) : 480;
+    const canvasHeight = isMobile ? Math.min(640, window.innerHeight * 0.7) : 960;
     
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
+
+    // Initialize the renderer
+    const renderer = new TetrisRenderer(canvas);
+    rendererRef.current = renderer;
 
     const game = new TetrisEngine();
     
     game.setCallbacks(
       (state) => {
+        console.log("🎮 Game state updated, rendering...", { score: state.score, level: state.level });
         setCurrentGameState(state);
+        
+        // Render the game state to canvas
+        if (rendererRef.current) {
+          rendererRef.current.render(state);
+        }
       },
       async (finalScore, finalLevel, finalLines) => {
         console.log('Game over! Final stats:', { finalScore, finalLevel, finalLines });
@@ -168,7 +180,6 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
     };
   }, [user.id, refetchSessions, toast, isMobile]);
 
-  // Fixed startGame function to accept GameSpeed parameter
   const startGame = async (speed: GameSpeed = selectedSpeed) => {
     if (creditsBalance < 1) {
       toast({
@@ -186,6 +197,7 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         description: 'Falling Logs Game'
       });
       
+      console.log("🎮 Starting game with speed:", speed);
       setGameState('playing');
       if (gameRef.current) {
         gameRef.current.start(speed);
@@ -209,18 +221,18 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
   };
 
   return (
-    <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4 items-start justify-center p-4`}>
-      {/* Game Canvas */}
+    <div className="flex gap-8 items-start justify-center p-6 max-w-7xl mx-auto">
+      {/* Game Canvas - Main focus */}
       <div className="flex flex-col items-center">
         <canvas
           ref={canvasRef}
-          className="border-2 border-gray-300 rounded-lg shadow-lg bg-black"
+          className="border-4 border-gray-300 rounded-xl shadow-2xl bg-black"
           style={{ touchAction: 'none' }}
         />
         
         {/* Mobile Controls - Show below canvas on mobile only when playing */}
         {isMobile && gameState === 'playing' && (
-          <div className="mt-4 w-full flex justify-center">
+          <div className="mt-6 w-full flex justify-center">
             <MobileTetrisControls
               onMoveLeft={handleMoveLeft}
               onMoveRight={handleMoveRight}
@@ -231,13 +243,12 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         )}
       </div>
 
-      {/* Side Panel */}
-      <div className={`flex flex-col gap-4 ${isMobile ? 'w-full' : 'min-w-[250px]'}`}>
-        <TetrisGameStats
-          gameState={currentGameState}
-        />
+      {/* Side Panel - More prominent */}
+      <div className="flex flex-col gap-6 min-w-[320px]">
+        {/* Game Stats - Always visible */}
+        <TetrisGameStats gameState={currentGameState} />
         
-        {/* Game Controls - Show when not playing */}
+        {/* Game Controls - Prominent when not playing */}
         {gameState !== 'playing' && (
           <TetrisGameControls
             isPlaying={false}
@@ -252,9 +263,29 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
           />
         )}
         
-        {/* Next Piece Preview - Show when playing and next piece exists */}
+        {/* Next Piece Preview - Show when playing */}
         {gameState === 'playing' && currentGameState?.nextPiece && (
           <TetrisNextPiece gameState={currentGameState} />
+        )}
+        
+        {/* Pause/Resume controls when playing */}
+        {gameState === 'playing' && (
+          <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-4">
+            <div className="flex gap-2">
+              <button 
+                onClick={handlePause}
+                className="flex-1 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium"
+              >
+                {gameState === 'paused' ? 'Resume' : 'Pause'}
+              </button>
+              <button 
+                onClick={resetGame}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium"
+              >
+                Quit
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
