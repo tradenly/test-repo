@@ -18,12 +18,12 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto"
               />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">SUI NFT Mint</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">NFT Mint</h3>
             <div className="space-y-3 text-left">
               <p className="text-lg text-gray-300"><span className="font-bold">Platform:</span> TradePort</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Supply:</span> TBD</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Date:</span> Coming Soon</p>
-              <p className="text-lg text-gray-300"><span className="font-bold">Price:</span> Your Regret</p>
+              <p className="text-lg text-gray-300"><span className="font-bold">Blockchain:</span> SUI (probably)</p>
             </div>
             <Button className="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold border border-gray-600">
               Mint coming soon on tradeport.xyz
@@ -41,12 +41,12 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto"
               />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">Cardano Token</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">meme token</h3>
             <div className="space-y-3 text-left">
               <p className="text-lg text-gray-300"><span className="font-bold">Token:</span> POOPEE</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Supply:</span> 420,069,000</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Distribution:</span> TBD</p>
-              <p className="text-lg text-gray-300"><span className="font-bold">Utility:</span> Literally Forever</p>
+              <p className="text-lg text-gray-300"><span className="font-bold">Blockchain:</span> Cardano (maybe)</p>
             </div>
             <Button className="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold border border-gray-600">
               Coming Soon (Maybe)
