@@ -87,6 +87,12 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
       if (gameRef.current && gameState === 'playing') {
         gameRef.current.rotate();
       }
+    }, [gameState]),
+
+    drop: useCallback(() => {
+      if (gameRef.current && gameState === 'playing') {
+        gameRef.current.drop();
+      }
     }, [gameState])
   };
 
@@ -105,9 +111,9 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
 
     const canvas = canvasRef.current;
     
-    // Set proper canvas dimensions
+    // Reduced canvas dimensions for better desktop experience
     const canvasWidth = 600;
-    const canvasHeight = 800;
+    const canvasHeight = 600; // Reduced from 800 to 600 (25% reduction)
     
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
@@ -229,17 +235,22 @@ export const TetrisGame = ({ user, onGameEnd, creditsBalance }: TetrisGameProps)
         <canvas
           ref={canvasRef}
           className="border-4 border-gray-300 rounded-xl shadow-2xl bg-black"
-          style={{ touchAction: 'none' }}
+          style={{ 
+            touchAction: 'none',
+            maxWidth: isMobile ? '100%' : '600px',
+            height: 'auto'
+          }}
         />
         
-        {/* Mobile Controls - Show below canvas on mobile only when playing */}
+        {/* Mobile Controls - Enhanced with directional arrows */}
         {isMobile && gameState === 'playing' && (
-          <div className="mt-6 w-full flex justify-center">
+          <div className="mt-4 w-full flex justify-center">
             <MobileTetrisControls
               onMoveLeft={handleMobileControls.moveLeft}
               onMoveRight={handleMobileControls.moveRight}
               onMoveDown={handleMobileControls.moveDown}
               onRotate={handleMobileControls.rotate}
+              onDrop={handleMobileControls.drop}
             />
           </div>
         )}

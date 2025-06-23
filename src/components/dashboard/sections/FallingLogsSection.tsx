@@ -48,11 +48,11 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
           <h1 className="text-3xl font-bold text-white mb-2">🪵 Falling Logs</h1>
           <p className="text-gray-400">
             Stack those logs perfectly! Clear lines to earn points and credits.
-            {isMobile && " Use the on-screen controls to move and rotate blocks."}
+            {isMobile && " Use the touch controls below to move and rotate blocks."}
           </p>
         </div>
         
-        <div className="flex-1">
+        <div className="flex-1 overflow-hidden">
           <TetrisGame 
             user={user} 
             onGameEnd={handleGameEnd} 
@@ -125,7 +125,7 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
           <CardTitle className="text-white">Ready to Stack Some Logs?</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-center justify-between'}`}>
             <div>
               <p className="text-gray-300">Cost per game: <span className="text-yellow-400 font-bold">1 Credit</span></p>
               <p className="text-sm text-gray-400">
@@ -136,8 +136,9 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
             <Button 
               onClick={startGame}
               disabled={(credits?.balance || 0) < 1}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
+              className={`bg-green-600 hover:bg-green-700 disabled:bg-gray-600 ${isMobile ? 'w-full py-3 text-lg' : ''}`}
             >
+              <Play className="h-4 w-4 mr-2" />
               Start Playing
             </Button>
           </div>
@@ -145,7 +146,7 @@ export const FallingLogsSection = ({ user }: FallingLogsSectionProps) => {
           <div className="text-sm text-gray-400">
             <p><strong>How to play:</strong></p>
             <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>{isMobile ? 'Use on-screen controls' : 'Use arrow keys'} to move and rotate falling pieces</li>
+              <li>{isMobile ? 'Use touch controls' : 'Use arrow keys'} to move and rotate falling pieces</li>
               <li>Fill complete horizontal lines to clear them</li>
               <li>Game speeds up as you progress through levels</li>
               <li>Earn credits based on your final score</li>

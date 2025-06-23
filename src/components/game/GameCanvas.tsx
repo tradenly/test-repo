@@ -7,6 +7,8 @@ import { useGameEngineManager } from './hooks/useGameEngineManager';
 import { GameControls } from './components/GameControls';
 import { MobileGameControls } from './components/MobileGameControls';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
+import { Play } from 'lucide-react';
 
 interface GameCanvasProps {
   onGameEnd: (score: number, pipesPassedCount: number, duration: number) => void;
@@ -81,9 +83,10 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
     engineResetGame();
   };
 
-  // Touch handlers for mobile
+  // Enhanced touch handlers for mobile
   const handleCanvasTouch = (e: React.TouchEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (gameState === 'playing' && gameRef.current) {
       gameRef.current.flap();
     }
@@ -97,7 +100,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
   };
 
   return (
-    <div className={`flex ${isMobile ? 'flex-col' : 'flex-col lg:flex-row'} items-center gap-4`}>
+    <div className={`flex ${isMobile ? 'flex-col' : 'flex-col lg:flex-row'} items-center gap-4 relative`}>
       {/* Mobile Controls - Show above canvas on mobile */}
       {isMobile && (
         <div className="w-full max-w-md order-1">
@@ -118,15 +121,16 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
         </div>
       )}
 
-      {/* Game Canvas */}
-      <div className={`${isMobile ? 'order-2' : ''}`}>
+      {/* Game Canvas Container */}
+      <div className={`relative ${isMobile ? 'order-2' : ''}`}>
         <canvas 
           ref={canvasRef}
-          className="border-2 border-gray-300 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border-2 border-gray-300 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-sky-200"
           style={{ 
-            maxWidth: isMobile ? '100%' : '800px', 
-            height: 'auto',
-            touchAction: 'none' // Prevent scrolling on touch
+            maxWidth: isMobile ? '100%' : '800px',
+            width: isMobile ? '350px' : '800px',
+            height: isMobile ? '500px' : '600px',
+            touchAction: 'none'
           }}
           tabIndex={gameState === 'playing' ? 0 : -1}
           role="application"
@@ -136,6 +140,27 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
           onTouchEnd={(e) => e.preventDefault()}
           onClick={handleCanvasClick}
         />
+        
+        {/* Mobile-only centered start button overlay */}
+        {isMobile && gameState === 'menu' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
+            <Button
+              onClick={handleStartGame}
+              disabled={!canPlay || !isInitialized}
+              className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg font-bold rounded-full shadow-lg"
+            >
+              <Play className="h-6 w-6 mr-2" />
+              {!isInitialized ? 'Loading...' : canPlay ? 'TAP TO START' : 'No Credits'}
+            </Button>
+          </div>
+        )}
+
+        {/* Mobile touch instruction overlay when playing */}
+        {isMobile && gameState === 'playing' && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full text-sm">
+            Tap anywhere to flap!
+          </div>
+        )}
         
         <div id="game-instructions" className="sr-only">
           {isMobile 
