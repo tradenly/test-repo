@@ -137,7 +137,7 @@ export const WhatYouGetSection = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-full text-lg border border-gray-600"
-              onClick={() => window.open('https://x.com/OGpoopee', '_blank')}
+              onClick={() => window.open('https://x.com/tropicalfattys', '_blank')}
             >
               Complain With Us 🐦
             </Button>
