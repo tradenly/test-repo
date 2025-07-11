@@ -18,7 +18,7 @@ interface WalletCardProps {
 
 const blockchainColors: Record<BlockchainType, string> = {
   ethereum: "bg-blue-500",
-  bitcoin: "bg-orange-500", 
+  solana: "bg-purple-500", 
   cardano: "bg-purple-500",
   sui: "bg-cyan-500"
 };
