@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -228,7 +229,7 @@ export const PayoutManagement = () => {
                                 Review
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+                            <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>Credit Purchase Order Details</DialogTitle>
                               </DialogHeader>
@@ -237,16 +238,16 @@ export const PayoutManagement = () => {
                                   {/* User Info */}
                                   <div className="bg-gray-900/40 rounded-lg p-4">
                                     <h3 className="text-white font-medium mb-3">User Information</h3>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                      <div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                      <div className="min-w-0">
                                         <span className="text-gray-400">Name:</span>
-                                        <span className="text-white ml-2">
+                                        <span className="text-white ml-2 break-words">
                                           {selectedPaymentOrder.user_profile?.full_name || 'Not provided'}
                                         </span>
                                       </div>
-                                      <div>
+                                      <div className="min-w-0">
                                         <span className="text-gray-400">Username:</span>
-                                        <span className="text-white ml-2">
+                                        <span className="text-white ml-2 break-words">
                                           {selectedPaymentOrder.user_profile?.username || 'Not provided'}
                                         </span>
                                       </div>
@@ -256,7 +257,7 @@ export const PayoutManagement = () => {
                                   {/* Transaction Details */}
                                   <div className="bg-gray-900/40 rounded-lg p-4">
                                     <h3 className="text-white font-medium mb-3">Purchase Details</h3>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                                       <div>
                                         <span className="text-gray-400">USDC Amount:</span>
                                         <span className="text-white ml-2">{selectedPaymentOrder.usdc_amount}</span>
@@ -282,15 +283,15 @@ export const PayoutManagement = () => {
                                   <div className="bg-gray-900/40 rounded-lg p-4">
                                     <h3 className="text-white font-medium mb-3">Payment Addresses</h3>
                                     <div className="space-y-3">
-                                      <div>
+                                      <div className="min-w-0">
                                         <span className="text-gray-400 text-sm">From (User Wallet):</span>
-                                        <div className="text-white font-mono text-sm bg-gray-800 p-2 rounded">
+                                        <div className="text-white font-mono text-sm bg-gray-800 p-2 rounded break-all">
                                           {selectedPaymentOrder.wallet_address}
                                         </div>
                                       </div>
-                                      <div>
+                                      <div className="min-w-0">
                                         <span className="text-gray-400 text-sm">To (Payment Address):</span>
-                                        <div className="text-white font-mono text-sm bg-gray-800 p-2 rounded">
+                                        <div className="text-white font-mono text-sm bg-gray-800 p-2 rounded break-all">
                                           {selectedPaymentOrder.payment_address}
                                         </div>
                                       </div>
@@ -304,16 +305,16 @@ export const PayoutManagement = () => {
                                       <Input
                                         value={transactionId}
                                         onChange={(e) => setTransactionId(e.target.value)}
-                                        className="bg-gray-700 border-gray-600 text-white mt-1"
+                                        className="bg-gray-700 border-gray-600 text-white mt-1 w-full"
                                         placeholder="Enter blockchain transaction hash..."
                                       />
                                     </div>
                                     
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-2">
                                       <Button
                                         onClick={() => handleConfirmPayment(selectedPaymentOrder.id)}
                                         disabled={confirmPaymentMutation.isPending}
-                                        className="bg-green-600 hover:bg-green-700"
+                                        className="bg-green-600 hover:bg-green-700 flex-1"
                                       >
                                         <CheckCircle className="h-4 w-4 mr-1" />
                                         Confirm Payment
@@ -322,6 +323,7 @@ export const PayoutManagement = () => {
                                         onClick={() => handleRejectPayment(selectedPaymentOrder.id)}
                                         disabled={rejectPaymentMutation.isPending}
                                         variant="destructive"
+                                        className="flex-1"
                                       >
                                         <XCircle className="h-4 w-4 mr-1" />
                                         Reject
@@ -382,7 +384,7 @@ export const PayoutManagement = () => {
                                 Review
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+                            <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>Cashout Request Details</DialogTitle>
                               </DialogHeader>
@@ -391,16 +393,16 @@ export const PayoutManagement = () => {
                                   {/* User Info */}
                                   <div className="bg-gray-900/40 rounded-lg p-4">
                                     <h3 className="text-white font-medium mb-3">User Information</h3>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                      <div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                      <div className="min-w-0">
                                         <span className="text-gray-400">Name:</span>
-                                        <span className="text-white ml-2">
+                                        <span className="text-white ml-2 break-words">
                                           {selectedRequest.user_profile?.full_name || 'Not provided'}
                                         </span>
                                       </div>
-                                      <div>
+                                      <div className="min-w-0">
                                         <span className="text-gray-400">Username:</span>
-                                        <span className="text-white ml-2">
+                                        <span className="text-white ml-2 break-words">
                                           {selectedRequest.user_profile?.username || 'Not provided'}
                                         </span>
                                       </div>
@@ -410,7 +412,7 @@ export const PayoutManagement = () => {
                                   {/* Transaction Details */}
                                   <div className="bg-gray-900/40 rounded-lg p-4">
                                     <h3 className="text-white font-medium mb-3">Transaction Details</h3>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                                       <div>
                                         <span className="text-gray-400">Credits:</span>
                                         <span className="text-white ml-2">{selectedRequest.amount_credits}</span>
@@ -433,13 +435,13 @@ export const PayoutManagement = () => {
                                   {/* Wallet Info */}
                                   <div className="bg-gray-900/40 rounded-lg p-4">
                                     <h3 className="text-white font-medium mb-3">Destination Wallet</h3>
-                                    <div className="flex items-center gap-2">
-                                      <Wallet className="h-4 w-4 text-gray-400" />
-                                      <div>
+                                    <div className="flex items-start gap-2">
+                                      <Wallet className="h-4 w-4 text-gray-400 mt-1 flex-shrink-0" />
+                                      <div className="min-w-0 flex-1">
                                         <div className="text-white text-sm">
                                           {selectedRequest.user_wallet?.wallet_name || `${selectedRequest.user_wallet?.blockchain} Wallet`}
                                         </div>
-                                        <div className="text-gray-400 text-xs font-mono">
+                                        <div className="text-gray-400 text-xs font-mono break-all">
                                           {selectedRequest.user_wallet?.wallet_address}
                                         </div>
                                         <Badge className="bg-blue-600 text-xs mt-1">
@@ -456,16 +458,17 @@ export const PayoutManagement = () => {
                                       <Textarea
                                         value={adminNotes}
                                         onChange={(e) => setAdminNotes(e.target.value)}
-                                        className="bg-gray-700 border-gray-600 text-white mt-1"
+                                        className="bg-gray-700 border-gray-600 text-white mt-1 w-full resize-none"
                                         placeholder="Add notes about this request..."
+                                        rows={3}
                                       />
                                     </div>
                                     
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-2">
                                       <Button
                                         onClick={() => handleStatusUpdate(selectedRequest.id, 'approved')}
                                         disabled={updateStatusMutation.isPending}
-                                        className="bg-green-600 hover:bg-green-700"
+                                        className="bg-green-600 hover:bg-green-700 flex-1"
                                       >
                                         <CheckCircle className="h-4 w-4 mr-1" />
                                         Approve
@@ -474,6 +477,7 @@ export const PayoutManagement = () => {
                                         onClick={() => handleStatusUpdate(selectedRequest.id, 'rejected')}
                                         disabled={updateStatusMutation.isPending}
                                         variant="destructive"
+                                        className="flex-1"
                                       >
                                         <XCircle className="h-4 w-4 mr-1" />
                                         Reject
@@ -535,7 +539,7 @@ export const PayoutManagement = () => {
                                 Mark Complete
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="bg-gray-800 border-gray-700 text-white">
+                            <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>Mark Payout as Complete</DialogTitle>
                               </DialogHeader>
@@ -544,7 +548,7 @@ export const PayoutManagement = () => {
                                   <p className="text-gray-300">
                                     Confirm that you have sent <strong>{selectedRequest?.amount_crypto} USDC</strong> to:
                                   </p>
-                                  <p className="text-gray-400 font-mono text-sm mt-2">
+                                  <p className="text-gray-400 font-mono text-sm mt-2 break-all">
                                     {selectedRequest?.user_wallet?.wallet_address}
                                   </p>
                                 </div>
@@ -554,7 +558,7 @@ export const PayoutManagement = () => {
                                   <Input
                                     value={transactionId}
                                     onChange={(e) => setTransactionId(e.target.value)}
-                                    className="bg-gray-700 border-gray-600 text-white mt-1"
+                                    className="bg-gray-700 border-gray-600 text-white mt-1 w-full"
                                     placeholder="Enter blockchain transaction hash..."
                                   />
                                 </div>
@@ -564,8 +568,9 @@ export const PayoutManagement = () => {
                                   <Textarea
                                     value={adminNotes}
                                     onChange={(e) => setAdminNotes(e.target.value)}
-                                    className="bg-gray-700 border-gray-600 text-white mt-1"
+                                    className="bg-gray-700 border-gray-600 text-white mt-1 w-full resize-none"
                                     placeholder="Add completion notes..."
+                                    rows={3}
                                   />
                                 </div>
                                 
@@ -617,7 +622,7 @@ export const PayoutManagement = () => {
                               {new Date(request.completed_at || request.updated_at).toLocaleDateString()}
                             </div>
                             {request.transaction_id && (
-                              <div className="text-blue-400 text-xs font-mono">
+                              <div className="text-blue-400 text-xs font-mono break-all">
                                 TX: {request.transaction_id}
                               </div>
                             )}
@@ -648,7 +653,7 @@ export const PayoutManagement = () => {
                               {new Date(order.confirmed_at || order.updated_at).toLocaleDateString()}
                             </div>
                             {order.transaction_hash && (
-                              <div className="text-blue-400 text-xs font-mono">
+                              <div className="text-blue-400 text-xs font-mono break-all">
                                 TX: {order.transaction_hash}
                               </div>
                             )}
