@@ -771,7 +771,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
-      blockchain_type: "cardano" | "sui" | "ethereum" | "bitcoin"
+      blockchain_type: "cardano" | "sui" | "ethereum" | "solana"
       social_platform:
         | "twitter"
         | "discord"
@@ -907,7 +907,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      blockchain_type: ["cardano", "sui", "ethereum", "bitcoin"],
+      blockchain_type: ["cardano", "sui", "ethereum", "solana"],
       social_platform: [
         "twitter",
         "discord",
