@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,9 +23,9 @@ interface AddWalletFormProps {
 
 const blockchainOptions: { value: BlockchainType; label: string }[] = [
   { value: "ethereum", label: "Ethereum" },
-  { value: "bitcoin", label: "Bitcoin" },
   { value: "cardano", label: "Cardano" },
-  { value: "sui", label: "Sui" }
+  { value: "sui", label: "Sui" },
+  { value: "solana", label: "Solana" }
 ];
 
 const validateWalletAddress = (address: string, blockchain: BlockchainType): string | null => {
@@ -38,11 +37,6 @@ const validateWalletAddress = (address: string, blockchain: BlockchainType): str
         return "Invalid Ethereum address format";
       }
       break;
-    case "bitcoin":
-      if (!/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[a-z0-9]{39,59}$/.test(address)) {
-        return "Invalid Bitcoin address format";
-      }
-      break;
     case "cardano":
       if (!/^addr1[a-z0-9]{98}$/.test(address)) {
         return "Invalid Cardano address format";
@@ -51,6 +45,12 @@ const validateWalletAddress = (address: string, blockchain: BlockchainType): str
     case "sui":
       if (!/^0x[a-fA-F0-9]{64}$/.test(address)) {
         return "Invalid Sui address format";
+      }
+      break;
+    case "solana":
+      // Solana addresses are base58 encoded and typically 32-44 characters long
+      if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
+        return "Invalid Solana address format";
       }
       break;
   }
