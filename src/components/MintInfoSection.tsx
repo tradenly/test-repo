@@ -102,7 +102,7 @@ export const MintInfoSection = () => {
               />
             </div>
             <p className="text-white font-bold">NFT Collection</p>
-            <p className="text-sm text-gray-300">SUI, We Guess</p>
+            <p className="text-sm text-gray-300">Total Waste</p>
           </div>
 
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
@@ -125,8 +125,8 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
-            <p className="text-white font-bold">Tech Integration</p>
-            <p className="text-sm text-gray-300">Somehow, It Works</p>
+            <p className="text-white font-bold">Free Tools</p>
+            <p className="text-sm text-gray-300">Somehow, They Works</p>
           </div>
         </div>
       </div>
