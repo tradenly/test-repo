@@ -1,4 +1,3 @@
-
 import { DashboardSection } from "@/pages/Dashboard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DashboardOverview } from "./sections/DashboardOverview";
@@ -14,6 +13,8 @@ import { SocialSection } from "./sections/SocialSection";
 import { PortfolioSection } from "./sections/PortfolioSection";
 import { RewardsSection } from "./sections/RewardsSection";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
+import { FreeToolsSection } from "./sections/FreeToolsSection";
+import { NewsUpdatesSection } from "./sections/NewsUpdatesSection";
 
 interface DashboardSectionRendererProps {
   activeSection: DashboardSection;
@@ -48,6 +49,10 @@ export const DashboardSectionRenderer = ({ activeSection, user, onSectionChange 
         return <PortfolioSection user={user} />;
       case "rewards":
         return <RewardsSection user={user} />;
+      case "free-tools":
+        return <FreeToolsSection user={user} />;
+      case "news-updates":
+        return <NewsUpdatesSection user={user} />;
       default:
         return <DashboardOverview user={user} onSectionChange={onSectionChange} />;
     }

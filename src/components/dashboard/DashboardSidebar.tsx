@@ -12,7 +12,9 @@ import {
   Trophy,
   FileText,
   TreePine,
-  X
+  X,
+  Wrench,
+  Newspaper
 } from "lucide-react";
 import { DashboardSection } from "@/pages/Dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -45,6 +47,8 @@ export const DashboardSidebar = ({
     { id: "social" as DashboardSection, label: "Social", icon: Users, isIconComponent: true },
     { id: "portfolio" as DashboardSection, label: "Portfolio", icon: TrendingUp, isIconComponent: true },
     { id: "rewards" as DashboardSection, label: "Rewards", icon: Gift, isIconComponent: true },
+    { id: "free-tools" as DashboardSection, label: "Free Tools", icon: Wrench, isIconComponent: true },
+    { id: "news-updates" as DashboardSection, label: "News & Updates", icon: Newspaper, isIconComponent: true },
   ];
 
   const handleMenuClick = (sectionId: DashboardSection) => {
