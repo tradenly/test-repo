@@ -21,7 +21,7 @@ interface ToolRequest {
   profiles?: {
     username: string;
     full_name: string;
-  };
+  } | null;
 }
 
 interface ToolRequestMessage {
@@ -34,7 +34,7 @@ interface ToolRequestMessage {
   profiles?: {
     username: string;
     full_name: string;
-  };
+  } | null;
 }
 
 export const ToolRequestManagement = () => {
@@ -62,7 +62,7 @@ export const ToolRequestManagement = () => {
         .from('tool_requests')
         .select(`
           *,
-          profiles:user_id (username, full_name)
+          profiles!inner(username, full_name)
         `)
         .order('created_at', { ascending: false });
 
@@ -86,7 +86,7 @@ export const ToolRequestManagement = () => {
         .from('tool_request_messages')
         .select(`
           *,
-          profiles:sender_id (username, full_name)
+          profiles!inner(username, full_name)
         `)
         .eq('tool_request_id', requestId)
         .order('created_at', { ascending: true });
