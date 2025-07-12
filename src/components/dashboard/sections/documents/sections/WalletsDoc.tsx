@@ -116,6 +116,15 @@ export const WalletsDoc = () => {
           </div>
         </div>
 
+        <h3 className="text-xl font-semibold text-white">Supported Networks for USDM</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+            <h4 className="font-semibold text-white mb-2">🔴 Cardano</h4>
+            <p className="text-sm text-gray-300">Most Secure</p>
+            <p className="text-xs text-gray-400 mt-2">Fastest transactions with lowest fees</p>
+          </div>
+        </div>
+
         <h3 className="text-xl font-semibold text-white">Credit Purchase Process</h3>
         <div className="space-y-3">
           <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-4">
