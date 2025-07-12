@@ -7,9 +7,15 @@ interface PhantomProvider {
   signAllTransactions(transactions: any[]): Promise<any[]>;
 }
 
+interface MetaMaskProvider {
+  isMetaMask?: boolean;
+  request(args: { method: string; params?: any[] }): Promise<any>;
+}
+
 declare global {
   interface Window {
     solana?: PhantomProvider;
+    ethereum?: MetaMaskProvider;
   }
 }
 
