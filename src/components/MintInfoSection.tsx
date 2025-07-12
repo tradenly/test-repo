@@ -19,10 +19,10 @@ export const MintInfoSection = () => {
             </div>
             <h3 className="text-2xl font-bold text-white mb-4">NFT Mint</h3>
             <div className="space-y-3 text-left">
-              <p className="text-lg text-gray-300"><span className="font-bold">Platform:</span> TradePort (Maybe)</p>
+              <p className="text-lg text-gray-300"><span className="font-bold">Platform:</span> Who Knows?</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Supply:</span> 5k</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Price:</span> FREE</p>
-              <p className="text-lg text-gray-300"><span className="font-bold">Blockchain:</span> SUI (Who Knows)</p>
+              <p className="text-lg text-gray-300"><span className="font-bold">Blockchain:</span> Community Vote</p>
             </div>
             <Button className="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold border border-gray-600">
               Mint coming soon on tradeport.xyz
