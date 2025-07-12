@@ -1,10 +1,10 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { ToolRequestDialog } from "./ToolRequestDialog";
+import { UserToolRequestsView } from "./UserToolRequestsView";
 import { 
   Calculator, 
   PieChart, 
@@ -217,6 +217,8 @@ export const FreeToolsSection = ({ user }: FreeToolsSectionProps) => {
             </ToolRequestDialog>
           </CardContent>
         </Card>
+
+        <UserToolRequestsView />
       </div>
     </TooltipProvider>
   );
