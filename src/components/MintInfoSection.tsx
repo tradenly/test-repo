@@ -44,7 +44,7 @@ export const MintInfoSection = () => {
             <div className="space-y-3 text-left">
               <p className="text-lg text-gray-300"><span className="font-bold">Token:</span> POOPEE</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Supply:</span> 420,069,000</p>
-              <p className="text-lg text-gray-300"><span className="font-bold">Distribution:</span> TBD</p>
+              <p className="text-lg text-gray-300"><span className="font-bold">Date:</span> TBD</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Blockchain:</span> Cardano (maybe)</p>
             </div>
             <Button className="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold border border-gray-600">
