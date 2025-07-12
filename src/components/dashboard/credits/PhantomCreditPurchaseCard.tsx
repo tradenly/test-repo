@@ -31,13 +31,15 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
   const blockchains = [
     { value: "solana", label: "Solana", symbol: "USDC" },
     { value: "ethereum", label: "Ethereum", symbol: "USDC" },
-    { value: "sui", label: "SUI", symbol: "USDC" }
+    { value: "sui", label: "SUI", symbol: "USDC" },
+    { value: "cardano", label: "Cardano", symbol: "USDM" }
   ];
 
   const usdcAddresses = {
     solana: "qinTdo2EZwmN2BShG8aoUXhQvAsmng2FmCsLuouKDaG",
     ethereum: "0xc5307D99C42C90C9519432403081Bf0B1D772EC6",
-    sui: "0xe74dc24dc72e5f1aa5ff0cd2af2f2a2d55a5dd51c0536a25d62beed64b5ac5d6"
+    sui: "0xe74dc24dc72e5f1aa5ff0cd2af2f2a2d55a5dd51c0536a25d62beed64b5ac5d6",
+    cardano: "addr1q99zz8h37xgnvn0g9szx9c8tjt2jg9uyrkv397s4hjp323zf5l0wmwpchcf0gpa2nntxmprxt0w3gnpg348k9z30z0tsuttpqc"
   };
 
   const handleConnectWallet = async () => {
