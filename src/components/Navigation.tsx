@@ -16,6 +16,7 @@ import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { NotificationsDropdown } from "./NotificationsDropdown";
 
 export const Navigation = () => {
   const { user, logout } = useUnifiedAuth();
@@ -105,6 +106,9 @@ export const Navigation = () => {
                   <span className="text-gray-400 text-sm">Credits</span>
                 )}
               </div>
+
+              {/* Notifications Bell */}
+              <NotificationsDropdown />
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

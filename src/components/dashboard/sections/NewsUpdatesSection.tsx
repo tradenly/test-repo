@@ -10,7 +10,6 @@ import {
   Newspaper, 
   Calendar, 
   ExternalLink, 
-  Bell, 
   TrendingUp,
   Zap,
   Info,
@@ -43,7 +42,7 @@ export const NewsUpdatesSection = ({ user }: NewsUpdatesSectionProps) => {
       title: "Platform Update v2.1 Released",
       description: "New features including enhanced staking rewards and improved mobile experience",
       fullContent: "We're excited to announce the release of Platform Update v2.1, bringing significant improvements to your gaming and staking experience. This update includes enhanced staking rewards with higher APY rates, a completely redesigned mobile interface for better gameplay on phones and tablets, improved security measures to protect your assets, and new notification system to keep you informed about important updates. The mobile experience has been completely overhauled with touch-optimized controls for all our games, faster loading times, and better responsive design. Staking rewards have been increased across all pools, with some pools now offering up to 15% APY. We've also added new security features including two-factor authentication and enhanced wallet protection.",
-      date: "2024-12-07",
+      date: "2025-07-10",
       category: "Platform",
       type: "update",
       isNew: true
@@ -52,7 +51,7 @@ export const NewsUpdatesSection = ({ user }: NewsUpdatesSectionProps) => {
       title: "New Retro Arcade Games in Production",
       description: "Classic games like Miss Pac-Man, Space Invaders, and PoopeeVille (Farmville-style) coming soon",
       fullContent: "Get ready for a nostalgic gaming experience! We're currently developing three exciting retro arcade games that will launch on our platform in the coming months. Miss Pac-Man brings the classic maze-chase gameplay with our unique credit reward system, allowing players to earn credits while navigating through challenging levels. Space Invaders features the timeless alien-shooting action with modern graphics and multiplayer competitions. Our most ambitious project, PoopeeVille, is a farming simulation game inspired by Farmville where players can build their own virtual farms, grow crops, raise animals, and trade with other players. All games will feature our signature credit earning system, leaderboards, and community challenges. Beta testing will begin next month for selected users.",
-      date: "2024-12-08",
+      date: "2025-06-25",
       category: "Gaming",
       type: "feature",
       isNew: true
@@ -61,7 +60,7 @@ export const NewsUpdatesSection = ({ user }: NewsUpdatesSectionProps) => {
       title: "POOPEE Token IDO Announcement",
       description: "Pre-sale launching on MINSWAP platform within 30 days - Early access to Cardano's newest gaming token",
       fullContent: "We're thrilled to announce the upcoming Initial DEX Offering (IDO) of the POOPEE token on the Cardano blockchain! The pre-sale will launch on the MINSWAP platform within the next 30 days, offering early investors exclusive access to our native gaming token. POOPEE tokens will serve as the primary currency for all platform activities, including game entry fees, staking rewards, and marketplace transactions. Early pre-sale participants will receive bonus tokens and exclusive benefits including priority access to new games, enhanced staking rewards, and special NFT airdrops. The token will feature deflationary mechanics through regular burns, governance voting rights for platform decisions, and cross-platform utility across all our gaming ecosystem. Stay tuned for exact launch date and pre-sale details. This is a limited opportunity to get involved with the future of gaming on Cardano.",
-      date: "2024-12-10",
+      date: "2025-05-15",
       category: "Token",
       type: "event",
       isNew: true
@@ -70,7 +69,7 @@ export const NewsUpdatesSection = ({ user }: NewsUpdatesSectionProps) => {
       title: "Ad Campaign & Community Rewards Program",
       description: "Join our referral program and meme contests to earn credits while spreading the word",
       fullContent: "We're launching an exciting community-driven advertising campaign that rewards our users for helping spread the word about our platform! Our comprehensive referral program offers generous credit rewards for every friend you bring to the platform. Share your unique referral link and earn 5 credits for each successful signup, plus ongoing rewards when your referrals play games and make purchases. We're also hosting regular meme contests with prizes up to 100 credits for the best community-created content. Contest categories include funniest memes, best platform reviews, creative video content, and social media engagement challenges. Top contributors will receive exclusive badges, bonus credits, and early access to new features. Our goal is to build the strongest gaming community on Cardano while rewarding our most dedicated supporters. Join our Discord and Telegram channels to participate in daily challenges and connect with other players.",
-      date: "2024-12-06",
+      date: "2025-04-08",
       category: "Community",
       type: "event",
       isNew: true
@@ -79,7 +78,7 @@ export const NewsUpdatesSection = ({ user }: NewsUpdatesSectionProps) => {
       title: "New Cardano USDM Support",
       description: "We now support USDM transactions on the Cardano network for faster, cheaper payments",
       fullContent: "We've added support for USDM (USD-backed stablecoin) transactions on the Cardano network, providing our users with faster and more cost-effective payment options. This integration allows for seamless credit purchases with minimal transaction fees, typically under $0.50 per transaction. USDM transactions settle within 20 seconds on average, significantly faster than traditional payment methods. Users can now deposit USDM directly to their accounts, purchase credits with USDM, and withdraw earnings in USDM for maximum stability. This update also includes automatic conversion rates, transparent fee structures, and enhanced security for all stablecoin transactions. The integration supports both desktop and mobile wallets, making it easier than ever to manage your gaming funds.",
-      date: "2024-12-03",
+      date: "2025-03-12",
       category: "Payment",
       type: "feature",
       isNew: false
@@ -88,7 +87,7 @@ export const NewsUpdatesSection = ({ user }: NewsUpdatesSectionProps) => {
       title: "Security Enhancement Completed",
       description: "Additional security measures have been implemented to protect user accounts",
       fullContent: "We've completed a comprehensive security upgrade to better protect our users' accounts and assets. New security features include advanced encryption for all user data, multi-layer authentication systems, automated threat detection and prevention, regular security audits by third-party firms, and enhanced wallet protection protocols. We've also implemented real-time monitoring for suspicious activities, automatic account lockdown procedures for potential threats, and improved backup and recovery systems. All user passwords are now encrypted with military-grade algorithms, and we've added optional two-factor authentication for enhanced account security. These improvements ensure that your gaming experience remains safe and secure while maintaining the seamless user experience you expect.",
-      date: "2024-12-01",
+      date: "2025-01-20",
       category: "Security",
       type: "update",
       isNew: false
@@ -128,21 +127,6 @@ export const NewsUpdatesSection = ({ user }: NewsUpdatesSectionProps) => {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
-        <Card className="bg-blue-900/20 border-blue-600/30 flex-1">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Bell className="h-5 w-5 text-blue-400" />
-              <span className="text-blue-400 font-semibold">Notifications</span>
-            </div>
-            <p className="text-gray-300 text-sm mb-3">
-              Get notified about important updates and announcements
-            </p>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-500 text-white">
-              Enable Notifications
-            </Button>
-          </CardContent>
-        </Card>
-
         <Card className="bg-gray-800/30 border-gray-700 flex-1">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -240,14 +224,29 @@ export const NewsUpdatesSection = ({ user }: NewsUpdatesSectionProps) => {
         </CardHeader>
         <CardContent>
           <div className="flex gap-3">
-            <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              onClick={() => window.open('https://twitter.com/Tropicalfattys', '_blank')}
+            >
               Twitter
             </Button>
-            <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700">
-              Discord
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-gray-600 text-gray-500 cursor-not-allowed"
+              disabled
+            >
+              Discord (Coming Soon)
             </Button>
-            <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700">
-              Telegram
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-gray-600 text-gray-500 cursor-not-allowed"
+              disabled
+            >
+              Telegram (Coming Soon)
             </Button>
           </div>
         </CardContent>
