@@ -42,7 +42,7 @@ export const ManifestoSection = () => {
     {
       icon: "🪙",
       title: "USDC IN, USDC OUT",
-      description: "Buy credits with USDC on 3 chains. Regret available instantly."
+      description: "Buy credits with USDC on 4 chains. Regret available instantly."
     },
     {
       icon: "🌪",
