@@ -25,7 +25,7 @@ export const MintInfoSection = () => {
               <p className="text-lg text-gray-300"><span className="font-bold">Blockchain:</span> Community Vote</p>
             </div>
             <Button className="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold border border-gray-600">
-              Mint coming soon 
+              Mint Coming Soon 
             </Button>
             <p className="text-sm text-gray-400 mt-2 font-bold">
               MINTING MAY CAUSE REGRET.
