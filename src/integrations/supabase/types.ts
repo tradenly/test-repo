@@ -778,6 +778,7 @@ export type Database = {
         | "telegram"
         | "instagram"
         | "youtube"
+        | "facebook"
       stake_status: "active" | "pending" | "completed" | "cancelled"
     }
     CompositeTypes: {
@@ -914,6 +915,7 @@ export const Constants = {
         "telegram",
         "instagram",
         "youtube",
+        "facebook",
       ],
       stake_status: ["active", "pending", "completed", "cancelled"],
     },

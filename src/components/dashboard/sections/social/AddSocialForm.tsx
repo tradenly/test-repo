@@ -65,6 +65,7 @@ export const AddSocialForm = ({ onSubmit, isSubmitting, onCancel }: AddSocialFor
                 <SelectItem value="telegram">Telegram</SelectItem>
                 <SelectItem value="instagram">Instagram</SelectItem>
                 <SelectItem value="youtube">YouTube</SelectItem>
+                <SelectItem value="facebook">Facebook</SelectItem>
               </SelectContent>
             </Select>
           </div>
