@@ -24,13 +24,18 @@ export const AdminAnalytics = () => {
     queryFn: async () => {
       console.log('🔍 AdminAnalytics: Fetching comprehensive analytics data');
       
-      // Get all game sessions with user info
+      // Get leaderboard data (includes user info properly joined)
+      const { data: leaderboardData, error: leaderboardError } = await supabase.rpc('get_leaderboard_stats');
+      
+      if (leaderboardError) {
+        console.error('❌ Error fetching leaderboard data:', leaderboardError);
+        throw leaderboardError;
+      }
+
+      // Get all game sessions for analytics
       const { data: sessions, error: sessionsError } = await supabase
         .from('game_sessions')
-        .select(`
-          *,
-          profiles!game_sessions_user_id_fkey (username, full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (sessionsError) {
@@ -38,13 +43,10 @@ export const AdminAnalytics = () => {
         throw sessionsError;
       }
 
-      console.log('📊 Raw sessions data:', sessions?.length, 'sessions');
-
-      // Get daily sessions for the last 30 days
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const recentSessions = sessions?.filter(session => 
-        new Date(session.created_at) >= thirtyDaysAgo
-      ) || [];
+      console.log('📊 Analytics data:', {
+        leaderboardEntries: leaderboardData?.length,
+        totalSessions: sessions?.length
+      });
 
       // Process overview metrics
       const totalSessions = sessions?.length || 0;
@@ -93,36 +95,15 @@ export const AdminAnalytics = () => {
         avgPerSession: stats.sessions > 0 ? (stats.creditsSpent / stats.sessions).toFixed(2) : 0
       }));
 
-      // Top players analysis
-      const playerStats = sessions?.reduce((acc, session) => {
-        const userId = session.user_id;
-        if (!acc[userId]) {
-          acc[userId] = {
-            userId,
-            username: session.profiles?.username || 'Anonymous',
-            fullName: session.profiles?.full_name || 'Unknown',
-            totalSessions: 0,
-            totalCreditsSpent: 0,
-            totalCreditsEarned: 0,
-            highestScore: 0,
-            totalDuration: 0,
-            games: new Set()
-          };
-        }
-        acc[userId].totalSessions++;
-        acc[userId].totalCreditsSpent += session.credits_spent || 0;
-        acc[userId].totalCreditsEarned += session.credits_earned || 0;
-        acc[userId].highestScore = Math.max(acc[userId].highestScore, session.score || 0);
-        acc[userId].totalDuration += session.duration_seconds || 0;
-        acc[userId].games.add(session.game_type);
-        return acc;
-      }, {} as Record<string, any>) || {};
-
-      const topPlayers = Object.values(playerStats)
-        .sort((a: any, b: any) => b.totalSessions - a.totalSessions)
-        .slice(0, 10);
+      // Use leaderboard data for top players (already has proper user info)
+      const topPlayers = leaderboardData?.slice(0, 10) || [];
 
       // Daily activity data
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const recentSessions = sessions?.filter(session => 
+        new Date(session.created_at) >= thirtyDaysAgo
+      ) || [];
+
       const dailyData: Record<string, { date: string; sessions: number; revenue: number }> = {};
       recentSessions.forEach((session) => {
         const date = new Date(session.created_at).toLocaleDateString();
@@ -341,27 +322,29 @@ export const AdminAnalytics = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-gray-400">Player</TableHead>
-                <TableHead className="text-gray-400">Sessions</TableHead>
-                <TableHead className="text-gray-400">Credits Spent</TableHead>
-                <TableHead className="text-gray-400">Credits Earned</TableHead>
+                <TableHead className="text-gray-400">Total Games</TableHead>
                 <TableHead className="text-gray-400">Highest Score</TableHead>
-                <TableHead className="text-gray-400">Total Playtime</TableHead>
+                <TableHead className="text-gray-400">Credits Earned</TableHead>
+                <TableHead className="text-gray-400">Longest Survival</TableHead>
+                <TableHead className="text-gray-400">Last Played</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {analytics.topPlayers.map((player: any, index: number) => (
-                <TableRow key={player.userId}>
+                <TableRow key={player.user_id}>
                   <TableCell className="text-white">
                     <div>
-                      <div className="font-medium">{player.username}</div>
-                      <div className="text-sm text-gray-400">{player.fullName}</div>
+                      <div className="font-medium">{player.username || 'Anonymous'}</div>
+                      <div className="text-sm text-gray-400">{player.full_name || 'Unknown'}</div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-white">{player.totalSessions}</TableCell>
-                  <TableCell className="text-white">{player.totalCreditsSpent.toFixed(1)}</TableCell>
-                  <TableCell className="text-white">{player.totalCreditsEarned.toFixed(1)}</TableCell>
-                  <TableCell className="text-white">{player.highestScore}</TableCell>
-                  <TableCell className="text-white">{Math.round(player.totalDuration / 60)}m</TableCell>
+                  <TableCell className="text-white">{player.total_games}</TableCell>
+                  <TableCell className="text-white">{player.highest_score}</TableCell>
+                  <TableCell className="text-white">{Number(player.total_credits_earned).toFixed(1)}</TableCell>
+                  <TableCell className="text-white">{Math.round(player.longest_survival / 60)}m</TableCell>
+                  <TableCell className="text-white">
+                    {new Date(player.last_played).toLocaleDateString()}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
