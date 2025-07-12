@@ -6,6 +6,7 @@ import { CreditManagement } from "./sections/CreditManagement";
 import { ActivityMonitor } from "./sections/ActivityMonitor";
 import { PayoutManagement } from "./sections/PayoutManagement";
 import { AdminAnalytics } from "./sections/AdminAnalytics";
+import { ToolRequestManagement } from "./sections/ToolRequestManagement";
 
 interface AdminContentProps {
   activeSection: AdminSection;
@@ -25,6 +26,8 @@ export const AdminContent = ({ activeSection }: AdminContentProps) => {
       return <PayoutManagement />;
     case "analytics":
       return <AdminAnalytics />;
+    case "requests":
+      return <ToolRequestManagement />;
     default:
       return <AdminOverview />;
   }

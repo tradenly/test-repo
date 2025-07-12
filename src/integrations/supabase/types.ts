@@ -466,6 +466,71 @@ export type Database = {
         }
         Relationships: []
       }
+      tool_request_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_admin_message: boolean
+          message: string
+          sender_id: string
+          tool_request_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_admin_message?: boolean
+          message: string
+          sender_id: string
+          tool_request_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_admin_message?: boolean
+          message?: string
+          sender_id?: string
+          tool_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_request_messages_tool_request_id_fkey"
+            columns: ["tool_request_id"]
+            isOneToOne: false
+            referencedRelation: "tool_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tool_requests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_bans: {
         Row: {
           banned_at: string

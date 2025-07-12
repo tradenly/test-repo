@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
+import { ToolRequestDialog } from "./ToolRequestDialog";
 import { 
   Calculator, 
   PieChart, 
@@ -209,9 +210,11 @@ export const FreeToolsSection = ({ user }: FreeToolsSectionProps) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
-              Submit Tool Request
-            </Button>
+            <ToolRequestDialog>
+              <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+                Submit Tool Request
+              </Button>
+            </ToolRequestDialog>
           </CardContent>
         </Card>
       </div>

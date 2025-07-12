@@ -8,7 +8,8 @@ import {
   CreditCard, 
   BarChart3, 
   Settings,
-  X
+  X,
+  MessageSquare
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -26,6 +27,7 @@ const adminSections = [
   { id: "activity" as AdminSection, label: "Activity Monitor", icon: Activity },
   { id: "payouts" as AdminSection, label: "Payout Management", icon: CreditCard },
   { id: "analytics" as AdminSection, label: "Analytics", icon: BarChart3 },
+  { id: "requests" as AdminSection, label: "Requests", icon: MessageSquare },
 ];
 
 export const AdminSidebar = ({ 
