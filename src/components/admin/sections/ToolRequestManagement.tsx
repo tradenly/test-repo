@@ -18,7 +18,7 @@ interface ToolRequest {
   status: string;
   created_at: string;
   updated_at: string;
-  profiles?: {
+  user_profile?: {
     username: string;
     full_name: string;
   } | null;
@@ -31,7 +31,7 @@ interface ToolRequestMessage {
   message: string;
   is_admin_message: boolean;
   created_at: string;
-  profiles?: {
+  user_profile?: {
     username: string;
     full_name: string;
   } | null;
@@ -58,16 +58,30 @@ export const ToolRequestManagement = () => {
 
   const fetchRequests = async () => {
     try {
-      const { data, error } = await supabase
+      // First get all tool requests
+      const { data: requestsData, error: requestsError } = await supabase
         .from('tool_requests')
-        .select(`
-          *,
-          profiles!inner(username, full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setRequests(data || []);
+      if (requestsError) throw requestsError;
+
+      // Then get profiles for all unique user IDs
+      const userIds = [...new Set(requestsData?.map(r => r.user_id) || [])];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, full_name')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      const requestsWithProfiles = requestsData?.map(request => ({
+        ...request,
+        user_profile: profilesData?.find(p => p.id === request.user_id) || null
+      })) || [];
+
+      setRequests(requestsWithProfiles);
     } catch (error) {
       console.error('Error fetching requests:', error);
       toast({
@@ -82,17 +96,31 @@ export const ToolRequestManagement = () => {
 
   const fetchMessages = async (requestId: string) => {
     try {
-      const { data, error } = await supabase
+      // First get all messages for this request
+      const { data: messagesData, error: messagesError } = await supabase
         .from('tool_request_messages')
-        .select(`
-          *,
-          profiles!inner(username, full_name)
-        `)
+        .select('*')
         .eq('tool_request_id', requestId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      setMessages(data || []);
+      if (messagesError) throw messagesError;
+
+      // Then get profiles for all unique sender IDs
+      const senderIds = [...new Set(messagesData?.map(m => m.sender_id) || [])];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, full_name')
+        .in('id', senderIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      const messagesWithProfiles = messagesData?.map(message => ({
+        ...message,
+        user_profile: profilesData?.find(p => p.id === message.sender_id) || null
+      })) || [];
+
+      setMessages(messagesWithProfiles);
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
@@ -247,7 +275,7 @@ export const ToolRequestManagement = () => {
                   <div className="flex items-center gap-4 text-xs text-gray-500">
                     <div className="flex items-center gap-1">
                       <User className="h-3 w-3" />
-                      <span>{request.profiles?.username || 'Unknown User'}</span>
+                      <span>{request.user_profile?.username || 'Unknown User'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
@@ -270,7 +298,7 @@ export const ToolRequestManagement = () => {
                 </CardTitle>
                 <CardDescription className="text-gray-400">
                   {selectedRequest
-                    ? `Conversation with ${selectedRequest.profiles?.username || 'Unknown User'}`
+                    ? `Conversation with ${selectedRequest.user_profile?.username || 'Unknown User'}`
                     : 'Choose a request from the list to view the conversation'
                   }
                 </CardDescription>
@@ -314,7 +342,7 @@ export const ToolRequestManagement = () => {
                     <div className="flex items-center gap-2 mb-2">
                       <User className="h-4 w-4 text-blue-400" />
                       <span className="text-sm font-medium text-blue-400">
-                        {selectedRequest.profiles?.username || 'Unknown User'}
+                        {selectedRequest.user_profile?.username || 'Unknown User'}
                       </span>
                       <span className="text-xs text-gray-500">
                         {format(new Date(selectedRequest.created_at), 'MMM dd, yyyy HH:mm')}
@@ -340,7 +368,7 @@ export const ToolRequestManagement = () => {
                         }`}>
                           {message.is_admin_message 
                             ? 'Admin' 
-                            : message.profiles?.username || 'Unknown User'
+                            : message.user_profile?.username || 'Unknown User'
                           }
                         </span>
                         <span className="text-xs text-gray-500">
