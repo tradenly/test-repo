@@ -1,4 +1,3 @@
-
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { LazyImage } from "@/components/ui/lazy-image";
 
@@ -48,9 +47,20 @@ export const SneakPeekSection = () => {
         <h2 className="text-5xl md:text-6xl font-bold text-white mb-4">
           What is POOPEE?
         </h2>
-        <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
-          POOPEE is a meme coin and NFT collection with no use case, no promises, and no future. Basically, what all of them are anyway, but we're just more upfront and forthcoming about it. Who really knows we made all this up and by the way we have some pretty cool P2E games for you to check out and if you don't, who cares
-        </p>
+        <div className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto space-y-4">
+          <p>
+            POOPEE is a meme coin and NFT collection with no real purpose, no roadmap, and absolutely no future.
+            Just like every other project pretending otherwise — we're just the first to admit it.
+          </p>
+          <p>
+            We made this entire thing up. There's no grand vision, no utility…
+            Well — except for the part where we accidentally launched some pretty solid play-to-earn games.
+          </p>
+          <p>
+            So if you want to tap a hippo, stack some logs, or crush your remaining dignity, go check them out.
+            If not? Whatever. We'll keep vibing in the toiletverse either way.
+          </p>
+        </div>
         
         <div className="mb-16">
           <h3 className="text-3xl font-bold text-gray-300 mb-8 italic text-center">
