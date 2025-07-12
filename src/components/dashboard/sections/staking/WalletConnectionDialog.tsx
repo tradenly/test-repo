@@ -38,8 +38,12 @@ export const WalletConnectionDialog = ({ open, onOpenChange }: WalletConnectionD
             {isConnecting ? (
               <Loader2 className="h-6 w-6 animate-spin" />
             ) : (
-              <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">M</span>
+              <div className="w-8 h-8 flex items-center justify-center">
+                <img 
+                  src="/lovable-uploads/7aaa5570-d33e-473d-8087-5a596409f560.png" 
+                  alt="MetaMask" 
+                  className="w-8 h-8"
+                />
               </div>
             )}
             <div className="text-left flex-1">
@@ -56,8 +60,12 @@ export const WalletConnectionDialog = ({ open, onOpenChange }: WalletConnectionD
             {isConnecting ? (
               <Loader2 className="h-6 w-6 animate-spin" />
             ) : (
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">P</span>
+              <div className="w-8 h-8 flex items-center justify-center">
+                <img 
+                  src="/lovable-uploads/50823ebf-45e8-4be0-b52e-c27134a6c2c1.png" 
+                  alt="Phantom" 
+                  className="w-8 h-8"
+                />
               </div>
             )}
             <div className="text-left flex-1">
@@ -70,8 +78,12 @@ export const WalletConnectionDialog = ({ open, onOpenChange }: WalletConnectionD
             disabled
             className="w-full h-14 flex items-center gap-4 bg-gray-600 cursor-not-allowed opacity-50"
           >
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">E</span>
+            <div className="w-8 h-8 flex items-center justify-center">
+              <img 
+                src="/lovable-uploads/0066b421-0e65-4cc5-9d39-56554d3d2c54.png" 
+                alt="ETERNL" 
+                className="w-8 h-8"
+              />
             </div>
             <div className="text-left flex-1">
               <div className="font-semibold">ETERNL</div>
