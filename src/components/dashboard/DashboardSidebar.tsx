@@ -14,7 +14,8 @@ import {
   TreePine,
   X,
   Wrench,
-  Newspaper
+  Newspaper,
+  PieChart
 } from "lucide-react";
 import { DashboardSection } from "@/pages/Dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -44,6 +45,7 @@ export const DashboardSidebar = ({
     { id: "documents" as DashboardSection, label: "Documents", icon: FileText, isIconComponent: true },
     { id: "wallets" as DashboardSection, label: "Wallets", icon: Wallet, isIconComponent: true },
     { id: "staking" as DashboardSection, label: "Staking", icon: PiggyBank, isIconComponent: true },
+    { id: "tokenomics" as DashboardSection, label: "Tokenomics", icon: PieChart, isIconComponent: true },
     { id: "social" as DashboardSection, label: "Social", icon: Users, isIconComponent: true },
     { id: "portfolio" as DashboardSection, label: "Portfolio", icon: TrendingUp, isIconComponent: true },
     { id: "rewards" as DashboardSection, label: "Rewards", icon: Gift, isIconComponent: true },

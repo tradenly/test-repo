@@ -1,3 +1,4 @@
+
 import { DashboardSection } from "@/pages/Dashboard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DashboardOverview } from "./sections/DashboardOverview";
@@ -12,6 +13,7 @@ import { StakingSection } from "./sections/StakingSection";
 import { SocialSection } from "./sections/SocialSection";
 import { PortfolioSection } from "./sections/PortfolioSection";
 import { RewardsSection } from "./sections/RewardsSection";
+import { TokenomicsSection } from "./sections/TokenomicsSection";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { FreeToolsSection } from "./sections/FreeToolsSection";
 import { NewsUpdatesSection } from "./sections/NewsUpdatesSection";
@@ -43,6 +45,8 @@ export const DashboardSectionRenderer = ({ activeSection, user, onSectionChange 
         return <WalletsSection user={user} />;
       case "staking":
         return <StakingSection user={user} />;
+      case "tokenomics":
+        return <TokenomicsSection user={user} />;
       case "social":
         return <SocialSection user={user} />;
       case "portfolio":

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
@@ -21,7 +22,8 @@ export type DashboardSection =
   | "portfolio" 
   | "rewards"
   | "free-tools"
-  | "news-updates";
+  | "news-updates"
+  | "tokenomics";
 
 const Dashboard = () => {
   const { user, loading } = useUnifiedAuth();
