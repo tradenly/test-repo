@@ -39,7 +39,55 @@ export const UserToolRequestsView = () => {
 
   useEffect(() => {
     fetchUserRequests();
-  }, []);
+    
+    // Set up real-time subscription for request status changes
+    const requestsSubscription = supabase
+      .channel('user-tool-requests')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tool_requests'
+        },
+        (payload) => {
+          console.log('Tool request updated:', payload);
+          // Refresh requests to get updated status
+          fetchUserRequests();
+          
+          // Update selected request if it's the one that was updated
+          if (selectedRequest && payload.new.id === selectedRequest.id) {
+            setSelectedRequest(payload.new as ToolRequest);
+          }
+        }
+      )
+      .subscribe();
+
+    // Set up real-time subscription for new messages
+    const messagesSubscription = supabase
+      .channel('user-tool-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'tool_request_messages'
+        },
+        (payload) => {
+          console.log('New message received:', payload);
+          // If the message is for the currently selected request, refresh messages
+          if (selectedRequest && payload.new.tool_request_id === selectedRequest.id) {
+            fetchMessages(selectedRequest.id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(requestsSubscription);
+      supabase.removeChannel(messagesSubscription);
+    };
+  }, [selectedRequest]);
 
   useEffect(() => {
     if (selectedRequest) {
@@ -60,6 +108,7 @@ export const UserToolRequestsView = () => {
 
       if (error) throw error;
 
+      console.log('Fetched user requests:', data);
       setRequests(data || []);
     } catch (error) {
       console.error('Error fetching user requests:', error);
@@ -96,6 +145,16 @@ export const UserToolRequestsView = () => {
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedRequest) return;
+
+    // Prevent sending messages to closed requests
+    if (selectedRequest.status === 'closed') {
+      toast({
+        title: "Cannot Send Message",
+        description: "This request has been closed. Please create a new request if you need further assistance.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSendingMessage(true);
     try {
@@ -138,6 +197,15 @@ export const UserToolRequestsView = () => {
       case 'in_progress': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'closed': return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'open': return 'Open';
+      case 'in_progress': return 'In Progress';
+      case 'closed': return 'Closed';
+      default: return status;
     }
   };
 
@@ -198,7 +266,7 @@ export const UserToolRequestsView = () => {
                     <div className="flex items-start justify-between mb-2">
                       <h4 className="text-white font-medium text-sm truncate">{request.subject}</h4>
                       <Badge className={`text-xs ${getStatusColor(request.status)}`}>
-                        {request.status}
+                        {getStatusText(request.status)}
                       </Badge>
                     </div>
                     <p className="text-gray-400 text-xs mb-2 line-clamp-2">{request.message}</p>
@@ -223,7 +291,12 @@ export const UserToolRequestsView = () => {
                   <div>
                     <h3 className="text-white font-medium">{selectedRequest.subject}</h3>
                     <p className="text-gray-400 text-sm">
-                      Status: <span className="capitalize">{selectedRequest.status}</span>
+                      Status: <span className={`capitalize font-medium ${
+                        selectedRequest.status === 'closed' ? 'text-gray-400' : 
+                        selectedRequest.status === 'open' ? 'text-green-400' : 'text-blue-400'
+                      }`}>
+                        {getStatusText(selectedRequest.status)}
+                      </span>
                     </p>
                   </div>
 
@@ -268,7 +341,7 @@ export const UserToolRequestsView = () => {
                   </div>
 
                   {/* Reply Form - Only show if request is not closed */}
-                  {selectedRequest.status !== 'closed' && (
+                  {selectedRequest.status !== 'closed' ? (
                     <div className="space-y-3 pt-3 border-t border-gray-700">
                       <Textarea
                         placeholder="Type your response..."
@@ -286,6 +359,15 @@ export const UserToolRequestsView = () => {
                         <Send className="h-4 w-4 mr-2" />
                         {sendingMessage ? 'Sending...' : 'Send Reply'}
                       </Button>
+                    </div>
+                  ) : (
+                    <div className="pt-3 border-t border-gray-700">
+                      <div className="bg-gray-700/30 rounded-lg p-4 text-center">
+                        <p className="text-gray-400 text-sm mb-2">This request has been closed.</p>
+                        <p className="text-gray-500 text-xs">
+                          If you need further assistance, please submit a new request.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
