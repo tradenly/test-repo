@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,8 +72,8 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
   };
 
   const handleSubmit = async () => {
-    if (!selectedBlockchain || !isWalletConnected || !usdcAmount || !user) {
-      alert("Please select a blockchain, connect your wallet, and enter a USDC amount");
+    if (!selectedBlockchain || !usdcAmount || !user) {
+      alert("Please select a blockchain and enter a USDC amount");
       return;
     }
 
@@ -93,7 +94,7 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
 
       const paymentOrder = await createPaymentOrderMutation.mutateAsync({
         userId: user.id,
-        walletAddress,
+        walletAddress: walletAddress || "manual_payment", // Use placeholder if no wallet connected
         blockchain: selectedBlockchain,
         usdcAmount: usdcValue,
         creditAmount,
@@ -168,7 +169,7 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
           </div>
 
           <div>
-            <Label className="text-gray-300">Phantom Wallet</Label>
+            <Label className="text-gray-300">Phantom Wallet (Optional)</Label>
             {!isWalletConnected ? (
               <Button
                 onClick={handleConnectWallet}
@@ -226,14 +227,14 @@ export const PhantomCreditPurchaseCard = ({ className }: PhantomCreditPurchaseCa
                 onClick={() => setUsdcAmount(amount.toString())}
                 className="bg-blue-600 hover:bg-blue-700 text-white hover:text-black"
               >
-                {amount} USDC
+                {amount} USD
               </Button>
             ))}
           </div>
 
           <Button
             onClick={handleSubmit}
-            disabled={!selectedBlockchain || !isWalletConnected || !usdcAmount || parseFloat(usdcAmount) < 5 || createPaymentOrderMutation.isPending}
+            disabled={!selectedBlockchain || !usdcAmount || parseFloat(usdcAmount) < 5 || createPaymentOrderMutation.isPending}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
           >
             {createPaymentOrderMutation.isPending ? "Creating Order..." : "Generate Payment Address"}
