@@ -44,7 +44,7 @@ export const FreeToolsSection = ({ user }: FreeToolsSectionProps) => {
       }
     },
     {
-      title: "AI Portfolio Tracker",
+      title: "Portfolio Tracker",
       description: "Track your crypto portfolio performance",
       icon: PieChart,
       status: "Coming Soon",
@@ -52,23 +52,23 @@ export const FreeToolsSection = ({ user }: FreeToolsSectionProps) => {
       hasPopup: false
     },
     {
-      title: "LP Analysis",
-      description: "Track & analyze real-time LP",
+      title: "Market Analysis",
+      description: "Basic market trends and analysis tools",
       icon: TrendingUp,
       status: "Coming Soon",
       action: "Notify Me",
       hasPopup: false
     },
     {
-      title: "Multi-Chain Yield Calculator",
-      description: "Calculate potential staking and farming yields",
+      title: "Yield Calculator",
+      description: "Calculate potential staking & farming yields",
       icon: Coins,
       status: "Coming Soon",
       action: "Notify Me",
       hasPopup: false
     },
     {
-      title: "AI Driven Price Alerts",
+      title: "Price Alerts",
       description: "Set up price alerts for your favorite tokens",
       icon: BarChart3,
       status: "Coming Soon",
@@ -76,8 +76,8 @@ export const FreeToolsSection = ({ user }: FreeToolsSectionProps) => {
       hasPopup: false
     },
     {
-      title: "Multi-Chain Token Gnerator",
-      description: "Create tokens on ANY chain",
+      title: "Hash Converter",
+      description: "Convert between different hash formats",
       icon: Hash,
       status: "Coming Soon",
       action: "Notify Me",
