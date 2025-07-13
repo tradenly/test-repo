@@ -82,7 +82,7 @@ export const useAnalyticsData = () => {
         spent: stats.creditsSpent,
         earned: stats.creditsEarned,
         profit: stats.creditsSpent - stats.creditsEarned,
-        avgPerSession: stats.sessions > 0 ? (stats.creditsSpent / stats.sessions).toFixed(2) : 0
+        avgPerSession: stats.sessions > 0 ? (stats.creditsSpent / stats.sessions).toFixed(2) : "0"
       }));
 
       // Use leaderboard data for top players (already has proper user info)
