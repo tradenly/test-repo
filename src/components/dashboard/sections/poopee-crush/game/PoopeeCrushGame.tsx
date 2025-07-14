@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { EnhancedGameBoard } from "./EnhancedGameBoard";
-import { LevelHUD } from "./LevelHUD";
+import { GameHUD } from "./GameHUD";
 import { BoosterPanel } from "./BoosterPanel";
-import { LevelCompleteScreen } from "./LevelCompleteScreen";
 import { GameOverScreen } from "./GameOverScreen";
 import { useEnhancedGameState } from "./useEnhancedGameState";
 import { BoosterType } from "./BoosterSystem";
@@ -25,23 +25,15 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
     animations,
     handleTileClick,
     useBooster,
-    startNewLevel,
-    resumeGame,
+    startNewGame,
     quitGame,
-    continueToNextLevel,
-    restartLevel
-  } = useEnhancedGameState(difficulty, handleLevelComplete, handleGameEnd);
+    restartGame
+  } = useEnhancedGameState(difficulty, handleGameEnd);
 
-  useEffect(() => {
-    console.log(`🎮 [PoopeeCrushGame] Starting with difficulty: ${difficulty}`);
-    
-    // Simply start from level 1 - no auto-resume to avoid level progression issues
-    startNewLevel(1);
-  }, [difficulty]); // Only depend on difficulty to avoid constant re-execution
-
-  function handleLevelComplete(level: number, score: number, stars: number) {
-    console.log(`🎉 Level ${level} complete! Score: ${score}, Stars: ${stars}`);
-  }
+  // Start new game on component mount
+  useState(() => {
+    startNewGame();
+  });
 
   function handleGameEnd(finalScore: number) {
     console.log(`🔚 Game ended with final score: ${finalScore}`);
@@ -79,25 +71,11 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
     }
   };
 
-  if (gameState.levelComplete) {
-    return (
-      <LevelCompleteScreen
-        level={gameState.gameProgress.currentLevel}
-        score={gameState.gameProgress.score}
-        stars={gameState.starRating}
-        onContinue={continueToNextLevel}
-        onRestart={restartLevel}
-        onQuit={quitGame}
-      />
-    );
-  }
-
   if (gameState.gameOver) {
     return (
       <GameOverScreen
         finalScore={gameState.gameProgress.score}
-        level={gameState.gameProgress.currentLevel}
-        onRestart={restartLevel}
+        onRestart={restartGame}
         onQuit={quitGame}
       />
     );
@@ -106,11 +84,11 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-2">
       <div className="lg:col-span-1">
-        <LevelHUD 
-          gameProgress={gameState.gameProgress} 
-          levelConfig={gameState.levelConfig} 
+        <GameHUD 
+          gameProgress={gameState.gameProgress}
           onQuit={quitGame}
-          onRestart={restartLevel}
+          onRestart={restartGame}
+          difficulty={difficulty}
         />
       </div>
       
