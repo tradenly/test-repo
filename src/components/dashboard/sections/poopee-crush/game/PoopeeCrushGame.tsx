@@ -36,6 +36,7 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
   useEffect(() => {
     console.log(`🎮 [PoopeeCrushGame] Starting with difficulty: ${difficulty}`);
     
+    // Try to resume first, if no saved game exists, start from level 1
     const resumed = resumeGame();
     if (!resumed) {
       startNewLevel(1);

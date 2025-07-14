@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { GameBoard, GameProgress, Position, Animation, EnhancedGameEngine, BoosterResult } from './EnhancedGameEngine';
 import { BoosterType, BoosterManager } from './BoosterSystem';
@@ -29,17 +30,14 @@ const calculateStarRating = (gameProgress: GameProgress, levelConfig: LevelConfi
 };
 
 const STORAGE_KEY = 'poopee-crush-enhanced-game-state';
-const PROGRESS_STORAGE_KEY = 'poopee-crush-game-progress';
 
 const saveGameState = (gameState: EnhancedGameState, difficulty: DifficultyLevel) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
-    // Save progress separately to persist across sessions
-    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify({
-      currentLevel: gameState.gameProgress.currentLevel,
-      difficulty: difficulty,
-      timestamp: Date.now()
-    }));
+    // Only save if game is active and not completed
+    if (gameState.gameActive && !gameState.levelComplete && !gameState.gameOver) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+      console.log('💾 Game state saved - Level:', gameState.gameProgress.currentLevel);
+    }
   } catch (error) {
     console.warn('Failed to save game state:', error);
   }
@@ -58,20 +56,13 @@ const loadGameState = (): EnhancedGameState | null => {
   return null;
 };
 
-const loadGameProgress = (): { currentLevel: number; difficulty: DifficultyLevel } | null => {
+const clearGameState = () => {
   try {
-    const saved = localStorage.getItem(PROGRESS_STORAGE_KEY);
-    if (saved) {
-      const progress = JSON.parse(saved);
-      // Only restore if saved within last 24 hours
-      if (Date.now() - progress.timestamp < 24 * 60 * 60 * 1000) {
-        return { currentLevel: progress.currentLevel, difficulty: progress.difficulty };
-      }
-    }
+    localStorage.removeItem(STORAGE_KEY);
+    console.log('🗑️ Cleared saved game state');
   } catch (error) {
-    console.warn("Failed to load game progress:", error);
+    console.warn('Failed to clear game state:', error);
   }
-  return null;
 };
 
 interface EnhancedGameState {
@@ -158,11 +149,16 @@ export const useEnhancedGameState = (
             newState.starRating = stars;
             console.log(`🎉 Level ${newState.gameProgress.currentLevel} completed!`);
             onLevelComplete(newState.gameProgress.currentLevel, newState.gameProgress.score, stars);
+            clearGameState(); // Clear saved state on level completion
           }
           
-          saveGameState(newState, difficulty);
+          // Only save if game is still active and not completed
+          if (newState.gameActive && !newState.levelComplete && !newState.gameOver) {
+            saveGameState(newState, difficulty);
+          }
           
           if (newState.gameOver && !prevState.gameOver) {
+            clearGameState(); // Clear saved state on game over
             onGameEnd(newState.gameProgress.score);
           }
           
@@ -213,7 +209,11 @@ export const useEnhancedGameState = (
             hintTiles: []
           };
           
-          saveGameState(newState, difficulty);
+          // Only save if game is still active and not completed
+          if (newState.gameActive && !newState.levelComplete && !newState.gameOver) {
+            saveGameState(newState, difficulty);
+          }
+          
           console.log(`💾 [useBooster] Game state saved after ${type} booster`);
           return newState;
         });
@@ -226,6 +226,8 @@ export const useEnhancedGameState = (
   }, [gameState.gameActive, gameState.board, playSoundEffect, difficulty]);
 
   const startNewLevel = useCallback((level: number) => {
+    console.log(`🎮 [Enhanced Game] Starting level ${level} on ${difficulty} difficulty`);
+    
     const levelConfig = getLevelConfig(level, difficulty);
     const engine = new EnhancedGameEngine(levelConfig);
     const boosterSystem = new BoosterManager();
@@ -267,24 +269,17 @@ export const useEnhancedGameState = (
     };
     
     setGameState(newState);
+    // Save the new level state immediately
     saveGameState(newState, difficulty);
     
-    console.log(`🎮 [Enhanced Game] Started level ${level} on ${difficulty} difficulty`);
+    console.log(`🎮 [Enhanced Game] Started level ${level}`);
   }, [difficulty]);
 
   const resumeGame = useCallback((): boolean => {
     try {
       const savedState = loadGameState();
-      const savedProgress = loadGameProgress();
       
-      // Prioritize saved progress over saved state for level continuity
-      if (savedProgress && savedProgress.difficulty === difficulty) {
-        console.log(`🔄 [Enhanced Game] Resuming from level ${savedProgress.currentLevel}`);
-        startNewLevel(savedProgress.currentLevel);
-        return true;
-      }
-      
-      if (savedState && savedState.gameActive) {
+      if (savedState && savedState.gameActive && !savedState.levelComplete && !savedState.gameOver) {
         const engine = new EnhancedGameEngine(savedState.levelConfig);
         const boosterSystem = new BoosterManager();
         
@@ -295,17 +290,20 @@ export const useEnhancedGameState = (
         engine.setGameState(savedState.board, savedState.gameProgress);
         
         setGameState(savedState);
-        console.log('🔄 [Enhanced Game] Game resumed from saved state');
+        console.log('🔄 [Enhanced Game] Game resumed from saved state - Level:', savedState.gameProgress.currentLevel);
         return true;
       }
     } catch (error) {
       console.warn('⚠️ [Enhanced Game] Failed to resume game:', error);
     }
     return false;
-  }, [difficulty, startNewLevel]);
+  }, []);
 
   const quitGame = useCallback(() => {
     console.log('🚪 [Enhanced Game] Quitting game with score:', gameState.gameProgress.score);
+    
+    // Clear saved state when quitting
+    clearGameState();
     
     // Call onGameEnd before setting gameActive to false
     onGameEnd(gameState.gameProgress.score);
@@ -314,21 +312,24 @@ export const useEnhancedGameState = (
       ...prevState,
       gameActive: false
     }));
-    
-    // Clear saved game state when quitting
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (error) {
-      console.warn('⚠️ [Enhanced Game] Failed to clear saved state:', error);
-    }
   }, [gameState.gameProgress.score, onGameEnd]);
 
   const continueToNextLevel = useCallback(() => {
     const nextLevel = gameState.gameProgress.currentLevel + 1;
+    console.log(`🚀 [Enhanced Game] Continuing to level ${nextLevel}`);
+    
+    // Clear any saved state before starting new level
+    clearGameState();
+    
     startNewLevel(nextLevel);
   }, [gameState.gameProgress.currentLevel, startNewLevel]);
 
   const restartLevel = useCallback(() => {
+    console.log(`🔄 [Enhanced Game] Restarting level ${gameState.gameProgress.currentLevel}`);
+    
+    // Clear any saved state before restarting
+    clearGameState();
+    
     startNewLevel(gameState.gameProgress.currentLevel);
   }, [gameState.gameProgress.currentLevel, startNewLevel]);
 

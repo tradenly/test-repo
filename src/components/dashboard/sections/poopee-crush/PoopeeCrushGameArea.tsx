@@ -14,7 +14,6 @@ interface PoopeeCrushGameAreaProps {
   userId: string;
 }
 
-const STORAGE_KEY = 'poopee-crush-enhanced-game-state';
 const DIFFICULTY_STORAGE_KEY = 'poopee-crush-difficulty';
 
 export const PoopeeCrushGameArea = ({ 
@@ -25,7 +24,6 @@ export const PoopeeCrushGameArea = ({
   userId 
 }: PoopeeCrushGameAreaProps) => {
   const [gameActive, setGameActive] = useState(false);
-  const [hasResumableGame, setHasResumableGame] = useState(false);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>(() => {
     try {
       const saved = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
@@ -40,42 +38,19 @@ export const PoopeeCrushGameArea = ({
     localStorage.setItem(DIFFICULTY_STORAGE_KEY, difficulty);
   }, [difficulty]);
 
-  // Check for resumable game on component mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const gameState = JSON.parse(saved);
-        if (gameState.gameActive && gameState.moves > 0) {
-          setHasResumableGame(true);
-          setGameActive(true);
-        }
-      }
-    } catch (error) {
-      console.warn("Failed to check for resumable game:", error);
-    }
-  }, []);
-
   const handleStartGame = async () => {
     if (!canPlay) return;
     
     try {
       await onGameStart();
       setGameActive(true);
-      setHasResumableGame(false);
     } catch (error) {
       console.error("Failed to start game:", error);
     }
   };
 
-  const handleResumeGame = () => {
-    setGameActive(true);
-    setHasResumableGame(false);
-  };
-
   const handleEndGame = (score: number, moves: number) => {
     setGameActive(false);
-    setHasResumableGame(false);
     onGameEnd(score, moves);
   };
 
@@ -137,23 +112,13 @@ export const PoopeeCrushGameArea = ({
           </div>
 
           <div className="flex gap-2 justify-center">
-            {hasResumableGame && (
-              <Button
-                onClick={handleResumeGame}
-                className="bg-green-600 hover:bg-green-500 text-white"
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Resume Game
-              </Button>
-            )}
-            
             <Button
               onClick={handleStartGame}
               disabled={!canPlay}
               className="bg-blue-600 hover:bg-blue-500 text-white disabled:bg-gray-600"
             >
               <Play className="mr-2 h-4 w-4" />
-              {hasResumableGame ? "New Game" : "Start Game"}
+              Start Game
               <Coins className="ml-2 h-4 w-4" />
             </Button>
           </div>
