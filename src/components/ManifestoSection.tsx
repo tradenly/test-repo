@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
@@ -15,7 +16,11 @@ export const ManifestoSection = () => {
   };
 
   const handleReferralClick = () => {
-    navigate('/dashboard?section=social');
+    if (user) {
+      navigate('/dashboard?section=social');
+    } else {
+      navigate('/auth');
+    }
   };
 
   const manifestoItems = [

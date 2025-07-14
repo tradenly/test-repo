@@ -32,10 +32,16 @@ const Dashboard = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  // Handle direct game navigation from URL parameters
+  // Handle section navigation from URL parameters
   useEffect(() => {
     const section = searchParams.get('section');
-    if (section && ['flappy-hippos', 'falling-logs', 'poopee-crush'].includes(section)) {
+    const validSections: DashboardSection[] = [
+      "overview", "profile", "flappy-hippos", "falling-logs", "poopee-crush",
+      "leaderboard", "documents", "wallets", "staking", "social", "portfolio",
+      "rewards", "free-tools", "news-updates", "tokenomics"
+    ];
+    
+    if (section && validSections.includes(section as DashboardSection)) {
       setActiveSection(section as DashboardSection);
     }
   }, [searchParams]);
