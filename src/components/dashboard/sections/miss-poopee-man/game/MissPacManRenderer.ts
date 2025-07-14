@@ -1,4 +1,3 @@
-
 import { GameState, MAZE_LAYOUT, CellType, CELL_SIZE, Direction } from './MissPacManEngine';
 
 export class MissPacManRenderer {
@@ -21,25 +20,37 @@ export class MissPacManRenderer {
     const container = this.canvas.parentElement;
     if (!container) return;
 
+    // Get the full container dimensions
     const containerRect = container.getBoundingClientRect();
-    const idealWidth = Math.min(containerRect.width - 40, 800); // Max 800px, with padding
-    const idealHeight = Math.min(containerRect.height - 40, 800);
     
-    // Calculate scale to fit the maze properly
+    // Use the full available space
+    const availableWidth = containerRect.width;
+    const availableHeight = containerRect.height;
+    
+    // Calculate scale to fit the maze properly while filling the space
     const mazePixelWidth = MAZE_LAYOUT[0].length * CELL_SIZE;
     const mazePixelHeight = MAZE_LAYOUT.length * CELL_SIZE;
     
-    this.scale = Math.min(idealWidth / mazePixelWidth, idealHeight / mazePixelHeight, 2);
+    // Scale to fit both dimensions, but prefer filling the space
+    const scaleX = availableWidth / mazePixelWidth;
+    const scaleY = availableHeight / mazePixelHeight;
+    this.scale = Math.min(scaleX, scaleY, 3); // Max scale of 3 for readability
     
+    // Calculate final dimensions
     const scaledWidth = mazePixelWidth * this.scale;
     const scaledHeight = mazePixelHeight * this.scale;
     
     const dpr = window.devicePixelRatio || 1;
     
+    // Set canvas dimensions to fill the container
     this.canvas.width = scaledWidth * dpr;
     this.canvas.height = scaledHeight * dpr;
     this.canvas.style.width = `${scaledWidth}px`;
     this.canvas.style.height = `${scaledHeight}px`;
+    
+    // Center the canvas in the container if there's extra space
+    this.canvas.style.margin = 'auto';
+    this.canvas.style.display = 'block';
     
     this.ctx.scale(dpr * this.scale, dpr * this.scale);
   }

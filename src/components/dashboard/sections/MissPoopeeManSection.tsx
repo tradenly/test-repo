@@ -28,6 +28,16 @@ export const MissPoopeeManSection = ({ user }: MissPoopeeManSectionProps) => {
     : 0;
   const totalCreditsEarned = missPoopeeManSessions.reduce((sum, s) => sum + s.credits_earned, 0);
 
+  const handleGameEnd = (score: number, duration: number) => {
+    console.log('Game ended with score:', score, 'duration:', duration);
+    // Refresh game sessions data
+    window.location.reload();
+  };
+
+  const handleGameStart = () => {
+    console.log('Game starting...');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
@@ -38,26 +48,24 @@ export const MissPoopeeManSection = ({ user }: MissPoopeeManSectionProps) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Game Area - Takes up 3/4 of the space */}
-        <div className="lg:col-span-3">
-          <MissPoopeeManGameArea
-            user={user}
-            currentCredits={credits?.balance || 0}
-          />
-        </div>
-
-        {/* Stats Cards - Takes up 1/4 of the space */}
-        <div className="lg:col-span-1 space-y-4">
-          <MissPoopeeManStats
-            totalGames={totalGames}
-            highScore={highScore}
-            averageScore={averageScore}
-            totalCreditsEarned={totalCreditsEarned}
-            currentCredits={credits?.balance || 0}
-          />
-        </div>
+      {/* Stats Row - Full Width */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MissPoopeeManStats
+          totalGames={totalGames}
+          highScore={highScore}
+          averageScore={averageScore}
+          totalCreditsEarned={totalCreditsEarned}
+          currentCredits={credits?.balance || 0}
+        />
       </div>
+
+      {/* Game Area - Full Width */}
+      <MissPoopeeManGameArea
+        user={user}
+        currentCredits={credits?.balance || 0}
+        onGameEnd={handleGameEnd}
+        onGameStart={handleGameStart}
+      />
 
       {/* Recent Games */}
       {totalGames > 0 && (

@@ -8,34 +8,43 @@ import { MissPacManGame } from "./game/MissPacManGame";
 interface MissPoopeeManGameAreaProps {
   user: UnifiedUser;
   currentCredits: number;
+  onGameEnd: (score: number, duration: number) => void;
+  onGameStart: () => void;
 }
 
-export const MissPoopeeManGameArea = ({ user, currentCredits }: MissPoopeeManGameAreaProps) => {
+export const MissPoopeeManGameArea = ({ 
+  user, 
+  currentCredits, 
+  onGameEnd, 
+  onGameStart 
+}: MissPoopeeManGameAreaProps) => {
   const [gameStarted, setGameStarted] = useState(false);
   const canPlay = currentCredits >= 1;
 
   const handleStartGame = () => {
     if (!canPlay) return;
+    onGameStart();
     setGameStarted(true);
   };
 
   const handleGameEnd = (score: number, duration: number) => {
     console.log('Game ended with score:', score, 'duration:', duration);
     setGameStarted(false);
+    onGameEnd(score, duration);
   };
 
   return (
-    <Card className="bg-gray-900/50 border-gray-700 h-full">
+    <Card className="bg-gray-900/50 border-gray-700">
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <span className="text-2xl">👾</span>
           Miss POOPEE-Man Game
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="min-h-[600px] bg-black border border-gray-600 rounded-lg flex items-center justify-center">
+      <CardContent className="p-0">
+        <div className="w-full h-[600px] bg-black rounded-b-lg flex items-center justify-center overflow-hidden">
           {!gameStarted ? (
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-4 p-8">
               <div className="text-6xl mb-4">👾</div>
               <h3 className="text-2xl font-bold text-white">Miss POOPEE-Man</h3>
               <p className="text-gray-400 max-w-md mx-auto">
@@ -66,10 +75,12 @@ export const MissPoopeeManGameArea = ({ user, currentCredits }: MissPoopeeManGam
               )}
             </div>
           ) : (
-            <MissPacManGame
-              user={user}
-              onGameEnd={handleGameEnd}
-            />
+            <div className="w-full h-full">
+              <MissPacManGame
+                user={user}
+                onGameEnd={handleGameEnd}
+              />
+            </div>
           )}
         </div>
       </CardContent>

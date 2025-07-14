@@ -21,21 +21,20 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
   const startTimeRef = useRef<number>(0);
   
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
   
   const spendCredits = useSpendCredits();
   const earnCredits = useEarnCredits();
   const createGameSession = useCreateGameSession();
   const { toast } = useToast();
 
-  // Initialize game
+  // Initialize game engine and renderer
   const initializeGame = useCallback(() => {
     if (!canvasRef.current) return;
 
     try {
       engineRef.current = new MissPacManEngine();
       rendererRef.current = new MissPacManRenderer(canvasRef.current);
-      setIsInitialized(true);
       setGameState(engineRef.current.getGameState());
       console.log('Miss Pac-Man game initialized successfully');
     } catch (error) {
@@ -52,6 +51,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
   const gameLoop = useCallback(() => {
     if (!engineRef.current || !rendererRef.current) return;
 
+    engineRef.current.update();
     const currentState = engineRef.current.getGameState();
     setGameState(currentState);
     rendererRef.current.render(currentState);
@@ -129,6 +129,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
 
       startTimeRef.current = Date.now();
       engineRef.current.startGame();
+      setGameStarted(true);
       gameLoopRef.current = requestAnimationFrame(gameLoop);
       
       toast({
@@ -223,51 +224,64 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  if (!isInitialized) {
-    return (
-      <div className="flex items-center justify-center h-96 bg-gray-900 rounded-lg">
-        <div className="text-white">Loading Miss POOPEE-Man...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4 w-full">
-      <div className="relative bg-black rounded-lg overflow-hidden flex justify-center">
-        <canvas
-          ref={canvasRef}
-          className="block border border-gray-600"
-          onTouchStart={handleCanvasTouch}
-          style={{ touchAction: 'none' }}
-        />
-        
-        {gameState && gameState.gameStatus !== 'playing' && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center space-y-4">
-              {gameState.gameStatus === 'game-over' && (
-                <>
-                  <div className="text-2xl font-bold text-red-400">Game Over!</div>
-                  <div className="text-white">Final Score: {gameState.score}</div>
-                </>
-              )}
-              {gameState.gameStatus === 'level-complete' && (
-                <>
-                  <div className="text-2xl font-bold text-green-400">Level Complete!</div>
-                  <div className="text-white">Score: {gameState.score}</div>
-                </>
-              )}
-              <Button onClick={startGame} className="bg-purple-600 hover:bg-purple-700">
-                {gameState.gameStatus === 'game-over' || gameState.gameStatus === 'level-complete' ? 'Play Again' : 'Start Game'}
-              </Button>
+    <div className="w-full h-full flex flex-col items-center justify-center bg-black">
+      {!gameStarted ? (
+        <div className="text-center space-y-4">
+          <div className="text-6xl mb-4">👾</div>
+          <h3 className="text-2xl font-bold text-white">Ready to Play?</h3>
+          <p className="text-gray-400">
+            Click Start Game to begin your Miss POOPEE-Man adventure!
+          </p>
+          <Button 
+            onClick={startGame}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            Start Game (1 Credit)
+          </Button>
+        </div>
+      ) : (
+        <>
+          <canvas
+            ref={canvasRef}
+            className="block border border-gray-600 rounded"
+            onTouchStart={handleCanvasTouch}
+            style={{ touchAction: 'none' }}
+          />
+          
+          {gameState && gameState.gameStatus !== 'playing' && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center space-y-4 bg-black/80 p-6 rounded-lg">
+                {gameState.gameStatus === 'game-over' && (
+                  <>
+                    <div className="text-2xl font-bold text-red-400">Game Over!</div>
+                    <div className="text-white">Final Score: {gameState.score}</div>
+                  </>
+                )}
+                {gameState.gameStatus === 'level-complete' && (
+                  <>
+                    <div className="text-2xl font-bold text-green-400">Level Complete!</div>
+                    <div className="text-white">Score: {gameState.score}</div>
+                  </>
+                )}
+                <Button 
+                  onClick={startGame} 
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  Play Again (1 Credit)
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-
-      <div className="text-center text-sm text-gray-400">
-        <p>Use arrow keys or tap the screen to control Miss POOPEE-Man</p>
-        <p>Eat all 💩 pellets to complete the level!</p>
-      </div>
+          )}
+        </>
+      )}
+      
+      {gameStarted && (
+        <div className="mt-4 text-center text-sm text-gray-400">
+          <p>Use arrow keys or tap the screen to control Miss POOPEE-Man</p>
+          <p>Eat all 💩 pellets to complete the level!</p>
+        </div>
+      )}
     </div>
   );
 };
