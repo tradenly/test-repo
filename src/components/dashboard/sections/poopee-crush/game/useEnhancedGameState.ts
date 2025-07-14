@@ -152,10 +152,8 @@ export const useEnhancedGameState = (
             hintTiles: []
           };
           
-          // Check for level completion after state update
-          const levelCompleted = gameEngineRef.current?.checkLevelComplete(newState.gameProgress, newState.levelConfig);
-          if (levelCompleted && !prevState.levelComplete) {
-            newState.levelComplete = true;
+          // Check if level was completed (engine handles this internally)
+          if (newState.levelComplete && !prevState.levelComplete) {
             const stars = calculateStarRating(newState.gameProgress, newState.levelConfig);
             newState.starRating = stars;
             console.log(`🎉 Level ${newState.gameProgress.currentLevel} completed!`);
