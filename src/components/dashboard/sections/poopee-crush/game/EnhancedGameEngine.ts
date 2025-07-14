@@ -787,30 +787,6 @@ export class EnhancedGameEngine {
     }
     
     switch (type) {
-      case BoosterType.HAMMER:
-        if (targetTile && this.isValidPosition(targetTile.row, targetTile.col)) {
-          this.board[targetTile.row][targetTile.col] = TileType.EMPTY;
-          this.gameProgress.clearedTiles++;
-          this.score += 5; // Small bonus for using hammer
-          this.gameProgress.score = this.score;
-          this.dropTiles();
-          this.fillEmptySpaces();
-          this.boosterManager.useBooster(type);
-          
-          const animations: Animation[] = [{
-            type: 'clear',
-            tiles: [{ row: targetTile.row, col: targetTile.col }],
-            id: `hammer-${this.currentAnimationId++}`
-          }];
-          
-          return { 
-            success: true, 
-            newBoard: this.getBoard(),
-            animations 
-          };
-        }
-        break;
-        
       case BoosterType.SHUFFLE:
         this.shuffleBoard();
         this.boosterManager.useBooster(type);
