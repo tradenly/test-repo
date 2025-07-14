@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { GameProgress } from "./EnhancedGameEngine";
@@ -28,21 +29,23 @@ export const LevelHUD = ({ gameProgress, levelConfig, onQuit, onRestart }: Level
 
   return (
     <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-3 h-fit">
-      {/* Compact Header */}
+      {/* Enhanced Header with Clear Level Display */}
       <div className="mb-3">
-        <h2 className="text-lg font-bold text-white mb-1">Level {gameProgress.currentLevel}</h2>
-        <div className="text-sm text-gray-300">
-          <span className="text-yellow-400">{gameProgress.moves}</span> moves left
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-md p-2 mb-2">
+          <h2 className="text-lg font-bold text-white text-center">Level {gameProgress.currentLevel}</h2>
+        </div>
+        <div className="text-sm text-gray-300 text-center">
+          <span className="text-yellow-400 font-semibold">{gameProgress.moves}</span> moves left
         </div>
       </div>
 
       {/* Compact Action Buttons */}
       <div className="mb-3 space-y-2">
         <Button onClick={onRestart} variant="outline" size="sm" className="w-full text-xs">
-          Restart
+          Restart Level {gameProgress.currentLevel}
         </Button>
         <Button onClick={onQuit} variant="destructive" size="sm" className="w-full text-xs">
-          Quit
+          Quit Game
         </Button>
       </div>
 
@@ -67,7 +70,7 @@ export const LevelHUD = ({ gameProgress, levelConfig, onQuit, onRestart }: Level
 
       {/* Compact Objectives */}
       <div className="mb-3">
-        <h3 className="text-xs font-semibold text-gray-300 mb-2">Objectives</h3>
+        <h3 className="text-xs font-semibold text-gray-300 mb-2">Level {gameProgress.currentLevel} Objectives</h3>
         <div className="space-y-2">
           {levelConfig.objectives.map((objective, index) => (
             <div key={index}>
@@ -86,7 +89,7 @@ export const LevelHUD = ({ gameProgress, levelConfig, onQuit, onRestart }: Level
 
       {/* Compact Game Stats */}
       <div className="space-y-2">
-        <div className="text-xs text-gray-400 mb-1">Stats</div>
+        <div className="text-xs text-gray-400 mb-1">Level {gameProgress.currentLevel} Stats</div>
         <div className="grid grid-cols-3 gap-1 text-center">
           <div>
             <div className="text-xs font-bold text-blue-400">{gameProgress.clearedTiles}</div>
