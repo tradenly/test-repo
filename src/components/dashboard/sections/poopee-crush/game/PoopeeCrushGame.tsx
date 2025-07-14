@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { EnhancedGameBoard } from "./EnhancedGameBoard";
 import { LevelHUD } from "./LevelHUD";
@@ -36,12 +35,9 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
   useEffect(() => {
     console.log(`🎮 [PoopeeCrushGame] Starting with difficulty: ${difficulty}`);
     
-    // Try to resume first, if no saved game exists, start from level 1
-    const resumed = resumeGame();
-    if (!resumed) {
-      startNewLevel(1);
-    }
-  }, [difficulty, resumeGame, startNewLevel]);
+    // Simply start from level 1 - no auto-resume to avoid level progression issues
+    startNewLevel(1);
+  }, [difficulty]); // Only depend on difficulty to avoid constant re-execution
 
   function handleLevelComplete(level: number, score: number, stars: number) {
     console.log(`🎉 Level ${level} complete! Score: ${score}, Stars: ${stars}`);
