@@ -43,13 +43,13 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
   }, [difficulty, resumeGame, startNewLevel]);
 
   function handleLevelComplete(level: number, score: number, stars: number) {
-    console.log(`🎉 Level ${level} complete! Score: ${score}, Stars: ${stars}`);
+    console.log(`🎉 [PoopeeCrushGame] Level ${level} complete! Score: ${score}, Stars: ${stars}`);
   }
 
-  function handleGameEnd(finalScore: number) {
-    console.log(`🔚 Game ended with final score: ${finalScore}`);
-    const movesUsed = gameState.gameProgress.maxMoves - gameState.gameProgress.moves;
-    onGameEnd(finalScore, movesUsed);
+  function handleGameEnd(finalScore: number, movesUsed?: number) {
+    console.log(`🔚 [PoopeeCrushGame] Game ended with final score: ${finalScore}, moves used: ${movesUsed}`);
+    const actualMovesUsed = movesUsed || (gameState.gameProgress.maxMoves - gameState.gameProgress.moves);
+    onGameEnd(finalScore, actualMovesUsed);
   }
 
   const handleBoosterUse = (type: BoosterType, targetTile?: Position): boolean => {
@@ -82,6 +82,11 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
     }
   };
 
+  const handleQuitGame = () => {
+    console.log('🚪 [PoopeeCrushGame] Quit game button clicked');
+    quitGame();
+  };
+
   if (gameState.levelComplete) {
     return (
       <LevelCompleteScreen
@@ -90,7 +95,7 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
         stars={gameState.starRating}
         onContinue={continueToNextLevel}
         onRestart={restartLevel}
-        onQuit={quitGame}
+        onQuit={handleQuitGame}
       />
     );
   }
@@ -101,7 +106,7 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
         finalScore={gameState.gameProgress.score}
         level={gameState.gameProgress.currentLevel}
         onRestart={restartLevel}
-        onQuit={quitGame}
+        onQuit={handleQuitGame}
       />
     );
   }
@@ -112,7 +117,7 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
         <LevelHUD 
           gameProgress={gameState.gameProgress} 
           levelConfig={gameState.levelConfig} 
-          onQuit={quitGame}
+          onQuit={handleQuitGame}
           onRestart={restartLevel}
         />
       </div>
