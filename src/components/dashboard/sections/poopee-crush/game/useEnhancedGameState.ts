@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { GameBoard, GameProgress, Position, Animation, EnhancedGameEngine, BoosterResult } from './EnhancedGameEngine';
 import { BoosterType, BoosterManager } from './BoosterSystem';
@@ -153,12 +152,17 @@ export const useEnhancedGameState = (
             hintTiles: []
           };
           
-          saveGameState(newState, difficulty);
-          
-          if (newState.levelComplete && !prevState.levelComplete) {
+          // Check for level completion after state update
+          const levelCompleted = gameEngineRef.current?.checkLevelComplete(newState.gameProgress, newState.levelConfig);
+          if (levelCompleted && !prevState.levelComplete) {
+            newState.levelComplete = true;
             const stars = calculateStarRating(newState.gameProgress, newState.levelConfig);
+            newState.starRating = stars;
+            console.log(`🎉 Level ${newState.gameProgress.currentLevel} completed!`);
             onLevelComplete(newState.gameProgress.currentLevel, newState.gameProgress.score, stars);
           }
+          
+          saveGameState(newState, difficulty);
           
           if (newState.gameOver && !prevState.gameOver) {
             onGameEnd(newState.gameProgress.score);
@@ -303,6 +307,11 @@ export const useEnhancedGameState = (
   }, [difficulty, startNewLevel]);
 
   const quitGame = useCallback(() => {
+    console.log('🚪 [Enhanced Game] Quitting game with score:', gameState.gameProgress.score);
+    
+    // Call onGameEnd before setting gameActive to false
+    onGameEnd(gameState.gameProgress.score);
+    
     setGameState(prevState => ({
       ...prevState,
       gameActive: false
@@ -314,9 +323,7 @@ export const useEnhancedGameState = (
     } catch (error) {
       console.warn('⚠️ [Enhanced Game] Failed to clear saved state:', error);
     }
-    
-    console.log('🚪 [Enhanced Game] Game quit');
-  }, []);
+  }, [gameState.gameProgress.score, onGameEnd]);
 
   const continueToNextLevel = useCallback(() => {
     const nextLevel = gameState.gameProgress.currentLevel + 1;
