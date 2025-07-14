@@ -11,42 +11,82 @@ interface SimplePacManGameProps {
   onGameEnd: (score: number, duration: number) => void;
 }
 
-// Simple game state
-interface GameState {
-  playerX: number;
-  playerY: number;
-  score: number;
-  pellets: boolean[][];
-  gameRunning: boolean;
-  gameOver: boolean;
+// Game constants
+const CELL_SIZE = 20;
+const MAZE_WIDTH = 25;
+const MAZE_HEIGHT = 21;
+
+// Directions
+const DIRECTIONS = {
+  UP: { x: 0, y: -1 },
+  DOWN: { x: 0, y: 1 },
+  LEFT: { x: -1, y: 0 },
+  RIGHT: { x: 1, y: 0 }
+};
+
+// Game entities
+interface Position {
+  x: number;
+  y: number;
 }
 
-// Simple maze (smaller for demo)
-const MAZE = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,2,2,2,2,2,1,2,2,2,2,2,1],
-  [1,2,1,1,2,2,2,2,2,1,1,2,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,2,1,2,2,1,1,1,2,2,1,2,1],
-  [1,2,2,2,2,2,1,2,2,2,2,2,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,2,1,2,2,1,1,1,2,2,1,2,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,2,1,1,2,2,2,2,2,1,1,2,1],
-  [1,2,2,2,2,2,1,2,2,2,2,2,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1]
-];
+interface Ghost {
+  x: number;
+  y: number;
+  direction: { x: number; y: number };
+  color: string;
+  mode: 'chase' | 'scatter' | 'frightened';
+  frightened: boolean;
+}
 
-const CELL_SIZE = 30;
+interface GameState {
+  pacman: Position & { direction: { x: number; y: number }; nextDirection: { x: number; y: number } | null };
+  ghosts: Ghost[];
+  pellets: boolean[][];
+  powerPellets: boolean[][];
+  score: number;
+  lives: number;
+  gameRunning: boolean;
+  gameOver: boolean;
+  powerMode: boolean;
+  powerModeTimer: number;
+}
+
+// Larger, more complex maze
+const MAZE = [
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1],
+  [1,3,1,1,1,2,1,1,1,1,1,2,1,2,1,1,1,1,1,2,1,1,1,3,1],
+  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+  [1,2,1,1,1,2,1,2,1,1,1,1,1,1,1,1,1,2,1,2,1,1,1,2,1],
+  [1,2,2,2,2,2,1,2,2,2,2,2,1,2,2,2,2,2,1,2,2,2,2,2,1],
+  [1,1,1,1,1,2,1,1,1,1,1,0,1,0,1,1,1,1,1,2,1,1,1,1,1],
+  [0,0,0,0,1,2,1,0,0,0,0,0,0,0,0,0,0,0,1,2,1,0,0,0,0],
+  [1,1,1,1,1,2,1,0,1,1,0,0,0,0,0,1,1,0,1,2,1,1,1,1,1],
+  [0,0,0,0,0,2,0,0,1,0,0,0,0,0,0,0,1,0,0,2,0,0,0,0,0],
+  [1,1,1,1,1,2,1,0,1,0,0,0,0,0,0,0,1,0,1,2,1,1,1,1,1],
+  [0,0,0,0,1,2,1,0,1,1,1,1,1,1,1,1,1,0,1,2,1,0,0,0,0],
+  [1,1,1,1,1,2,1,1,1,1,1,0,1,0,1,1,1,1,1,2,1,1,1,1,1],
+  [1,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1],
+  [1,2,1,1,1,2,1,1,1,1,1,2,1,2,1,1,1,1,1,2,1,1,1,2,1],
+  [1,3,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,3,1],
+  [1,1,1,2,1,2,1,2,1,1,1,1,1,1,1,1,1,2,1,2,1,2,1,1,1],
+  [1,2,2,2,2,2,1,2,2,2,2,2,1,2,2,2,2,2,1,2,2,2,2,2,1],
+  [1,2,1,1,1,1,1,1,1,1,1,2,1,2,1,1,1,1,1,1,1,1,1,2,1],
+  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+];
 
 export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameStateRef = useRef<GameState>();
   const animationRef = useRef<number>();
   const startTimeRef = useRef<number>(0);
+  const lastMoveTimeRef = useRef<number>(0);
   
   const [gameStarted, setGameStarted] = useState(false);
   const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(3);
   
   const spendCredits = useSpendCredits();
   const earnCredits = useEarnCredits();
@@ -56,24 +96,219 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
   // Initialize game state
   const initializeGame = useCallback(() => {
     const pellets: boolean[][] = [];
+    const powerPellets: boolean[][] = [];
+    
     for (let y = 0; y < MAZE.length; y++) {
       pellets[y] = [];
+      powerPellets[y] = [];
       for (let x = 0; x < MAZE[y].length; x++) {
-        pellets[y][x] = MAZE[y][x] === 2; // 2 = pellet
+        pellets[y][x] = MAZE[y][x] === 2; // 2 = regular pellet
+        powerPellets[y][x] = MAZE[y][x] === 3; // 3 = power pellet
       }
     }
 
+    // Initialize ghosts
+    const ghosts: Ghost[] = [
+      { x: 12, y: 9, direction: DIRECTIONS.UP, color: '#FF0000', mode: 'chase', frightened: false },
+      { x: 12, y: 10, direction: DIRECTIONS.DOWN, color: '#FFB8FF', mode: 'chase', frightened: false },
+      { x: 11, y: 10, direction: DIRECTIONS.UP, color: '#00FFFF', mode: 'chase', frightened: false },
+      { x: 13, y: 10, direction: DIRECTIONS.UP, color: '#FFB852', mode: 'chase', frightened: false }
+    ];
+
     gameStateRef.current = {
-      playerX: 1,
-      playerY: 1,
-      score: 0,
+      pacman: { x: 12, y: 15, direction: DIRECTIONS.LEFT, nextDirection: null },
+      ghosts,
       pellets,
+      powerPellets,
+      score: 0,
+      lives: 3,
       gameRunning: true,
-      gameOver: false
+      gameOver: false,
+      powerMode: false,
+      powerModeTimer: 0
     };
     
     setScore(0);
-    console.log('Game initialized');
+    setLives(3);
+    lastMoveTimeRef.current = Date.now();
+    console.log('Game initialized with proper Pac-Man mechanics');
+  }, []);
+
+  // Check if position is valid (not a wall)
+  const isValidPosition = (x: number, y: number) => {
+    if (x < 0 || x >= MAZE_WIDTH || y < 0 || y >= MAZE_HEIGHT) return false;
+    return MAZE[y][x] !== 1;
+  };
+
+  // Move Pac-Man
+  const movePacMan = useCallback(() => {
+    if (!gameStateRef.current?.gameRunning) return;
+
+    const gameState = gameStateRef.current;
+    const pacman = gameState.pacman;
+
+    // Try to change direction if a next direction is queued
+    if (pacman.nextDirection) {
+      const nextX = pacman.x + pacman.nextDirection.x;
+      const nextY = pacman.y + pacman.nextDirection.y;
+      
+      if (isValidPosition(nextX, nextY)) {
+        pacman.direction = pacman.nextDirection;
+        pacman.nextDirection = null;
+      }
+    }
+
+    // Move in current direction
+    const newX = pacman.x + pacman.direction.x;
+    const newY = pacman.y + pacman.direction.y;
+
+    // Handle tunnel (left-right wrap)
+    let finalX = newX;
+    if (newX < 0) finalX = MAZE_WIDTH - 1;
+    if (newX >= MAZE_WIDTH) finalX = 0;
+
+    if (isValidPosition(finalX, newY)) {
+      pacman.x = finalX;
+      pacman.y = newY;
+
+      // Check for pellet consumption
+      if (gameState.pellets[newY] && gameState.pellets[newY][finalX]) {
+        gameState.pellets[newY][finalX] = false;
+        gameState.score += 10;
+        setScore(gameState.score);
+      }
+
+      // Check for power pellet consumption
+      if (gameState.powerPellets[newY] && gameState.powerPellets[newY][finalX]) {
+        gameState.powerPellets[newY][finalX] = false;
+        gameState.score += 50;
+        gameState.powerMode = true;
+        gameState.powerModeTimer = 300; // 10 seconds at 30 FPS
+        
+        // Make all ghosts frightened
+        gameState.ghosts.forEach(ghost => {
+          ghost.frightened = true;
+          // Reverse ghost direction
+          ghost.direction = { x: -ghost.direction.x, y: -ghost.direction.y };
+        });
+        
+        setScore(gameState.score);
+      }
+
+      // Check win condition
+      const remainingPellets = gameState.pellets.flat().filter(p => p).length + 
+                              gameState.powerPellets.flat().filter(p => p).length;
+      if (remainingPellets === 0) {
+        endGame();
+      }
+    }
+  }, []);
+
+  // Move ghosts
+  const moveGhosts = useCallback(() => {
+    if (!gameStateRef.current?.gameRunning) return;
+
+    const gameState = gameStateRef.current;
+
+    gameState.ghosts.forEach(ghost => {
+      // Simple AI: try to move toward Pac-Man if not frightened
+      const pacman = gameState.pacman;
+      let bestDirection = ghost.direction;
+      
+      if (!ghost.frightened) {
+        // Chase mode: move toward Pac-Man
+        const dx = pacman.x - ghost.x;
+        const dy = pacman.y - ghost.y;
+        
+        const possibleDirections = [
+          DIRECTIONS.UP, DIRECTIONS.DOWN, DIRECTIONS.LEFT, DIRECTIONS.RIGHT
+        ].filter(dir => {
+          const newX = ghost.x + dir.x;
+          const newY = ghost.y + dir.y;
+          return isValidPosition(newX, newY);
+        });
+
+        if (possibleDirections.length > 0) {
+          // Choose direction that gets closer to Pac-Man
+          bestDirection = possibleDirections.reduce((best, dir) => {
+            const newX = ghost.x + dir.x;
+            const newY = ghost.y + dir.y;
+            const bestX = ghost.x + best.x;
+            const bestY = ghost.y + best.y;
+            
+            const newDistance = Math.abs(newX - pacman.x) + Math.abs(newY - pacman.y);
+            const bestDistance = Math.abs(bestX - pacman.x) + Math.abs(bestY - pacman.y);
+            
+            return newDistance < bestDistance ? dir : best;
+          });
+        }
+      } else {
+        // Frightened mode: move away from Pac-Man
+        const possibleDirections = [
+          DIRECTIONS.UP, DIRECTIONS.DOWN, DIRECTIONS.LEFT, DIRECTIONS.RIGHT
+        ].filter(dir => {
+          const newX = ghost.x + dir.x;
+          const newY = ghost.y + dir.y;
+          return isValidPosition(newX, newY);
+        });
+
+        if (possibleDirections.length > 0) {
+          // Choose random direction or move away
+          bestDirection = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
+        }
+      }
+
+      const newX = ghost.x + bestDirection.x;
+      const newY = ghost.y + bestDirection.y;
+
+      if (isValidPosition(newX, newY)) {
+        ghost.x = newX;
+        ghost.y = newY;
+        ghost.direction = bestDirection;
+      }
+
+      // Check collision with Pac-Man
+      if (ghost.x === pacman.x && ghost.y === pacman.y) {
+        if (ghost.frightened) {
+          // Eat the ghost
+          gameState.score += 200;
+          setScore(gameState.score);
+          // Reset ghost to center
+          ghost.x = 12;
+          ghost.y = 9;
+          ghost.frightened = false;
+        } else {
+          // Pac-Man dies
+          gameState.lives--;
+          setLives(gameState.lives);
+          
+          if (gameState.lives <= 0) {
+            endGame();
+          } else {
+            // Reset positions
+            pacman.x = 12;
+            pacman.y = 15;
+            pacman.direction = DIRECTIONS.LEFT;
+            gameState.ghosts.forEach((g, i) => {
+              g.x = 12;
+              g.y = 9 + i;
+              g.frightened = false;
+            });
+          }
+        }
+      }
+    });
+
+    // Handle power mode timer
+    if (gameState.powerMode) {
+      gameState.powerModeTimer--;
+      if (gameState.powerModeTimer <= 0) {
+        gameState.powerMode = false;
+        gameState.ghosts.forEach(ghost => {
+          ghost.frightened = false;
+        });
+      }
+    }
   }, []);
 
   // Render game
@@ -107,7 +342,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
           ctx.arc(
             x * CELL_SIZE + CELL_SIZE / 2,
             y * CELL_SIZE + CELL_SIZE / 2,
-            3,
+            2,
             0,
             Math.PI * 2
           );
@@ -116,60 +351,71 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
       }
     }
 
-    // Draw player (Miss POOPEE-Man)
-    ctx.fillStyle = '#FFFF00';
-    ctx.beginPath();
-    ctx.arc(
-      gameState.playerX * CELL_SIZE + CELL_SIZE / 2,
-      gameState.playerY * CELL_SIZE + CELL_SIZE / 2,
-      CELL_SIZE / 2 - 2,
-      0.2 * Math.PI,
-      1.8 * Math.PI
-    );
-    ctx.lineTo(
-      gameState.playerX * CELL_SIZE + CELL_SIZE / 2,
-      gameState.playerY * CELL_SIZE + CELL_SIZE / 2
-    );
-    ctx.fill();
-
-    // Draw score
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = '20px Arial';
-    ctx.fillText(`Score: ${gameState.score}`, 10, 25);
-  }, []);
-
-  // Move player
-  const movePlayer = useCallback((dx: number, dy: number) => {
-    if (!gameStateRef.current || !gameStateRef.current.gameRunning) return;
-
-    const newX = gameStateRef.current.playerX + dx;
-    const newY = gameStateRef.current.playerY + dy;
-
-    // Check bounds and walls
-    if (
-      newX >= 0 && 
-      newX < MAZE[0].length && 
-      newY >= 0 && 
-      newY < MAZE.length && 
-      MAZE[newY][newX] !== 1
-    ) {
-      gameStateRef.current.playerX = newX;
-      gameStateRef.current.playerY = newY;
-
-      // Check for pellet
-      if (gameStateRef.current.pellets[newY][newX]) {
-        gameStateRef.current.pellets[newY][newX] = false;
-        gameStateRef.current.score += 10;
-        setScore(gameStateRef.current.score);
-        console.log('Pellet eaten! Score:', gameStateRef.current.score);
-
-        // Check win condition
-        const remainingPellets = gameStateRef.current.pellets.flat().filter(p => p).length;
-        if (remainingPellets === 0) {
-          endGame();
+    // Draw power pellets (💩)
+    for (let y = 0; y < gameState.powerPellets.length; y++) {
+      for (let x = 0; x < gameState.powerPellets[y].length; x++) {
+        if (gameState.powerPellets[y][x]) {
+          ctx.font = `${CELL_SIZE - 4}px Arial`;
+          ctx.fillText(
+            '💩',
+            x * CELL_SIZE + 2,
+            y * CELL_SIZE + CELL_SIZE - 2
+          );
         }
       }
     }
+
+    // Draw ghosts
+    gameState.ghosts.forEach(ghost => {
+      ctx.fillStyle = ghost.frightened ? '#0000FF' : ghost.color;
+      ctx.fillRect(
+        ghost.x * CELL_SIZE + 2,
+        ghost.y * CELL_SIZE + 2,
+        CELL_SIZE - 4,
+        CELL_SIZE - 4
+      );
+      
+      // Draw eyes
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(ghost.x * CELL_SIZE + 4, ghost.y * CELL_SIZE + 4, 3, 3);
+      ctx.fillRect(ghost.x * CELL_SIZE + 11, ghost.y * CELL_SIZE + 4, 3, 3);
+    });
+
+    // Draw Pac-Man
+    const pacman = gameState.pacman;
+    ctx.fillStyle = '#FFFF00';
+    ctx.beginPath();
+    
+    // Determine mouth direction
+    let startAngle = 0.2 * Math.PI;
+    let endAngle = 1.8 * Math.PI;
+    
+    if (pacman.direction === DIRECTIONS.RIGHT) {
+      startAngle = 0.2 * Math.PI;
+      endAngle = 1.8 * Math.PI;
+    } else if (pacman.direction === DIRECTIONS.LEFT) {
+      startAngle = 1.2 * Math.PI;
+      endAngle = 0.8 * Math.PI;
+    } else if (pacman.direction === DIRECTIONS.UP) {
+      startAngle = 1.7 * Math.PI;
+      endAngle = 1.3 * Math.PI;
+    } else if (pacman.direction === DIRECTIONS.DOWN) {
+      startAngle = 0.7 * Math.PI;
+      endAngle = 0.3 * Math.PI;
+    }
+    
+    ctx.arc(
+      pacman.x * CELL_SIZE + CELL_SIZE / 2,
+      pacman.y * CELL_SIZE + CELL_SIZE / 2,
+      CELL_SIZE / 2 - 2,
+      startAngle,
+      endAngle
+    );
+    ctx.lineTo(
+      pacman.x * CELL_SIZE + CELL_SIZE / 2,
+      pacman.y * CELL_SIZE + CELL_SIZE / 2
+    );
+    ctx.fill();
   }, []);
 
   // End game
@@ -188,7 +434,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     const finalScore = gameStateRef.current.score;
     
     // Calculate credits earned
-    const creditsEarned = Math.floor(finalScore / 50); // 1 credit per 50 points
+    const creditsEarned = Math.floor(finalScore / 100); // 1 credit per 100 points
 
     try {
       // Record game session
@@ -201,7 +447,8 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         pipes_passed: 0,
         metadata: {
           game_type: 'miss_poopee_man',
-          pellets_eaten: Math.floor(finalScore / 10)
+          lives_remaining: gameStateRef.current.lives,
+          level_completed: gameStateRef.current.pellets.flat().filter(p => p).length === 0
         }
       });
 
@@ -234,9 +481,18 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
   const gameLoop = useCallback(() => {
     if (!gameStateRef.current?.gameRunning) return;
 
+    const now = Date.now();
+    
+    // Move every 150ms for Pac-Man speed
+    if (now - lastMoveTimeRef.current > 150) {
+      movePacMan();
+      moveGhosts();
+      lastMoveTimeRef.current = now;
+    }
+
     render();
     animationRef.current = requestAnimationFrame(gameLoop);
-  }, [render]);
+  }, [render, movePacMan, moveGhosts]);
 
   // Start game
   const startGame = useCallback(async () => {
@@ -254,7 +510,9 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
       setGameStarted(true);
 
       // Start game loop
-      gameLoop();
+      setTimeout(() => {
+        gameLoop();
+      }, 100);
 
       toast({
         title: "Game Started!",
@@ -275,46 +533,67 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     const handleKeyPress = (event: KeyboardEvent) => {
       if (!gameStarted || !gameStateRef.current?.gameRunning) return;
 
+      const gameState = gameStateRef.current;
+      let newDirection = null;
+
       switch (event.key) {
         case 'ArrowUp':
         case 'w':
+        case 'W':
           event.preventDefault();
-          movePlayer(0, -1);
+          newDirection = DIRECTIONS.UP;
           break;
         case 'ArrowDown':
         case 's':
+        case 'S':
           event.preventDefault();
-          movePlayer(0, 1);
+          newDirection = DIRECTIONS.DOWN;
           break;
         case 'ArrowLeft':
         case 'a':
+        case 'A':
           event.preventDefault();
-          movePlayer(-1, 0);
+          newDirection = DIRECTIONS.LEFT;
           break;
         case 'ArrowRight':
         case 'd':
+        case 'D':
           event.preventDefault();
-          movePlayer(1, 0);
+          newDirection = DIRECTIONS.RIGHT;
           break;
+      }
+
+      if (newDirection) {
+        // Queue the direction change
+        gameState.pacman.nextDirection = newDirection;
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameStarted, movePlayer]);
+  }, [gameStarted]);
 
   // Setup canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    canvas.width = MAZE[0].length * CELL_SIZE;
-    canvas.height = MAZE.length * CELL_SIZE;
+    canvas.width = MAZE_WIDTH * CELL_SIZE;
+    canvas.height = MAZE_HEIGHT * CELL_SIZE;
     
     if (gameStarted) {
       render();
     }
   }, [gameStarted, render]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
 
   if (!gameStarted) {
     return (
@@ -323,16 +602,17 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
           <div className="text-6xl mb-4">👾</div>
           <h3 className="text-2xl font-bold text-white">Ready to Play Miss POOPEE-Man?</h3>
           <p className="text-gray-400">
-            Navigate the maze and collect all the pellets!
+            Navigate the maze, eat 💩 power pellets, and avoid the ghosts!
           </p>
           <p className="text-sm text-gray-500">
-            Use arrow keys or WASD to move
+            Use arrow keys or WASD to change direction
           </p>
           <Button 
             onClick={startGame}
             className="bg-purple-600 hover:bg-purple-700 text-white"
+            disabled={spendCredits.isPending}
           >
-            Start Game (1 Credit)
+            {spendCredits.isPending ? 'Starting...' : 'Start Game (1 Credit)'}
           </Button>
         </div>
       </div>
@@ -341,9 +621,10 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-center p-4">
-      <div className="mb-4">
-        <div className="text-white text-lg">Score: {score}</div>
-        <div className="text-gray-400 text-sm">Use arrow keys or WASD to move</div>
+      <div className="mb-4 flex gap-8 text-white">
+        <div className="text-lg">Score: {score}</div>
+        <div className="text-lg">Lives: {lives}</div>
+        <div className="text-sm text-gray-400">Use arrow keys or WASD to control direction</div>
       </div>
       <canvas
         ref={canvasRef}
