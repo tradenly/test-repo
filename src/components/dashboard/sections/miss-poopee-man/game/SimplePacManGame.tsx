@@ -37,6 +37,8 @@ interface Ghost {
   color: string;
   mode: 'chase' | 'scatter' | 'frightened';
   frightened: boolean;
+  eaten: boolean;
+  respawnTimer: number;
 }
 
 interface GameState {
@@ -52,7 +54,7 @@ interface GameState {
   powerModeTimer: number;
 }
 
-// Larger, more complex maze
+// Improved maze with better ghost spawn area
 const MAZE = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
   [1,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1],
@@ -107,12 +109,12 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
       }
     }
 
-    // Initialize ghosts
+    // Initialize ghosts with better spawn positions
     const ghosts: Ghost[] = [
-      { x: 12, y: 9, direction: DIRECTIONS.UP, color: '#FF0000', mode: 'chase', frightened: false },
-      { x: 12, y: 10, direction: DIRECTIONS.DOWN, color: '#FFB8FF', mode: 'chase', frightened: false },
-      { x: 11, y: 10, direction: DIRECTIONS.UP, color: '#00FFFF', mode: 'chase', frightened: false },
-      { x: 13, y: 10, direction: DIRECTIONS.UP, color: '#FFB852', mode: 'chase', frightened: false }
+      { x: 12, y: 9, direction: DIRECTIONS.UP, color: '#FF0000', mode: 'chase', frightened: false, eaten: false, respawnTimer: 0 },
+      { x: 12, y: 10, direction: DIRECTIONS.DOWN, color: '#FFB8FF', mode: 'chase', frightened: false, eaten: false, respawnTimer: 0 },
+      { x: 11, y: 10, direction: DIRECTIONS.UP, color: '#00FFFF', mode: 'chase', frightened: false, eaten: false, respawnTimer: 0 },
+      { x: 13, y: 10, direction: DIRECTIONS.UP, color: '#FFB852', mode: 'chase', frightened: false, eaten: false, respawnTimer: 0 }
     ];
 
     gameStateRef.current = {
@@ -131,13 +133,19 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     setScore(0);
     setLives(3);
     lastMoveTimeRef.current = Date.now();
-    console.log('Game initialized with proper Pac-Man mechanics');
+    console.log('Game initialized with improved mechanics');
   }, []);
 
   // Check if position is valid (not a wall)
   const isValidPosition = (x: number, y: number) => {
     if (x < 0 || x >= MAZE_WIDTH || y < 0 || y >= MAZE_HEIGHT) return false;
     return MAZE[y][x] !== 1;
+  };
+
+  // Get valid directions from a position
+  const getValidDirections = (x: number, y: number) => {
+    return [DIRECTIONS.UP, DIRECTIONS.DOWN, DIRECTIONS.LEFT, DIRECTIONS.RIGHT]
+      .filter(dir => isValidPosition(x + dir.x, y + dir.y));
   };
 
   // Move Pac-Man
@@ -183,79 +191,92 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         gameState.powerPellets[newY][finalX] = false;
         gameState.score += 50;
         gameState.powerMode = true;
-        gameState.powerModeTimer = 300; // 10 seconds at 30 FPS
+        gameState.powerModeTimer = 600; // 20 seconds at 30 FPS
         
         // Make all ghosts frightened
         gameState.ghosts.forEach(ghost => {
-          ghost.frightened = true;
-          // Reverse ghost direction
-          ghost.direction = { x: -ghost.direction.x, y: -ghost.direction.y };
+          if (!ghost.eaten) {
+            ghost.frightened = true;
+            // Reverse ghost direction
+            ghost.direction = { x: -ghost.direction.x, y: -ghost.direction.y };
+          }
         });
         
         setScore(gameState.score);
+        console.log('Power mode activated!');
       }
 
       // Check win condition
       const remainingPellets = gameState.pellets.flat().filter(p => p).length + 
                               gameState.powerPellets.flat().filter(p => p).length;
       if (remainingPellets === 0) {
+        console.log('Level complete!');
         endGame();
       }
     }
   }, []);
 
-  // Move ghosts
+  // Improved ghost AI
   const moveGhosts = useCallback(() => {
     if (!gameStateRef.current?.gameRunning) return;
 
     const gameState = gameStateRef.current;
+    const pacman = gameState.pacman;
 
     gameState.ghosts.forEach(ghost => {
-      // Simple AI: try to move toward Pac-Man if not frightened
-      const pacman = gameState.pacman;
+      // Handle respawn timer for eaten ghosts
+      if (ghost.eaten) {
+        ghost.respawnTimer--;
+        if (ghost.respawnTimer <= 0) {
+          ghost.eaten = false;
+          ghost.frightened = false;
+          ghost.x = 12;
+          ghost.y = 9;
+          console.log('Ghost respawned');
+        }
+        return;
+      }
+
+      const validDirections = getValidDirections(ghost.x, ghost.y);
+      if (validDirections.length === 0) return;
+
       let bestDirection = ghost.direction;
       
-      if (!ghost.frightened) {
-        // Chase mode: move toward Pac-Man
-        const dx = pacman.x - ghost.x;
-        const dy = pacman.y - ghost.y;
-        
-        const possibleDirections = [
-          DIRECTIONS.UP, DIRECTIONS.DOWN, DIRECTIONS.LEFT, DIRECTIONS.RIGHT
-        ].filter(dir => {
+      if (ghost.frightened) {
+        // Frightened mode: run away from Pac-Man or move randomly
+        const awayDirections = validDirections.filter(dir => {
           const newX = ghost.x + dir.x;
           const newY = ghost.y + dir.y;
-          return isValidPosition(newX, newY);
+          const currentDist = Math.abs(ghost.x - pacman.x) + Math.abs(ghost.y - pacman.y);
+          const newDist = Math.abs(newX - pacman.x) + Math.abs(newY - pacman.y);
+          return newDist > currentDist;
         });
-
-        if (possibleDirections.length > 0) {
-          // Choose direction that gets closer to Pac-Man
-          bestDirection = possibleDirections.reduce((best, dir) => {
-            const newX = ghost.x + dir.x;
-            const newY = ghost.y + dir.y;
-            const bestX = ghost.x + best.x;
-            const bestY = ghost.y + best.y;
-            
-            const newDistance = Math.abs(newX - pacman.x) + Math.abs(newY - pacman.y);
-            const bestDistance = Math.abs(bestX - pacman.x) + Math.abs(bestY - pacman.y);
-            
-            return newDistance < bestDistance ? dir : best;
-          });
+        
+        if (awayDirections.length > 0) {
+          bestDirection = awayDirections[Math.floor(Math.random() * awayDirections.length)];
+        } else {
+          bestDirection = validDirections[Math.floor(Math.random() * validDirections.length)];
         }
       } else {
-        // Frightened mode: move away from Pac-Man
-        const possibleDirections = [
-          DIRECTIONS.UP, DIRECTIONS.DOWN, DIRECTIONS.LEFT, DIRECTIONS.RIGHT
-        ].filter(dir => {
+        // Chase mode: move toward Pac-Man with better pathfinding
+        // Avoid reversing direction unless it's the only option
+        const nonReverseDirs = validDirections.filter(dir => 
+          !(dir.x === -ghost.direction.x && dir.y === -ghost.direction.y)
+        );
+        
+        const dirsToCheck = nonReverseDirs.length > 0 ? nonReverseDirs : validDirections;
+        
+        bestDirection = dirsToCheck.reduce((best, dir) => {
           const newX = ghost.x + dir.x;
           const newY = ghost.y + dir.y;
-          return isValidPosition(newX, newY);
+          const bestX = ghost.x + best.x;
+          const bestY = ghost.y + best.y;
+          
+          const newDistance = Math.abs(newX - pacman.x) + Math.abs(newY - pacman.y);
+          const bestDistance = Math.abs(bestX - pacman.x) + Math.abs(bestY - pacman.y);
+          
+          return newDistance < bestDistance ? dir : best;
         });
-
-        if (possibleDirections.length > 0) {
-          // Choose random direction or move away
-          bestDirection = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
-        }
       }
 
       const newX = ghost.x + bestDirection.x;
@@ -266,52 +287,67 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         ghost.y = newY;
         ghost.direction = bestDirection;
       }
+    });
 
-      // Check collision with Pac-Man
+    // Check collisions after all ghosts have moved
+    checkCollisions();
+  }, []);
+
+  // Fixed collision detection
+  const checkCollisions = useCallback(() => {
+    if (!gameStateRef.current?.gameRunning) return;
+
+    const gameState = gameStateRef.current;
+    const pacman = gameState.pacman;
+
+    gameState.ghosts.forEach(ghost => {
+      if (ghost.eaten) return;
+
+      // Check if ghost and Pac-Man are on the same position
       if (ghost.x === pacman.x && ghost.y === pacman.y) {
         if (ghost.frightened) {
-          // Eat the ghost
+          // Pac-Man eats ghost
+          ghost.eaten = true;
+          ghost.frightened = false;
+          ghost.respawnTimer = 180; // 6 seconds at 30 FPS
           gameState.score += 200;
           setScore(gameState.score);
-          // Reset ghost to center
-          ghost.x = 12;
-          ghost.y = 9;
-          ghost.frightened = false;
+          console.log('Ghost eaten! Score:', gameState.score);
         } else {
-          // Pac-Man dies
+          // Ghost kills Pac-Man
           gameState.lives--;
           setLives(gameState.lives);
+          console.log('Pac-Man died! Lives remaining:', gameState.lives);
           
           if (gameState.lives <= 0) {
+            console.log('Game Over!');
             endGame();
           } else {
             // Reset positions
             pacman.x = 12;
             pacman.y = 15;
             pacman.direction = DIRECTIONS.LEFT;
+            pacman.nextDirection = null;
+            
+            // Reset ghosts
             gameState.ghosts.forEach((g, i) => {
               g.x = 12;
-              g.y = 9 + i;
+              g.y = 9 + (i % 2);
               g.frightened = false;
+              g.eaten = false;
+              g.respawnTimer = 0;
             });
+            
+            // Clear power mode
+            gameState.powerMode = false;
+            gameState.powerModeTimer = 0;
           }
         }
       }
     });
-
-    // Handle power mode timer
-    if (gameState.powerMode) {
-      gameState.powerModeTimer--;
-      if (gameState.powerModeTimer <= 0) {
-        gameState.powerMode = false;
-        gameState.ghosts.forEach(ghost => {
-          ghost.frightened = false;
-        });
-      }
-    }
   }, []);
 
-  // Render game
+  // Render game with improved graphics
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -351,34 +387,95 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
       }
     }
 
-    // Draw power pellets (💩)
+    // Draw power pellets (💩) - larger and animated
+    const time = Date.now() / 300;
     for (let y = 0; y < gameState.powerPellets.length; y++) {
       for (let x = 0; x < gameState.powerPellets[y].length; x++) {
         if (gameState.powerPellets[y][x]) {
-          ctx.font = `${CELL_SIZE - 4}px Arial`;
+          const size = CELL_SIZE - 4 + Math.sin(time) * 2;
+          ctx.font = `${size}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
           ctx.fillText(
             '💩',
-            x * CELL_SIZE + 2,
-            y * CELL_SIZE + CELL_SIZE - 2
+            x * CELL_SIZE + CELL_SIZE / 2,
+            y * CELL_SIZE + CELL_SIZE / 2
           );
         }
       }
     }
 
-    // Draw ghosts
+    // Draw improved ghosts
     gameState.ghosts.forEach(ghost => {
-      ctx.fillStyle = ghost.frightened ? '#0000FF' : ghost.color;
-      ctx.fillRect(
-        ghost.x * CELL_SIZE + 2,
-        ghost.y * CELL_SIZE + 2,
-        CELL_SIZE - 4,
-        CELL_SIZE - 4
-      );
+      if (ghost.eaten) return;
+
+      const centerX = ghost.x * CELL_SIZE + CELL_SIZE / 2;
+      const centerY = ghost.y * CELL_SIZE + CELL_SIZE / 2;
       
-      // Draw eyes
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(ghost.x * CELL_SIZE + 4, ghost.y * CELL_SIZE + 4, 3, 3);
-      ctx.fillRect(ghost.x * CELL_SIZE + 11, ghost.y * CELL_SIZE + 4, 3, 3);
+      if (ghost.frightened) {
+        // Draw blue frightened ghost
+        ctx.fillStyle = gameState.powerModeTimer > 120 ? '#0000FF' : 
+                       (Math.floor(Date.now() / 200) % 2 ? '#0000FF' : '#FFFFFF');
+        
+        // Ghost body
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - 2, CELL_SIZE / 2 - 2, Math.PI, 0, false);
+        ctx.lineTo(centerX + CELL_SIZE / 2 - 2, centerY + CELL_SIZE / 2 - 2);
+        ctx.lineTo(centerX + 2, centerY + CELL_SIZE / 2 - 2);
+        ctx.lineTo(centerX, centerY + 2);
+        ctx.lineTo(centerX - 2, centerY + CELL_SIZE / 2 - 2);
+        ctx.lineTo(centerX - CELL_SIZE / 2 + 2, centerY + CELL_SIZE / 2 - 2);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Eyes for frightened ghost
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(centerX - 6, centerY - 6, 4, 4);
+        ctx.fillRect(centerX + 2, centerY - 6, 4, 4);
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(centerX - 5, centerY - 5, 2, 2);
+        ctx.fillRect(centerX + 3, centerY - 5, 2, 2);
+        
+        // Mouth
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(centerX - 4, centerY + 2, 2, 2);
+        ctx.fillRect(centerX - 1, centerY + 2, 2, 2);
+        ctx.fillRect(centerX + 2, centerY + 2, 2, 2);
+      } else {
+        // Draw normal colored ghost
+        ctx.fillStyle = ghost.color;
+        
+        // Ghost body
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - 2, CELL_SIZE / 2 - 2, Math.PI, 0, false);
+        ctx.lineTo(centerX + CELL_SIZE / 2 - 2, centerY + CELL_SIZE / 2 - 2);
+        ctx.lineTo(centerX + 2, centerY + CELL_SIZE / 2 - 2);
+        ctx.lineTo(centerX, centerY + 2);
+        ctx.lineTo(centerX - 2, centerY + CELL_SIZE / 2 - 2);
+        ctx.lineTo(centerX - CELL_SIZE / 2 + 2, centerY + CELL_SIZE / 2 - 2);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Eyes
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(centerX - 4, centerY - 4, 3, 0, Math.PI * 2);
+        ctx.arc(centerX + 4, centerY - 4, 3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Pupils - look toward Pac-Man if close
+        const pacman = gameState.pacman;
+        const dx = pacman.x - ghost.x;
+        const dy = pacman.y - ghost.y;
+        const pupilOffsetX = Math.sign(dx) * 1;
+        const pupilOffsetY = Math.sign(dy) * 1;
+        
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(centerX - 4 + pupilOffsetX, centerY - 4 + pupilOffsetY, 1.5, 0, Math.PI * 2);
+        ctx.arc(centerX + 4 + pupilOffsetX, centerY - 4 + pupilOffsetY, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
     });
 
     // Draw Pac-Man
@@ -386,22 +483,23 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     ctx.fillStyle = '#FFFF00';
     ctx.beginPath();
     
-    // Determine mouth direction
-    let startAngle = 0.2 * Math.PI;
-    let endAngle = 1.8 * Math.PI;
+    // Determine mouth direction and create animated mouth
+    const mouthAnimation = Math.sin(Date.now() / 100) * 0.3 + 0.3;
+    let startAngle = 0.2 * Math.PI * mouthAnimation;
+    let endAngle = (2 - 0.2 * mouthAnimation) * Math.PI;
     
     if (pacman.direction === DIRECTIONS.RIGHT) {
-      startAngle = 0.2 * Math.PI;
-      endAngle = 1.8 * Math.PI;
+      startAngle = 0.2 * Math.PI * mouthAnimation;
+      endAngle = (2 - 0.2 * mouthAnimation) * Math.PI;
     } else if (pacman.direction === DIRECTIONS.LEFT) {
-      startAngle = 1.2 * Math.PI;
-      endAngle = 0.8 * Math.PI;
+      startAngle = (1 + 0.2 * mouthAnimation) * Math.PI;
+      endAngle = (1 - 0.2 * mouthAnimation) * Math.PI;
     } else if (pacman.direction === DIRECTIONS.UP) {
-      startAngle = 1.7 * Math.PI;
-      endAngle = 1.3 * Math.PI;
+      startAngle = (1.5 + 0.2 * mouthAnimation) * Math.PI;
+      endAngle = (1.5 - 0.2 * mouthAnimation) * Math.PI;
     } else if (pacman.direction === DIRECTIONS.DOWN) {
-      startAngle = 0.7 * Math.PI;
-      endAngle = 0.3 * Math.PI;
+      startAngle = (0.5 + 0.2 * mouthAnimation) * Math.PI;
+      endAngle = (0.5 - 0.2 * mouthAnimation) * Math.PI;
     }
     
     ctx.arc(
@@ -418,10 +516,30 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     ctx.fill();
   }, []);
 
+  // Handle power mode timer
+  useEffect(() => {
+    if (!gameStateRef.current?.powerMode) return;
+
+    const gameState = gameStateRef.current;
+    if (gameState.powerModeTimer > 0) {
+      gameState.powerModeTimer--;
+      if (gameState.powerModeTimer <= 0) {
+        gameState.powerMode = false;
+        gameState.ghosts.forEach(ghost => {
+          if (!ghost.eaten) {
+            ghost.frightened = false;
+          }
+        });
+        console.log('Power mode ended');
+      }
+    }
+  });
+
   // End game
   const endGame = useCallback(async () => {
     if (!gameStateRef.current) return;
 
+    console.log('Ending game...');
     gameStateRef.current.gameRunning = false;
     gameStateRef.current.gameOver = true;
     setGameStarted(false);
@@ -624,6 +742,9 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
       <div className="mb-4 flex gap-8 text-white">
         <div className="text-lg">Score: {score}</div>
         <div className="text-lg">Lives: {lives}</div>
+        {gameStateRef.current?.powerMode && (
+          <div className="text-lg text-blue-400">POWER MODE!</div>
+        )}
         <div className="text-sm text-gray-400">Use arrow keys or WASD to control direction</div>
       </div>
       <canvas
