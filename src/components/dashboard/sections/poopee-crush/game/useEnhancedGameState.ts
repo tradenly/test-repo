@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { GameBoard, GameProgress, Position, Animation, EnhancedGameEngine, BoosterResult } from './EnhancedGameEngine';
+import { GameBoard, GameProgress, Position, AnimationEvent as Animation, EnhancedGameEngine, BoosterResult } from './EnhancedGameEngine';
 import { BoosterType, BoosterManager } from './BoosterSystem';
 import { LevelConfig, getLevelConfig } from './LevelConfig';
 import { DifficultyLevel } from './DifficultySelector';
@@ -90,7 +90,7 @@ interface EnhancedGameState {
 export const useEnhancedGameState = (
   difficulty: DifficultyLevel,
   onLevelComplete: (level: number, score: number, stars: number) => void,
-  onGameEnd: (finalScore: number) => void
+  onGameEnd: (finalScore: number, movesUsed?: number) => void
 ) => {
   const { playSoundEffect } = useGameAudio();
   const gameEngineRef = useRef<EnhancedGameEngine>();
@@ -134,7 +134,7 @@ export const useEnhancedGameState = (
     if (result.boardChanged) {
       // Play match sound effect when tiles are cleared
       if (result.animations && result.animations.length > 0) {
-        const hasMatchAnimation = result.animations.some(anim => anim.type === 'clear');
+        const hasMatchAnimation = result.animations.some(anim => anim.type === 'match');
         if (hasMatchAnimation) {
           playSoundEffect('match');
         }
@@ -179,7 +179,7 @@ export const useEnhancedGameState = (
               level: newState.gameProgress.currentLevel,
               score: newState.gameProgress.score
             });
-            onGameEnd(newState.gameProgress.score);
+            onGameEnd(newState.gameProgress.score, newState.gameProgress.maxMoves - newState.gameProgress.moves);
           }
           
           return newState;
@@ -215,7 +215,7 @@ export const useEnhancedGameState = (
       setTimeout(() => {
         setAnimations([]);
         
-        const processedResult = gameEngineRef.current!.processBoard(result.newBoard!);
+        const processedResult = gameEngineRef.current!.processBoard();
         
         setGameState(prevState => {
           const newState = {

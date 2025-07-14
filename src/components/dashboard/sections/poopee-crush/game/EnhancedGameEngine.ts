@@ -1,5 +1,4 @@
-
-import { TileType, isSpecialTile, getSpecialTileBonus } from './EnhancedTileTypes';
+import { TileType, isSpecialTile } from './EnhancedTileTypes';
 import { LevelConfig } from './LevelConfig';
 
 export interface Position {
@@ -13,11 +12,15 @@ export interface Animation {
   duration: number;
 }
 
-export interface GameBoard {
-  [row: number]: {
-    [col: number]: TileType;
-  };
+// Keep the original AnimationEvent interface for backward compatibility
+export interface AnimationEvent {
+  id: string;
+  type: 'match' | 'cascade' | 'drop' | 'invalid';
+  tiles?: Position[];
+  cascadeMultiplier?: number;
 }
+
+export type GameBoard = TileType[][];
 
 export interface GameProgress {
   currentLevel: number;
@@ -56,7 +59,7 @@ export interface MatchResult {
     gameOver: boolean;
   }>;
   selectedTile?: Position | null;
-  animations?: Animation[];
+  animations?: AnimationEvent[];
 }
 
 export class EnhancedGameEngine {
@@ -92,11 +95,11 @@ export class EnhancedGameEngine {
   }
 
   generateInitialBoard(): GameBoard {
-    const board: GameBoard = {};
-    const tileTypes = [TileType.POOP, TileType.TOILET, TileType.PAPER, TileType.PLUNGER, TileType.SOAP];
+    const board: GameBoard = [];
+    const tileTypes = [TileType.POOP, TileType.TOILET, TileType.TOILET_PAPER, TileType.FART, TileType.BANANA, TileType.BELL];
     
     for (let row = 0; row < 8; row++) {
-      board[row] = {};
+      board[row] = [];
       for (let col = 0; col < 8; col++) {
         // Ensure no initial matches
         let tileType: TileType;
@@ -198,12 +201,12 @@ export class EnhancedGameEngine {
     // Valid move, consume a move
     this.gameProgress.moves--;
     
-    const processedResult = this.processBoard(this.board);
+    const processedResult = this.processBoard();
     
     return {
       boardChanged: true,
       newState: {
-        board: processedResult.board,
+        board: this.board,
         gameProgress: {
           ...this.gameProgress,
           score: this.gameProgress.score + processedResult.scoreIncrease
@@ -211,20 +214,18 @@ export class EnhancedGameEngine {
         levelComplete: this.checkLevelComplete(),
         gameOver: this.checkGameOver()
       },
-      animations: processedResult.animations
+      animations: this.convertToAnimationEvents(processedResult.animations)
     };
   }
 
-  processBoard(board: GameBoard): { board: GameBoard; scoreIncrease: number; animations: Animation[] } {
+  processBoard(): { board: GameBoard; scoreIncrease: number; animations: Animation[] } {
     let totalScore = 0;
     const allAnimations: Animation[] = [];
     let cascadeCount = 0;
     this.comboMultiplier = 1;
     
-    let currentBoard = JSON.parse(JSON.stringify(board));
-    
     while (true) {
-      const matches = this.findMatches(currentBoard);
+      const matches = this.findMatches();
       if (matches.length === 0) break;
       
       // Calculate score for this cascade
@@ -234,10 +235,10 @@ export class EnhancedGameEngine {
       const clearPositions: Position[] = [];
       matches.forEach(match => {
         match.positions.forEach(pos => {
-          const tileType = currentBoard[pos.row][pos.col];
+          const tileType = this.board[pos.row][pos.col];
           cascadeScore += this.getTileScore(tileType) * this.comboMultiplier;
           clearPositions.push(pos);
-          currentBoard[pos.row][pos.col] = null;
+          this.board[pos.row][pos.col] = TileType.EMPTY;
         });
       });
       
@@ -252,11 +253,11 @@ export class EnhancedGameEngine {
       });
       
       // Apply gravity
-      const fallAnimations = this.applyGravity(currentBoard);
+      const fallAnimations = this.applyGravity();
       allAnimations.push(...fallAnimations);
       
       // Fill empty spaces
-      const spawnAnimations = this.fillBoard(currentBoard);
+      const spawnAnimations = this.fillBoard();
       allAnimations.push(...spawnAnimations);
       
       totalScore += cascadeScore;
@@ -267,6 +268,7 @@ export class EnhancedGameEngine {
     // Update game progress
     this.gameProgress.cascades += cascadeCount;
     this.gameProgress.comboMultiplier = Math.max(this.gameProgress.comboMultiplier, this.comboMultiplier);
+    this.gameProgress.score += totalScore;
     
     console.log('🎯 [Process Board] Board processed:', {
       cascades: cascadeCount,
@@ -275,26 +277,33 @@ export class EnhancedGameEngine {
     });
     
     return {
-      board: currentBoard,
+      board: this.board,
       scoreIncrease: totalScore,
       animations: allAnimations
     };
   }
 
-  private findMatches(board: GameBoard = this.board): Array<{positions: Position[], type: TileType}> {
+  private convertToAnimationEvents(animations: Animation[]): AnimationEvent[] {
+    return animations.map((anim, index) => ({
+      id: `anim-${index}-${Date.now()}`,
+      type: anim.type === 'clear' ? 'match' : anim.type === 'fall' ? 'drop' : 'match',
+      tiles: anim.positions
+    }));
+  }
+
+  private findMatches(): Array<{positions: Position[], type: TileType}> {
     const matches: Array<{positions: Position[], type: TileType}> = [];
-    const visited = new Set<string>();
     
     // Find horizontal matches
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 6; col++) {
-        if (!board[row] || !board[row][col]) continue;
+        if (this.board[row][col] === TileType.EMPTY) continue;
         
-        const tileType = board[row][col];
+        const tileType = this.board[row][col];
         let count = 1;
         let endCol = col + 1;
         
-        while (endCol < 8 && board[row][endCol] === tileType) {
+        while (endCol < 8 && this.board[row][endCol] === tileType) {
           count++;
           endCol++;
         }
@@ -312,13 +321,13 @@ export class EnhancedGameEngine {
     // Find vertical matches
     for (let col = 0; col < 8; col++) {
       for (let row = 0; row < 6; row++) {
-        if (!board[row] || !board[row][col]) continue;
+        if (this.board[row][col] === TileType.EMPTY) continue;
         
-        const tileType = board[row][col];
+        const tileType = this.board[row][col];
         let count = 1;
         let endRow = row + 1;
         
-        while (endRow < 8 && board[endRow] && board[endRow][col] === tileType) {
+        while (endRow < 8 && this.board[endRow][col] === tileType) {
           count++;
           endRow++;
         }
@@ -338,7 +347,7 @@ export class EnhancedGameEngine {
 
   private getTileScore(tileType: TileType): number {
     const baseScore = 10;
-    const specialBonus = isSpecialTile(tileType) ? getSpecialTileBonus(tileType) : 0;
+    const specialBonus = isSpecialTile(tileType) ? 50 : 0;
     return baseScore + specialBonus;
   }
 
@@ -379,7 +388,7 @@ export class EnhancedGameEngine {
     console.log('🎯 [Update Objectives] Updated objectives:', this.gameProgress.levelObjectives);
   }
 
-  private applyGravity(board: GameBoard): Animation[] {
+  private applyGravity(): Animation[] {
     const fallAnimations: Animation[] = [];
     
     for (let col = 0; col < 8; col++) {
@@ -387,10 +396,10 @@ export class EnhancedGameEngine {
       let writePos = 7;
       
       for (let row = 7; row >= 0; row--) {
-        if (board[row] && board[row][col] !== null) {
+        if (this.board[row][col] !== TileType.EMPTY) {
           if (writePos !== row) {
-            board[writePos][col] = board[row][col];
-            board[row][col] = null;
+            this.board[writePos][col] = this.board[row][col];
+            this.board[row][col] = TileType.EMPTY;
             fallPositions.push({ row: writePos, col });
           }
           writePos--;
@@ -409,21 +418,21 @@ export class EnhancedGameEngine {
     return fallAnimations;
   }
 
-  private fillBoard(board: GameBoard): Animation[] {
+  private fillBoard(): Animation[] {
     const spawnAnimations: Animation[] = [];
-    const tileTypes = [TileType.POOP, TileType.TOILET, TileType.PAPER, TileType.PLUNGER, TileType.SOAP];
+    const tileTypes = [TileType.POOP, TileType.TOILET, TileType.TOILET_PAPER, TileType.FART, TileType.BANANA, TileType.BELL];
     
     for (let col = 0; col < 8; col++) {
       const spawnPositions: Position[] = [];
       
       for (let row = 0; row < 8; row++) {
-        if (!board[row][col]) {
+        if (this.board[row][col] === TileType.EMPTY) {
           let tileType: TileType;
           do {
             tileType = tileTypes[Math.floor(Math.random() * tileTypes.length)];
-          } while (this.wouldCreateMatch(board, row, col, tileType));
+          } while (this.wouldCreateMatch(this.board, row, col, tileType));
           
-          board[row][col] = tileType;
+          this.board[row][col] = tileType;
           spawnPositions.push({ row, col });
         }
       }
