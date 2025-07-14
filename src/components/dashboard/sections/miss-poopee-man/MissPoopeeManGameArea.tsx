@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { useState } from "react";
+import { MissPacManGame } from "./game/MissPacManGame";
 
 interface MissPoopeeManGameAreaProps {
   user: UnifiedUser;
@@ -16,7 +17,11 @@ export const MissPoopeeManGameArea = ({ user, currentCredits }: MissPoopeeManGam
   const handleStartGame = () => {
     if (!canPlay) return;
     setGameStarted(true);
-    // Game logic will be implemented in future phases
+  };
+
+  const handleGameEnd = (score: number, duration: number) => {
+    console.log('Game ended with score:', score, 'duration:', duration);
+    setGameStarted(false);
   };
 
   return (
@@ -32,7 +37,7 @@ export const MissPoopeeManGameArea = ({ user, currentCredits }: MissPoopeeManGam
           {!gameStarted ? (
             <div className="text-center space-y-4">
               <div className="text-6xl mb-4">👾</div>
-              <h3 className="text-2xl font-bold text-white">Coming Soon!</h3>
+              <h3 className="text-2xl font-bold text-white">Miss POOPEE-Man</h3>
               <p className="text-gray-400 max-w-md mx-auto">
                 Navigate the maze as Miss POOPEE-Man! Collect 💩 pellets, avoid ghosts, 
                 and use power-ups to turn the tables on your enemies.
@@ -61,11 +66,10 @@ export const MissPoopeeManGameArea = ({ user, currentCredits }: MissPoopeeManGam
               )}
             </div>
           ) : (
-            <div className="text-center">
-              <div className="text-4xl mb-4">🚧</div>
-              <p className="text-white">Game engine loading...</p>
-              <p className="text-gray-400 text-sm mt-2">Game implementation coming in next phase</p>
-            </div>
+            <MissPacManGame
+              user={user}
+              onGameEnd={handleGameEnd}
+            />
           )}
         </div>
       </CardContent>
