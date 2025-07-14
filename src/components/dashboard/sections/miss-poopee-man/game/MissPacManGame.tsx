@@ -22,6 +22,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
   
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
+  const [engineReady, setEngineReady] = useState(false);
   
   const spendCredits = useSpendCredits();
   const earnCredits = useEarnCredits();
@@ -30,16 +31,18 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
 
   // Initialize game engine and renderer
   const initializeGame = useCallback(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || engineRef.current) return;
 
     try {
       console.log('Initializing Miss Pac-Man game...');
       engineRef.current = new MissPacManEngine();
       rendererRef.current = new MissPacManRenderer(canvasRef.current);
       setGameState(engineRef.current.getGameState());
+      setEngineReady(true);
       console.log('Miss Pac-Man game initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Miss Pac-Man game:', error);
+      setEngineReady(false);
       toast({
         title: "Game Error",
         description: "Failed to initialize the game. Please try again.",
@@ -48,9 +51,9 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
     }
   }, [toast]);
 
-  // Game loop for rendering
+  // Game loop for rendering and updates
   const gameLoop = useCallback(() => {
-    if (!engineRef.current || !rendererRef.current) return;
+    if (!engineRef.current || !rendererRef.current || !gameStarted) return;
 
     const currentState = engineRef.current.getGameState();
     setGameState(currentState);
@@ -62,11 +65,17 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
     } else if (currentState.gameStatus === 'playing') {
       gameLoopRef.current = requestAnimationFrame(gameLoop);
     }
-  }, []);
+  }, [gameStarted]);
 
   // Handle game end
   const handleGameEnd = useCallback(async (finalState: GameState) => {
     console.log('Game ending with state:', finalState);
+    setGameStarted(false);
+    
+    if (gameLoopRef.current) {
+      cancelAnimationFrame(gameLoopRef.current);
+    }
+    
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
     const score = finalState.score;
     
@@ -119,8 +128,13 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
 
   // Start game
   const startGame = useCallback(async () => {
-    if (!engineRef.current) {
-      console.error('Engine not initialized');
+    if (!engineRef.current || !engineReady) {
+      console.error('Engine not ready:', { engine: !!engineRef.current, ready: engineReady });
+      toast({
+        title: "Game Not Ready",
+        description: "Please wait for the game to initialize",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -136,7 +150,8 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
       console.log('Credit spent successfully, starting game...');
       startTimeRef.current = Date.now();
       
-      // Start the game engine
+      // Reset and start the game engine
+      engineRef.current.reset();
       engineRef.current.startGame();
       setGameStarted(true);
       
@@ -155,7 +170,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
         variant: "destructive"
       });
     }
-  }, [user.id, spendCredits, gameLoop, toast]);
+  }, [user.id, spendCredits, gameLoop, engineReady, toast]);
 
   // Handle keyboard input
   useEffect(() => {
@@ -217,9 +232,12 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
 
   // Initialize on mount
   useEffect(() => {
-    initializeGame();
+    const timer = setTimeout(() => {
+      initializeGame();
+    }, 100); // Small delay to ensure canvas is ready
     
     return () => {
+      clearTimeout(timer);
       if (gameLoopRef.current) {
         cancelAnimationFrame(gameLoopRef.current);
       }
@@ -238,62 +256,69 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  return (
-    <div className="w-full h-full flex flex-col items-center justify-center">
-      {!gameStarted ? (
+  if (!gameStarted) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center">
         <div className="text-center space-y-4 p-8">
           <div className="text-6xl mb-4">👾</div>
-          <h3 className="text-2xl font-bold text-white">Ready to Play?</h3>
+          <h3 className="text-2xl font-bold text-white">Ready to Play Miss POOPEE-Man?</h3>
           <p className="text-gray-400">
-            Click Start Game to begin your Miss POOPEE-Man adventure!
+            Navigate the maze and collect 💩 pellets while avoiding ghosts!
           </p>
           <Button 
             onClick={startGame}
+            disabled={!engineReady}
             className="bg-purple-600 hover:bg-purple-700 text-white"
           >
-            Start Game (1 Credit)
+            {engineReady ? "Start Game (1 Credit)" : "Loading Game..."}
           </Button>
-        </div>
-      ) : (
-        <>
-          <canvas
-            ref={canvasRef}
-            className="w-full h-full max-w-full max-h-full"
-            onTouchStart={handleCanvasTouch}
-            style={{ touchAction: 'none' }}
-          />
-          
-          {gameState && gameState.gameStatus !== 'playing' && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center space-y-4 bg-black/80 p-6 rounded-lg">
-                {gameState.gameStatus === 'game-over' && (
-                  <>
-                    <div className="text-2xl font-bold text-red-400">Game Over!</div>
-                    <div className="text-white">Final Score: {gameState.score}</div>
-                  </>
-                )}
-                {gameState.gameStatus === 'level-complete' && (
-                  <>
-                    <div className="text-2xl font-bold text-green-400">Level Complete!</div>
-                    <div className="text-white">Score: {gameState.score}</div>
-                  </>
-                )}
-                <Button 
-                  onClick={startGame} 
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  Play Again (1 Credit)
-                </Button>
-              </div>
-            </div>
+          {!engineReady && (
+            <p className="text-sm text-yellow-400">
+              Initializing game engine...
+            </p>
           )}
-        </>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full relative">
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full bg-black"
+        onTouchStart={handleCanvasTouch}
+        style={{ touchAction: 'none' }}
+      />
+      
+      {gameState && gameState.gameStatus !== 'playing' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+          <div className="text-center space-y-4 p-6 rounded-lg border border-gray-700">
+            {gameState.gameStatus === 'game-over' && (
+              <>
+                <div className="text-2xl font-bold text-red-400">Game Over!</div>
+                <div className="text-white">Final Score: {gameState.score}</div>
+              </>
+            )}
+            {gameState.gameStatus === 'level-complete' && (
+              <>
+                <div className="text-2xl font-bold text-green-400">Level Complete!</div>
+                <div className="text-white">Score: {gameState.score}</div>
+              </>
+            )}
+            <Button 
+              onClick={startGame} 
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              Play Again (1 Credit)
+            </Button>
+          </div>
+        </div>
       )}
       
       {gameStarted && gameState && gameState.gameStatus === 'playing' && (
-        <div className="mt-4 text-center text-sm text-gray-400">
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center text-sm text-gray-400 bg-black/50 px-4 py-2 rounded">
           <p>Use arrow keys or tap the screen to control Miss POOPEE-Man</p>
-          <p>Eat all 💩 pellets to complete the level!</p>
         </div>
       )}
     </div>
