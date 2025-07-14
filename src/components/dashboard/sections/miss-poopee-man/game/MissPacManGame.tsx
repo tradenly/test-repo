@@ -19,6 +19,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
   const rendererRef = useRef<MissPacManRenderer | null>(null);
   const gameLoopRef = useRef<number>();
   const startTimeRef = useRef<number>(0);
+  const lastUpdateTimeRef = useRef<number>(0);
   
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -47,11 +48,10 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
     }
   }, [toast]);
 
-  // Game loop
-  const gameLoop = useCallback(() => {
+  // Game loop with proper timestamp handling
+  const gameLoop = useCallback((timestamp: number = 0) => {
     if (!engineRef.current || !rendererRef.current) return;
 
-    engineRef.current.update();
     const currentState = engineRef.current.getGameState();
     setGameState(currentState);
     rendererRef.current.render(currentState);
@@ -128,6 +128,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
       });
 
       startTimeRef.current = Date.now();
+      lastUpdateTimeRef.current = Date.now();
       engineRef.current.startGame();
       setGameStarted(true);
       gameLoopRef.current = requestAnimationFrame(gameLoop);
@@ -225,9 +226,9 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
   }, []);
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-black">
+    <div className="w-full h-full flex flex-col items-center justify-center">
       {!gameStarted ? (
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 p-8">
           <div className="text-6xl mb-4">👾</div>
           <h3 className="text-2xl font-bold text-white">Ready to Play?</h3>
           <p className="text-gray-400">
@@ -244,7 +245,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
         <>
           <canvas
             ref={canvasRef}
-            className="block border border-gray-600 rounded"
+            className="w-full h-full max-w-full max-h-full"
             onTouchStart={handleCanvasTouch}
             style={{ touchAction: 'none' }}
           />
