@@ -19,7 +19,6 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
   const rendererRef = useRef<MissPacManRenderer | null>(null);
   const gameLoopRef = useRef<number>();
   const startTimeRef = useRef<number>(0);
-  const lastUpdateTimeRef = useRef<number>(0);
   
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -34,6 +33,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
     if (!canvasRef.current) return;
 
     try {
+      console.log('Initializing Miss Pac-Man game...');
       engineRef.current = new MissPacManEngine();
       rendererRef.current = new MissPacManRenderer(canvasRef.current);
       setGameState(engineRef.current.getGameState());
@@ -48,23 +48,25 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
     }
   }, [toast]);
 
-  // Game loop with proper timestamp handling
-  const gameLoop = useCallback((timestamp: number = 0) => {
+  // Game loop for rendering
+  const gameLoop = useCallback(() => {
     if (!engineRef.current || !rendererRef.current) return;
 
     const currentState = engineRef.current.getGameState();
     setGameState(currentState);
     rendererRef.current.render(currentState);
 
-    if (currentState.gameStatus === 'playing') {
-      gameLoopRef.current = requestAnimationFrame(gameLoop);
-    } else if (currentState.gameStatus === 'game-over' || currentState.gameStatus === 'level-complete') {
+    // Check for game end conditions
+    if (currentState.gameStatus === 'game-over' || currentState.gameStatus === 'level-complete') {
       handleGameEnd(currentState);
+    } else if (currentState.gameStatus === 'playing') {
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
     }
   }, []);
 
   // Handle game end
   const handleGameEnd = useCallback(async (finalState: GameState) => {
+    console.log('Game ending with state:', finalState);
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
     const score = finalState.score;
     
@@ -117,9 +119,13 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
 
   // Start game
   const startGame = useCallback(async () => {
-    if (!engineRef.current) return;
+    if (!engineRef.current) {
+      console.error('Engine not initialized');
+      return;
+    }
 
     try {
+      console.log('Starting game - spending 1 credit...');
       // Spend 1 credit to play
       await spendCredits.mutateAsync({
         userId: user.id,
@@ -127,10 +133,14 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
         description: "Miss POOPEE-Man game entry fee"
       });
 
+      console.log('Credit spent successfully, starting game...');
       startTimeRef.current = Date.now();
-      lastUpdateTimeRef.current = Date.now();
+      
+      // Start the game engine
       engineRef.current.startGame();
       setGameStarted(true);
+      
+      // Start the rendering loop
       gameLoopRef.current = requestAnimationFrame(gameLoop);
       
       toast({
@@ -138,6 +148,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
         description: "Use arrow keys or tap the screen to control Miss POOPEE-Man"
       });
     } catch (error: any) {
+      console.error('Failed to start game:', error);
       toast({
         title: "Cannot Start Game",
         description: error.message || "Failed to start game",
@@ -165,6 +176,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
       const direction = directionMap[event.key];
       if (direction) {
         event.preventDefault();
+        console.log('Key pressed:', event.key, 'Direction:', direction);
         engineRef.current.setPlayerDirection(direction);
       }
     };
@@ -199,6 +211,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
       direction = deltaY > 0 ? Direction.DOWN : Direction.UP;
     }
     
+    console.log('Touch direction:', direction);
     engineRef.current.setPlayerDirection(direction);
   }, [gameState]);
 
@@ -277,7 +290,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
         </>
       )}
       
-      {gameStarted && (
+      {gameStarted && gameState && gameState.gameStatus === 'playing' && (
         <div className="mt-4 text-center text-sm text-gray-400">
           <p>Use arrow keys or tap the screen to control Miss POOPEE-Man</p>
           <p>Eat all 💩 pellets to complete the level!</p>

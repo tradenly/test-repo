@@ -1,4 +1,3 @@
-
 export interface Position {
   x: number;
   y: number;
@@ -80,11 +79,13 @@ export class MissPacManEngine {
   private animationId: number | null = null;
   private lastUpdateTime = 0;
   private updateInterval = 1000 / 60; // 60 FPS
-  private moveSpeed = 100; // milliseconds per cell
+  private moveSpeed = 150; // milliseconds per cell
   private lastMoveTime = 0;
+  private isRunning = false;
 
   constructor() {
     this.gameState = this.initializeGameState();
+    console.log('Miss Pac-Man engine initialized');
   }
 
   private initializeGameState(): GameState {
@@ -187,18 +188,22 @@ export class MissPacManEngine {
   public setPlayerDirection(direction: Direction): void {
     if (this.gameState.gameStatus === 'playing') {
       this.gameState.player.nextDirection = direction;
+      console.log('Player direction set to:', direction);
     }
   }
 
-  public start(): void {
-    if (this.gameState.gameStatus === 'paused') {
-      this.gameState.gameStatus = 'playing';
-      this.gameLoop();
-    }
+  public startGame(): void {
+    console.log('Starting Miss Pac-Man game...');
+    this.gameState.gameStatus = 'playing';
+    this.isRunning = true;
+    this.lastUpdateTime = Date.now();
+    this.lastMoveTime = Date.now();
+    this.gameLoop();
   }
 
   public pause(): void {
     this.gameState.gameStatus = 'paused';
+    this.isRunning = false;
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
@@ -207,24 +212,35 @@ export class MissPacManEngine {
 
   public reset(): void {
     this.gameState = this.initializeGameState();
+    this.isRunning = false;
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
   }
 
   public getGameState(): GameState {
     return { ...this.gameState };
   }
 
-  private gameLoop = (timestamp: number = 0): void => {
-    if (this.gameState.gameStatus !== 'playing') return;
-
-    if (timestamp - this.lastUpdateTime >= this.updateInterval) {
-      this.update(timestamp);
-      this.lastUpdateTime = timestamp;
+  private gameLoop = (): void => {
+    if (!this.isRunning || this.gameState.gameStatus !== 'playing') {
+      return;
     }
 
+    const now = Date.now();
+    
+    // Update game logic at regular intervals
+    if (now - this.lastUpdateTime >= this.updateInterval) {
+      this.updateGame(now);
+      this.lastUpdateTime = now;
+    }
+
+    // Continue the game loop
     this.animationId = requestAnimationFrame(this.gameLoop);
   };
 
-  private update(timestamp: number): void {
+  private updateGame(timestamp: number): void {
     if (timestamp - this.lastMoveTime >= this.moveSpeed) {
       this.updatePlayer();
       this.updateGhosts();
@@ -243,6 +259,7 @@ export class MissPacManEngine {
       if (this.canMove(player.position, player.nextDirection)) {
         player.direction = player.nextDirection;
         player.nextDirection = Direction.NONE;
+        console.log('Player direction changed to:', player.direction);
       }
     }
 
@@ -264,6 +281,7 @@ export class MissPacManEngine {
         this.gameState.pellets[player.position.y][player.position.x] = false;
         this.gameState.score += 10;
         this.gameState.pelletsRemaining--;
+        console.log('Pellet eaten! Score:', this.gameState.score);
       }
 
       // Eat power pellets
@@ -275,6 +293,7 @@ export class MissPacManEngine {
         this.gameState.score += 50;
         this.gameState.pelletsRemaining--;
         this.activatePowerMode();
+        console.log('Power pellet eaten! Score:', this.gameState.score);
       }
     } else {
       player.isMoving = false;
@@ -283,7 +302,6 @@ export class MissPacManEngine {
 
   private updateGhosts(): void {
     this.gameState.ghosts.forEach(ghost => {
-      // Update AI and movement logic here
       this.updateGhostAI(ghost);
       this.moveGhost(ghost);
     });
@@ -338,11 +356,15 @@ export class MissPacManEngine {
           // Eat ghost
           ghost.mode = 'eaten';
           this.gameState.score += 200;
+          console.log('Ghost eaten! Score:', this.gameState.score);
         } else if (ghost.mode !== 'eaten') {
           // Player dies
           this.gameState.lives--;
+          console.log('Player hit! Lives remaining:', this.gameState.lives);
           if (this.gameState.lives <= 0) {
             this.gameState.gameStatus = 'game-over';
+            this.isRunning = false;
+            console.log('Game Over!');
           } else {
             this.resetPositions();
           }
@@ -354,6 +376,8 @@ export class MissPacManEngine {
   private checkWinCondition(): void {
     if (this.gameState.pelletsRemaining <= 0) {
       this.gameState.gameStatus = 'level-complete';
+      this.isRunning = false;
+      console.log('Level Complete!');
     }
   }
 
@@ -406,13 +430,9 @@ export class MissPacManEngine {
     return opposites[direction];
   }
 
-  public startGame(): void {
-    this.gameState.gameStatus = 'playing';
-    this.gameLoop();
-  }
-
   public endGame(): GameState {
     this.gameState.gameStatus = 'game-over';
+    this.isRunning = false;
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
