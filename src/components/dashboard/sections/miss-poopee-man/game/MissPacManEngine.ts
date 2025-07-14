@@ -106,7 +106,7 @@ export class MissPacManEngine {
       lives: 3,
       gameStatus: 'playing',
       powerModeTimer: 0,
-      pelletsRemaining: this.countTotalPellets(pellets)
+      pelletsRemaining: this.countTotalPellets(pellets, powerPellets)
     };
   }
 
@@ -174,14 +174,14 @@ export class MissPacManEngine {
     ];
   }
 
-  private countTotalPellets(pellets: boolean[][]): number {
+  private countTotalPellets(pellets: boolean[][], powerPellets: Position[]): number {
     let count = 0;
     for (let y = 0; y < MAZE_HEIGHT; y++) {
       for (let x = 0; x < MAZE_WIDTH; x++) {
         if (pellets[y][x]) count++;
       }
     }
-    return count + this.gameState?.powerPellets?.length || 4;
+    return count + powerPellets.length;
   }
 
   public setPlayerDirection(direction: Direction): void {

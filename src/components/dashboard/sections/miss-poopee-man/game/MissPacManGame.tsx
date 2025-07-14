@@ -37,6 +37,7 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
       rendererRef.current = new MissPacManRenderer(canvasRef.current);
       setIsInitialized(true);
       setGameState(engineRef.current.getGameState());
+      console.log('Miss Pac-Man game initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Miss Pac-Man game:', error);
       toast({
@@ -231,13 +232,11 @@ export const MissPacManGame = ({ user, onGameEnd }: MissPacManGameProps) => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="relative bg-black rounded-lg overflow-hidden">
+    <div className="space-y-4 w-full">
+      <div className="relative bg-black rounded-lg overflow-hidden flex justify-center">
         <canvas
           ref={canvasRef}
-          width={380}
-          height={380}
-          className="block mx-auto border border-gray-600"
+          className="block border border-gray-600"
           onTouchStart={handleCanvasTouch}
           style={{ touchAction: 'none' }}
         />

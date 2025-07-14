@@ -5,6 +5,7 @@ export class MissPacManRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private animationFrame = 0;
+  private scale = 1;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -17,15 +18,30 @@ export class MissPacManRenderer {
   }
 
   private setupCanvas(): void {
+    const container = this.canvas.parentElement;
+    if (!container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const idealWidth = Math.min(containerRect.width - 40, 800); // Max 800px, with padding
+    const idealHeight = Math.min(containerRect.height - 40, 800);
+    
+    // Calculate scale to fit the maze properly
+    const mazePixelWidth = MAZE_LAYOUT[0].length * CELL_SIZE;
+    const mazePixelHeight = MAZE_LAYOUT.length * CELL_SIZE;
+    
+    this.scale = Math.min(idealWidth / mazePixelWidth, idealHeight / mazePixelHeight, 2);
+    
+    const scaledWidth = mazePixelWidth * this.scale;
+    const scaledHeight = mazePixelHeight * this.scale;
+    
     const dpr = window.devicePixelRatio || 1;
-    const rect = this.canvas.getBoundingClientRect();
     
-    this.canvas.width = rect.width * dpr;
-    this.canvas.height = rect.height * dpr;
-    this.ctx.scale(dpr, dpr);
+    this.canvas.width = scaledWidth * dpr;
+    this.canvas.height = scaledHeight * dpr;
+    this.canvas.style.width = `${scaledWidth}px`;
+    this.canvas.style.height = `${scaledHeight}px`;
     
-    this.canvas.style.width = `${rect.width}px`;
-    this.canvas.style.height = `${rect.height}px`;
+    this.ctx.scale(dpr * this.scale, dpr * this.scale);
   }
 
   public render(gameState: GameState): void {
@@ -228,8 +244,8 @@ export class MissPacManRenderer {
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     
-    const centerX = this.canvas.width / 2;
-    const centerY = this.canvas.height / 2;
+    const centerX = (MAZE_LAYOUT[0].length * CELL_SIZE) / 2;
+    const centerY = (MAZE_LAYOUT.length * CELL_SIZE) / 2;
     
     // Background
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';

@@ -33,7 +33,7 @@ export const MissPoopeeManGameArea = ({ user, currentCredits }: MissPoopeeManGam
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="min-h-[400px] bg-black border border-gray-600 rounded-lg flex items-center justify-center">
+        <div className="min-h-[600px] bg-black border border-gray-600 rounded-lg flex items-center justify-center">
           {!gameStarted ? (
             <div className="text-center space-y-4">
               <div className="text-6xl mb-4">👾</div>

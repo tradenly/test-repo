@@ -38,22 +38,22 @@ export const MissPoopeeManSection = ({ user }: MissPoopeeManSectionProps) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Stats Cards */}
-        <div className="lg:col-span-1">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Game Area - Takes up 3/4 of the space */}
+        <div className="lg:col-span-3">
+          <MissPoopeeManGameArea
+            user={user}
+            currentCredits={credits?.balance || 0}
+          />
+        </div>
+
+        {/* Stats Cards - Takes up 1/4 of the space */}
+        <div className="lg:col-span-1 space-y-4">
           <MissPoopeeManStats
             totalGames={totalGames}
             highScore={highScore}
             averageScore={averageScore}
             totalCreditsEarned={totalCreditsEarned}
-            currentCredits={credits?.balance || 0}
-          />
-        </div>
-
-        {/* Game Area */}
-        <div className="lg:col-span-2">
-          <MissPoopeeManGameArea
-            user={user}
             currentCredits={credits?.balance || 0}
           />
         </div>
