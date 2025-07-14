@@ -7,7 +7,6 @@ import { GameOverScreen } from "./GameOverScreen";
 import { useEnhancedGameState } from "./useEnhancedGameState";
 import { BoosterType } from "./BoosterSystem";
 import { DifficultyLevel } from "./DifficultySelector";
-import { Position } from "./EnhancedGameEngine";
 
 interface PoopeeCrushGameProps {
   onGameEnd: (score: number, moves: number) => void;
@@ -16,8 +15,6 @@ interface PoopeeCrushGameProps {
 }
 
 export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGameProps) => {
-  const [hammerMode, setHammerMode] = useState(false);
-
   const {
     gameState,
     animations,
@@ -39,33 +36,9 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
     onGameEnd(finalScore, movesUsed);
   }
 
-  const handleBoosterUse = (type: BoosterType, targetTile?: Position): boolean => {
+  const handleBoosterUse = (type: BoosterType): boolean => {
     console.log(`🔧 [PoopeeCrushGame] Using booster: ${type}`);
-    return useBooster(type, targetTile);
-  };
-
-  const handleTileClickWithHammer = (row: number, col: number) => {
-    console.log(`🎯 [PoopeeCrushGame] Tile clicked at (${row}, ${col}), hammerMode: ${hammerMode}`);
-    
-    if (hammerMode) {
-      console.log(`🔨 [PoopeeCrushGame] Using hammer on tile (${row}, ${col})`);
-      
-      // Use hammer on the clicked tile
-      const success = useBooster(BoosterType.HAMMER, { row, col });
-      
-      console.log(`🔨 [PoopeeCrushGame] Hammer result: ${success ? 'success' : 'failed'}`);
-      
-      // Always clear hammer mode after use, regardless of success
-      setHammerMode(false);
-      
-      if (!success) {
-        console.error(`❌ [PoopeeCrushGame] Hammer failed on tile (${row}, ${col})`);
-      }
-    } else {
-      // Normal tile click
-      console.log(`🎯 [PoopeeCrushGame] Normal tile click at (${row}, ${col})`);
-      handleTileClick(row, col);
-    }
+    return useBooster(type);
   };
 
   if (gameState.gameOver) {
@@ -94,9 +67,8 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
           board={gameState.board}
           selectedTile={gameState.selectedTile}
           hintTiles={gameState.hintTiles}
-          onTileClick={handleTileClickWithHammer}
+          onTileClick={handleTileClick}
           animations={animations}
-          hammerMode={hammerMode}
         />
       </div>
       
@@ -106,8 +78,6 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
           onUseBooster={handleBoosterUse}
           gameProgress={gameState.gameProgress}
           userId={userId}
-          onHammerModeChange={setHammerMode}
-          hammerMode={hammerMode}
         />
       </div>
     </div>

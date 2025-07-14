@@ -10,8 +10,6 @@ interface EnhancedGameBoardProps {
   selectedTile: {row: number, col: number} | null;
   hintTiles: {row: number, col: number}[];
   animations: AnimationEvent[];
-  hammerMode?: boolean;
-  onHammerTarget?: (row: number, col: number) => void;
 }
 
 export const EnhancedGameBoard = ({ 
@@ -19,9 +17,7 @@ export const EnhancedGameBoard = ({
   onTileClick, 
   selectedTile, 
   hintTiles, 
-  animations,
-  hammerMode = false,
-  onHammerTarget
+  animations
 }: EnhancedGameBoardProps) => {
   const isMobile = useIsMobile();
 
@@ -50,10 +46,7 @@ export const EnhancedGameBoard = ({
     
     let className = `${baseSize} flex items-center justify-center ${textSize} rounded-lg border-2 cursor-pointer transition-all duration-200 `;
     
-    // Handle hammer mode styling
-    if (hammerMode && tile !== TileType.BLOCKED && tile !== TileType.EMPTY) {
-      className += "border-red-400 bg-red-900/30 hover:bg-red-800/50 shadow-lg shadow-red-500/30 ";
-    } else if (selectedTile && selectedTile.row === row && selectedTile.col === col) {
+    if (selectedTile && selectedTile.row === row && selectedTile.col === col) {
       className += "border-yellow-400 bg-yellow-900/50 shadow-lg shadow-yellow-500/50 ";
     } else if (hintTiles.some(hint => hint.row === row && hint.col === col)) {
       className += "border-green-400 bg-green-900/30 animate-pulse ";
@@ -85,16 +78,8 @@ export const EnhancedGameBoard = ({
       return;
     }
     
-    // Handle hammer mode
-    if (hammerMode && onHammerTarget) {
-      onHammerTarget(row, col);
-      return;
-    }
-    
-    // Regular tile click
-    if (!hammerMode) {
-      onTileClick(row, col);
-    }
+    // Normal tile click
+    onTileClick(row, col);
   };
 
   // Simplified animation classes - only show active animations
@@ -140,15 +125,6 @@ export const EnhancedGameBoard = ({
 
   return (
     <div className="flex flex-col items-center space-y-2">
-      {hammerMode && (
-        <div className="text-center mb-4">
-          <div className="bg-red-900/30 border border-red-600 rounded-lg px-4 py-2">
-            <span className="text-red-400 font-medium">🔨 Hammer Mode Active</span>
-            <p className="text-sm text-red-300 mt-1">Click any tile to remove it instantly</p>
-          </div>
-        </div>
-      )}
-      
       <div className={`grid grid-cols-8 ${gridGap} ${containerPadding} bg-gray-900/30 rounded-lg border border-gray-700`}>
         {board.map((row, rowIndex) =>
           row.map((tile, colIndex) => (
@@ -156,7 +132,7 @@ export const EnhancedGameBoard = ({
               key={`${rowIndex}-${colIndex}`}
               className={`${getTileClassName(rowIndex, colIndex, tile)} ${getAnimationClasses(rowIndex, colIndex)}`}
               onClick={() => handleTileClick(rowIndex, colIndex)}
-              title={hammerMode ? "Click to remove with hammer" : `Row ${rowIndex + 1}, Col ${colIndex + 1}`}
+              title={`Row ${rowIndex + 1}, Col ${colIndex + 1}`}
             >
               {getTileEmoji(tile)}
             </div>
