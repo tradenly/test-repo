@@ -17,10 +17,10 @@ interface EnhancedGameState {
 
 const getTargetScoreForDifficulty = (difficulty: DifficultyLevel): number => {
   switch (difficulty) {
-    case 'easy': return 500;
-    case 'medium': return 750;
-    case 'advanced': return 1000;
-    default: return 500;
+    case 'easy': return 5000;
+    case 'medium': return 10000;
+    case 'advanced': return 15000;
+    default: return 5000;
   }
 };
 
@@ -89,7 +89,7 @@ export const useEnhancedGameState = (
             ...prevState,
             ...result.newState,
             selectedTile: result.selectedTile || null,
-            hintTiles: []
+            hintTiles: [] // Clear hints after a move
           };
           
           // Check if game is over (no moves left)
@@ -106,7 +106,7 @@ export const useEnhancedGameState = (
       setGameState(prevState => ({
         ...prevState,
         selectedTile: result.selectedTile || null,
-        hintTiles: []
+        hintTiles: [] // Clear hints when selecting tiles
       }));
     }
   }, [gameState.gameActive, onGameEnd, playSoundEffect]);
@@ -118,26 +118,40 @@ export const useEnhancedGameState = (
 
     const result: BoosterResult = gameEngineRef.current.useBooster(type, targetTile);
     
-    if (result.success && result.newBoard) {
+    if (result.success) {
       playSoundEffect('booster');
-      setAnimations(result.animations || []);
       
-      setTimeout(() => {
-        setAnimations([]);
-        
-        const processedResult = gameEngineRef.current!.processBoard(result.newBoard!);
-        
+      // Handle hint booster specifically
+      if (type === BoosterType.HINT) {
+        const hintTiles = gameEngineRef.current.getHintTiles();
         setGameState(prevState => ({
           ...prevState,
-          board: processedResult.board,
-          gameProgress: {
-            ...prevState.gameProgress,
-            score: prevState.gameProgress.score + processedResult.scoreIncrease
-          },
-          selectedTile: null,
-          hintTiles: []
+          hintTiles: hintTiles
         }));
-      }, result.animations ? 600 : 0);
+        return true;
+      }
+      
+      // Handle other boosters that modify the board
+      if (result.newBoard) {
+        setAnimations(result.animations || []);
+        
+        setTimeout(() => {
+          setAnimations([]);
+          
+          const processedResult = gameEngineRef.current!.processBoard(result.newBoard!);
+          
+          setGameState(prevState => ({
+            ...prevState,
+            board: processedResult.board,
+            gameProgress: {
+              ...prevState.gameProgress,
+              score: prevState.gameProgress.score + processedResult.scoreIncrease
+            },
+            selectedTile: null,
+            hintTiles: []
+          }));
+        }, result.animations ? 600 : 0);
+      }
     }
 
     return result.success;

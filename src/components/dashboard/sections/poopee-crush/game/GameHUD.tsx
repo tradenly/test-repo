@@ -43,6 +43,9 @@ export const GameHUD = ({ gameProgress, onQuit, onRestart, difficulty }: GameHUD
           <div className="text-base font-semibold text-white">{gameProgress.score.toLocaleString()}</div>
           <div className="text-xs text-gray-400">Target: {gameProgress.targetScore.toLocaleString()}</div>
           <Progress value={scoreProgress} className="h-1.5 bg-gray-700 mt-1" />
+          <div className="text-xs text-gray-400 mt-1">
+            {scoreProgress.toFixed(1)}% complete
+          </div>
         </div>
         
         <div>

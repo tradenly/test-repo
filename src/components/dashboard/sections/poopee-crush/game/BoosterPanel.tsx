@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Loader2, Shuffle, Lightbulb, Hammer } from "lucide-react";
+import { Loader2, Shuffle, Lightbulb, Hammer, X } from "lucide-react";
 import { BoosterType } from "./BoosterSystem";
 import { GameProgress } from "./EnhancedGameEngine";
 import { usePoopeeCrushCredits } from "../usePoopeeCrushCredits";
@@ -67,6 +67,10 @@ export const BoosterPanel = ({
     } catch (error) {
       console.error(`💥 [BoosterPanel] Error using ${type} booster:`, error);
     }
+  };
+
+  const handleCancelHammer = () => {
+    onHammerModeChange(false);
   };
 
   const currentBalance = credits?.balance || 0;
@@ -160,8 +164,19 @@ export const BoosterPanel = ({
                 </Tooltip>
                 
                 {isHammerActive && (
-                  <div className="text-xs text-orange-400 bg-orange-900/20 p-2 rounded border border-orange-700">
-                    🎯 Click on any tile to destroy it with the hammer!
+                  <div className="space-y-2">
+                    <div className="text-xs text-orange-400 bg-orange-900/20 p-2 rounded border border-orange-700">
+                      🎯 Click on any tile to destroy it with the hammer!
+                    </div>
+                    <Button
+                      onClick={handleCancelHammer}
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Cancel Hammer
+                    </Button>
                   </div>
                 )}
                 

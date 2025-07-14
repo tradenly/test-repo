@@ -51,8 +51,10 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
           description: 'Used Hammer booster in POOPEE Crush'
         });
         
+        const success = useBooster(type, targetTile);
+        // Always clear hammer mode after use, regardless of success
         setHammerMode(false);
-        return useBooster(type, targetTile);
+        return success;
       } catch (error) {
         console.error('❌ [PoopeeCrushGame] Failed to spend credits for hammer:', error);
         setHammerMode(false);
@@ -65,7 +67,9 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
 
   const handleTileClickWithHammer = (row: number, col: number) => {
     if (hammerMode) {
-      handleBoosterUse(BoosterType.HAMMER, { row, col });
+      // Use hammer on the clicked tile
+      const success = handleBoosterUse(BoosterType.HAMMER, { row, col });
+      console.log(`🔨 [PoopeeCrushGame] Hammer used on (${row}, ${col}), success: ${success}`);
     } else {
       handleTileClick(row, col);
     }
