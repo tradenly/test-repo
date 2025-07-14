@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,8 +41,16 @@ export const BoosterPanel = ({
         return;
       }
       
-      // Special handling for hammer - enter targeting mode
+      // Special handling for hammer - spend credits immediately and activate hammer mode
       if (type === BoosterType.HAMMER) {
+        console.log(`🔨 [BoosterPanel] Activating hammer mode - spending ${cost} credits`);
+        
+        await spendCredits.mutateAsync({
+          amount: cost,
+          description: description
+        });
+        
+        console.log(`💰 [BoosterPanel] Credits spent for hammer, activating hammer mode`);
         onHammerModeChange(true);
         return;
       }
@@ -70,6 +77,7 @@ export const BoosterPanel = ({
   };
 
   const handleCancelHammer = () => {
+    console.log(`🔨 [BoosterPanel] Canceling hammer mode`);
     onHammerModeChange(false);
   };
 

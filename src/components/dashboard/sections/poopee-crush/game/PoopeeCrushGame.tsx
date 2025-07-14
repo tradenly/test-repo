@@ -8,7 +8,6 @@ import { useEnhancedGameState } from "./useEnhancedGameState";
 import { BoosterType } from "./BoosterSystem";
 import { DifficultyLevel } from "./DifficultySelector";
 import { Position } from "./EnhancedGameEngine";
-import { usePoopeeCrushCredits } from "../usePoopeeCrushCredits";
 
 interface PoopeeCrushGameProps {
   onGameEnd: (score: number, moves: number) => void;
@@ -18,7 +17,6 @@ interface PoopeeCrushGameProps {
 
 export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGameProps) => {
   const [hammerMode, setHammerMode] = useState(false);
-  const { spendCredits } = usePoopeeCrushCredits(userId);
 
   const {
     gameState,
@@ -43,34 +41,29 @@ export const PoopeeCrushGame = ({ onGameEnd, userId, difficulty }: PoopeeCrushGa
 
   const handleBoosterUse = (type: BoosterType, targetTile?: Position): boolean => {
     console.log(`🔧 [PoopeeCrushGame] Using booster: ${type}`);
-    
-    if (type === BoosterType.HAMMER && targetTile) {
-      try {
-        spendCredits.mutate({
-          amount: 0.5,
-          description: 'Used Hammer booster in POOPEE Crush'
-        });
-        
-        const success = useBooster(type, targetTile);
-        // Always clear hammer mode after use, regardless of success
-        setHammerMode(false);
-        return success;
-      } catch (error) {
-        console.error('❌ [PoopeeCrushGame] Failed to spend credits for hammer:', error);
-        setHammerMode(false);
-        return false;
-      }
-    }
-    
     return useBooster(type, targetTile);
   };
 
   const handleTileClickWithHammer = (row: number, col: number) => {
+    console.log(`🎯 [PoopeeCrushGame] Tile clicked at (${row}, ${col}), hammerMode: ${hammerMode}`);
+    
     if (hammerMode) {
+      console.log(`🔨 [PoopeeCrushGame] Using hammer on tile (${row}, ${col})`);
+      
       // Use hammer on the clicked tile
-      const success = handleBoosterUse(BoosterType.HAMMER, { row, col });
-      console.log(`🔨 [PoopeeCrushGame] Hammer used on (${row}, ${col}), success: ${success}`);
+      const success = useBooster(BoosterType.HAMMER, { row, col });
+      
+      console.log(`🔨 [PoopeeCrushGame] Hammer result: ${success ? 'success' : 'failed'}`);
+      
+      // Always clear hammer mode after use, regardless of success
+      setHammerMode(false);
+      
+      if (!success) {
+        console.error(`❌ [PoopeeCrushGame] Hammer failed on tile (${row}, ${col})`);
+      }
     } else {
+      // Normal tile click
+      console.log(`🎯 [PoopeeCrushGame] Normal tile click at (${row}, ${col})`);
       handleTileClick(row, col);
     }
   };

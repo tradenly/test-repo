@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from 'react';
 import { GameBoard, GameProgress, Position, Animation, EnhancedGameEngine, BoosterResult } from './EnhancedGameEngine';
 import { BoosterType, BoosterManager } from './BoosterSystem';
@@ -113,17 +112,22 @@ export const useEnhancedGameState = (
 
   const useBooster = useCallback((type: BoosterType, targetTile?: Position): boolean => {
     if (!gameState.gameActive || !boosterSystemRef.current || !gameEngineRef.current) {
+      console.error(`❌ [useEnhancedGameState] Cannot use booster ${type} - game not active or engine not ready`);
       return false;
     }
+
+    console.log(`🔧 [useEnhancedGameState] Using booster: ${type}`, targetTile ? `on tile (${targetTile.row}, ${targetTile.col})` : '');
 
     const result: BoosterResult = gameEngineRef.current.useBooster(type, targetTile);
     
     if (result.success) {
+      console.log(`✅ [useEnhancedGameState] Booster ${type} successful`);
       playSoundEffect('booster');
       
       // Handle hint booster specifically
       if (type === BoosterType.HINT) {
         const hintTiles = gameEngineRef.current.getHintTiles();
+        console.log(`💡 [useEnhancedGameState] Got ${hintTiles.length} hint tiles`);
         setGameState(prevState => ({
           ...prevState,
           hintTiles: hintTiles
@@ -131,8 +135,9 @@ export const useEnhancedGameState = (
         return true;
       }
       
-      // Handle other boosters that modify the board
+      // Handle hammer and shuffle boosters that modify the board
       if (result.newBoard) {
+        console.log(`🔨 [useEnhancedGameState] Booster ${type} updated board`);
         setAnimations(result.animations || []);
         
         setTimeout(() => {
@@ -152,6 +157,8 @@ export const useEnhancedGameState = (
           }));
         }, result.animations ? 600 : 0);
       }
+    } else {
+      console.error(`❌ [useEnhancedGameState] Booster ${type} failed`);
     }
 
     return result.success;
