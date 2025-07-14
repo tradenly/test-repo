@@ -6,13 +6,7 @@ export interface Position {
   col: number;
 }
 
-export interface Animation {
-  type: 'clear' | 'fall' | 'spawn' | 'special';
-  positions: Position[];
-  duration: number;
-}
-
-// Keep the original AnimationEvent interface for backward compatibility
+// Keep only the existing AnimationEvent interface to avoid type conflicts
 export interface AnimationEvent {
   id: string;
   type: 'match' | 'cascade' | 'drop' | 'invalid';
@@ -46,7 +40,7 @@ export interface GameProgress {
 export interface BoosterResult {
   success: boolean;
   newBoard?: GameBoard;
-  animations?: Animation[];
+  animations?: AnimationEvent[];
   scoreIncrease?: number;
 }
 
@@ -214,13 +208,13 @@ export class EnhancedGameEngine {
         levelComplete: this.checkLevelComplete(),
         gameOver: this.checkGameOver()
       },
-      animations: this.convertToAnimationEvents(processedResult.animations)
+      animations: processedResult.animations
     };
   }
 
-  processBoard(): { board: GameBoard; scoreIncrease: number; animations: Animation[] } {
+  processBoard(): { board: GameBoard; scoreIncrease: number; animations: AnimationEvent[] } {
     let totalScore = 0;
-    const allAnimations: Animation[] = [];
+    const allAnimations: AnimationEvent[] = [];
     let cascadeCount = 0;
     this.comboMultiplier = 1;
     
@@ -245,20 +239,25 @@ export class EnhancedGameEngine {
       // Update objectives
       this.updateObjectives(matches, clearPositions.length);
       
-      // Add clear animation
+      // Add match animation
       allAnimations.push({
-        type: 'clear',
-        positions: clearPositions,
-        duration: 300
+        id: `match-${Date.now()}-${cascadeCount}`,
+        type: 'match',
+        tiles: clearPositions
       });
       
       // Apply gravity
-      const fallAnimations = this.applyGravity();
-      allAnimations.push(...fallAnimations);
+      this.applyGravity();
+      
+      // Add drop animation
+      allAnimations.push({
+        id: `drop-${Date.now()}-${cascadeCount}`,
+        type: 'drop',
+        tiles: []
+      });
       
       // Fill empty spaces
-      const spawnAnimations = this.fillBoard();
-      allAnimations.push(...spawnAnimations);
+      this.fillBoard();
       
       totalScore += cascadeScore;
       cascadeCount++;
@@ -281,14 +280,6 @@ export class EnhancedGameEngine {
       scoreIncrease: totalScore,
       animations: allAnimations
     };
-  }
-
-  private convertToAnimationEvents(animations: Animation[]): AnimationEvent[] {
-    return animations.map((anim, index) => ({
-      id: `anim-${index}-${Date.now()}`,
-      type: anim.type === 'clear' ? 'match' : anim.type === 'fall' ? 'drop' : 'match',
-      tiles: anim.positions
-    }));
   }
 
   private findMatches(): Array<{positions: Position[], type: TileType}> {
@@ -388,11 +379,8 @@ export class EnhancedGameEngine {
     console.log('🎯 [Update Objectives] Updated objectives:', this.gameProgress.levelObjectives);
   }
 
-  private applyGravity(): Animation[] {
-    const fallAnimations: Animation[] = [];
-    
+  private applyGravity(): void {
     for (let col = 0; col < 8; col++) {
-      const fallPositions: Position[] = [];
       let writePos = 7;
       
       for (let row = 7; row >= 0; row--) {
@@ -400,31 +388,17 @@ export class EnhancedGameEngine {
           if (writePos !== row) {
             this.board[writePos][col] = this.board[row][col];
             this.board[row][col] = TileType.EMPTY;
-            fallPositions.push({ row: writePos, col });
           }
           writePos--;
         }
       }
-      
-      if (fallPositions.length > 0) {
-        fallAnimations.push({
-          type: 'fall',
-          positions: fallPositions,
-          duration: 200
-        });
-      }
     }
-    
-    return fallAnimations;
   }
 
-  private fillBoard(): Animation[] {
-    const spawnAnimations: Animation[] = [];
+  private fillBoard(): void {
     const tileTypes = [TileType.POOP, TileType.TOILET, TileType.TOILET_PAPER, TileType.FART, TileType.BANANA, TileType.BELL];
     
     for (let col = 0; col < 8; col++) {
-      const spawnPositions: Position[] = [];
-      
       for (let row = 0; row < 8; row++) {
         if (this.board[row][col] === TileType.EMPTY) {
           let tileType: TileType;
@@ -433,20 +407,9 @@ export class EnhancedGameEngine {
           } while (this.wouldCreateMatch(this.board, row, col, tileType));
           
           this.board[row][col] = tileType;
-          spawnPositions.push({ row, col });
         }
       }
-      
-      if (spawnPositions.length > 0) {
-        spawnAnimations.push({
-          type: 'spawn',
-          positions: spawnPositions,
-          duration: 200
-        });
-      }
     }
-    
-    return spawnAnimations;
   }
 
   private checkLevelComplete(): boolean {

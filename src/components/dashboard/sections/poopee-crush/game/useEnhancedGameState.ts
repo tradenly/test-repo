@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { GameBoard, GameProgress, Position, AnimationEvent as Animation, EnhancedGameEngine, BoosterResult } from './EnhancedGameEngine';
+import { GameBoard, GameProgress, Position, AnimationEvent, EnhancedGameEngine, BoosterResult } from './EnhancedGameEngine';
 import { BoosterType, BoosterManager } from './BoosterSystem';
 import { LevelConfig, getLevelConfig } from './LevelConfig';
 import { DifficultyLevel } from './DifficultySelector';
@@ -11,7 +11,7 @@ interface MatchResult {
   boardChanged: boolean;
   newState?: Partial<EnhancedGameState>;
   selectedTile?: Position | null;
-  animations?: Animation[];
+  animations?: AnimationEvent[];
 }
 
 const calculateStarRating = (gameProgress: GameProgress, levelConfig: LevelConfig): number => {
@@ -95,7 +95,7 @@ export const useEnhancedGameState = (
   const { playSoundEffect } = useGameAudio();
   const gameEngineRef = useRef<EnhancedGameEngine>();
   const boosterSystemRef = useRef<BoosterManager>();
-  const [animations, setAnimations] = useState<Animation[]>([]);
+  const [animations, setAnimations] = useState<AnimationEvent[]>([]);
 
   const [gameState, setGameState] = useState<EnhancedGameState>(() => ({
     board: Array(8).fill(null).map(() => Array(8).fill(TileType.POOP)),
