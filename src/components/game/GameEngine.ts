@@ -67,6 +67,12 @@ export class GameEngine {
   private cellSize = 20;
   private keys: { [key: string]: boolean } = {};
   
+  // Movement timing for Miss POOPEE-Man
+  private moveTimer = 0;
+  private framesBetweenMoves = 8; // Move every 8 frames (about 7.5 moves per second at 60fps)
+  private ghostMoveTimer = 0;
+  private framesBetweenGhostMoves = 10; // Ghosts move slightly slower
+  
   private gameRunning = false;
   private animationId: number | null = null;
   private score = 0;
@@ -419,6 +425,10 @@ export class GameEngine {
     this.vulnerabilityTimer = 0;
     this.blinkTimer = 0;
     
+    // Reset movement timers
+    this.moveTimer = 0;
+    this.ghostMoveTimer = 0;
+    
     // Create classic Pac-Man maze layout
     this.maze = [
       [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -535,6 +545,9 @@ export class GameEngine {
   }
 
   private updatePacMan() {
+    // Increment movement timer
+    this.moveTimer++;
+    
     // Check if we can change direction
     if (this.pacman.nextDirection) {
       const newGridX = this.pacman.gridX + (this.pacman.nextDirection === 'right' ? 1 : this.pacman.nextDirection === 'left' ? -1 : 0);
@@ -546,47 +559,19 @@ export class GameEngine {
       }
     }
     
-    // Move in current direction
-    let newGridX = this.pacman.gridX;
-    let newGridY = this.pacman.gridY;
-    
-    switch (this.pacman.direction) {
-      case 'right': newGridX++; break;
-      case 'left': newGridX--; break;
-      case 'down': newGridY++; break;
-      case 'up': newGridY--; break;
-    }
-    
-    // Handle tunnel wraparound
-    if (newGridX < 0) newGridX = this.maze[0].length - 1;
-    if (newGridX >= this.maze[0].length) newGridX = 0;
-    
-    if (this.isValidMove(newGridX, newGridY)) {
-      this.pacman.gridX = newGridX;
-      this.pacman.gridY = newGridY;
-      this.pacman.x = newGridX * this.cellSize;
-      this.pacman.y = newGridY * this.cellSize;
-    }
-  }
-
-  private updateGhosts() {
-    this.ghosts.forEach(ghost => {
-      let newGridX = ghost.gridX;
-      let newGridY = ghost.gridY;
+    // Only move if enough time has passed
+    if (this.moveTimer >= this.framesBetweenMoves) {
+      this.moveTimer = 0; // Reset timer
       
-      // Simple AI: move towards or away from Pac-Man
-      if (ghost.isVulnerable) {
-        // Flee from Pac-Man
-        if (ghost.gridX < this.pacman.gridX) newGridX--;
-        else if (ghost.gridX > this.pacman.gridX) newGridX++;
-        else if (ghost.gridY < this.pacman.gridY) newGridY--;
-        else if (ghost.gridY > this.pacman.gridY) newGridY++;
-      } else {
-        // Chase Pac-Man
-        if (ghost.gridX < this.pacman.gridX) newGridX++;
-        else if (ghost.gridX > this.pacman.gridX) newGridX--;
-        else if (ghost.gridY < this.pacman.gridY) newGridY++;
-        else if (ghost.gridY > this.pacman.gridY) newGridY--;
+      // Move in current direction
+      let newGridX = this.pacman.gridX;
+      let newGridY = this.pacman.gridY;
+      
+      switch (this.pacman.direction) {
+        case 'right': newGridX++; break;
+        case 'left': newGridX--; break;
+        case 'down': newGridY++; break;
+        case 'up': newGridY--; break;
       }
       
       // Handle tunnel wraparound
@@ -594,12 +579,53 @@ export class GameEngine {
       if (newGridX >= this.maze[0].length) newGridX = 0;
       
       if (this.isValidMove(newGridX, newGridY)) {
-        ghost.gridX = newGridX;
-        ghost.gridY = newGridY;
-        ghost.x = newGridX * this.cellSize;
-        ghost.y = newGridY * this.cellSize;
+        this.pacman.gridX = newGridX;
+        this.pacman.gridY = newGridY;
+        this.pacman.x = newGridX * this.cellSize;
+        this.pacman.y = newGridY * this.cellSize;
       }
-    });
+    }
+  }
+
+  private updateGhosts() {
+    // Increment ghost movement timer
+    this.ghostMoveTimer++;
+    
+    // Only move ghosts if enough time has passed
+    if (this.ghostMoveTimer >= this.framesBetweenGhostMoves) {
+      this.ghostMoveTimer = 0; // Reset timer
+      
+      this.ghosts.forEach(ghost => {
+        let newGridX = ghost.gridX;
+        let newGridY = ghost.gridY;
+        
+        // Simple AI: move towards or away from Pac-Man
+        if (ghost.isVulnerable) {
+          // Flee from Pac-Man
+          if (ghost.gridX < this.pacman.gridX) newGridX--;
+          else if (ghost.gridX > this.pacman.gridX) newGridX++;
+          else if (ghost.gridY < this.pacman.gridY) newGridY--;
+          else if (ghost.gridY > this.pacman.gridY) newGridY++;
+        } else {
+          // Chase Pac-Man
+          if (ghost.gridX < this.pacman.gridX) newGridX++;
+          else if (ghost.gridX > this.pacman.gridX) newGridX--;
+          else if (ghost.gridY < this.pacman.gridY) newGridY++;
+          else if (ghost.gridY > this.pacman.gridY) newGridY--;
+        }
+        
+        // Handle tunnel wraparound
+        if (newGridX < 0) newGridX = this.maze[0].length - 1;
+        if (newGridX >= this.maze[0].length) newGridX = 0;
+        
+        if (this.isValidMove(newGridX, newGridY)) {
+          ghost.gridX = newGridX;
+          ghost.gridY = newGridY;
+          ghost.x = newGridX * this.cellSize;
+          ghost.y = newGridY * this.cellSize;
+        }
+      });
+    }
   }
 
   private isValidMove(gridX: number, gridY: number): boolean {

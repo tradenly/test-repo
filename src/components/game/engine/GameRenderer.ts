@@ -331,11 +331,22 @@ export class GameRenderer {
       case 'down': this.ctx.rotate(Math.PI/2); break;
     }
     
-    // Draw Pac-Man using emoji
-    this.ctx.font = `${cellSize * 0.8}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", system-ui, sans-serif`;
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('🟡', 0, 0);
+    // Draw Pac-Man as a circle with animated mouth
+    const radius = cellSize * 0.4;
+    const time = Date.now() * 0.01; // Animation speed
+    const mouthAngle = Math.abs(Math.sin(time)) * Math.PI * 0.6; // Mouth opens and closes
+    
+    this.ctx.fillStyle = '#FFFF00'; // Classic Pac-Man yellow
+    this.ctx.beginPath();
+    this.ctx.arc(0, 0, radius, mouthAngle / 2, 2 * Math.PI - mouthAngle / 2);
+    this.ctx.lineTo(0, 0);
+    this.ctx.fill();
+    
+    // Add a small eye
+    this.ctx.fillStyle = '#000000';
+    this.ctx.beginPath();
+    this.ctx.arc(-radius * 0.3, -radius * 0.3, radius * 0.15, 0, Math.PI * 2);
+    this.ctx.fill();
     
     this.ctx.restore();
   }
