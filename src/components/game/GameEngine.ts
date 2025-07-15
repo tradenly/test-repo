@@ -73,6 +73,11 @@ export class GameEngine {
   private ghostMoveTimer = 0;
   private framesBetweenGhostMoves = 10; // Ghosts move slightly slower
   
+  // Miss POOPEE-Man specific game state
+  private lives = 3;
+  private level = 1;
+  private invulnerabilityTimer = 0; // Brief invulnerability after being hit
+  
   private gameRunning = false;
   private animationId: number | null = null;
   private score = 0;
@@ -415,9 +420,6 @@ export class GameEngine {
     this.onGameEnd(this.score, this.pipesPassedCount, duration);
   }
 
-  getCurrentShields() {
-    return this.pipeHitsRemaining;
-  }
 
   // Miss POOPEE-Man specific methods
   private initializeMissPoopeeMan() {
@@ -468,23 +470,23 @@ export class GameEngine {
       gridY: 21
     };
     
-    // Initialize ghosts
+    // Initialize ghosts with better starting positions to avoid getting stuck
     this.ghosts = [
       {
-        x: 19 * this.cellSize, y: 11 * this.cellSize, width: this.cellSize, height: this.cellSize,
-        gridX: 19, gridY: 11, direction: 'up', color: '#FF0000', isVulnerable: false, isBlinking: false, ai: 'chase'
+        x: 18 * this.cellSize, y: 9 * this.cellSize, width: this.cellSize, height: this.cellSize,
+        gridX: 18, gridY: 9, direction: 'up', color: '#FF0000', isVulnerable: false, isBlinking: false, ai: 'chase'
       },
       {
-        x: 20 * this.cellSize, y: 11 * this.cellSize, width: this.cellSize, height: this.cellSize,
-        gridX: 20, gridY: 11, direction: 'down', color: '#FFB6C1', isVulnerable: false, isBlinking: false, ai: 'chase'
+        x: 21 * this.cellSize, y: 9 * this.cellSize, width: this.cellSize, height: this.cellSize,
+        gridX: 21, gridY: 9, direction: 'down', color: '#FFB6C1', isVulnerable: false, isBlinking: false, ai: 'chase'
       },
       {
-        x: 19 * this.cellSize, y: 12 * this.cellSize, width: this.cellSize, height: this.cellSize,
-        gridX: 19, gridY: 12, direction: 'left', color: '#00FFFF', isVulnerable: false, isBlinking: false, ai: 'chase'
+        x: 18 * this.cellSize, y: 13 * this.cellSize, width: this.cellSize, height: this.cellSize,
+        gridX: 18, gridY: 13, direction: 'left', color: '#00FFFF', isVulnerable: false, isBlinking: false, ai: 'chase'
       },
       {
-        x: 20 * this.cellSize, y: 12 * this.cellSize, width: this.cellSize, height: this.cellSize,
-        gridX: 20, gridY: 12, direction: 'right', color: '#FFA500', isVulnerable: false, isBlinking: false, ai: 'chase'
+        x: 21 * this.cellSize, y: 13 * this.cellSize, width: this.cellSize, height: this.cellSize,
+        gridX: 21, gridY: 13, direction: 'right', color: '#FFA500', isVulnerable: false, isBlinking: false, ai: 'chase'
       }
     ];
     
@@ -656,32 +658,125 @@ export class GameEngine {
       }
     });
     
-    // Check ghost collisions
-    this.ghosts.forEach(ghost => {
-      if (ghost.gridX === this.pacman.gridX && ghost.gridY === this.pacman.gridY) {
-        if (ghost.isVulnerable) {
-          // Eat ghost
-          this.score += 200;
-          this.onScoreUpdate(this.score);
-          // Reset ghost to center
-          ghost.gridX = 19;
-          ghost.gridY = 11;
-          ghost.x = 19 * this.cellSize;
-          ghost.y = 11 * this.cellSize;
-          ghost.isVulnerable = false;
-          ghost.isBlinking = false;
-        } else {
-          // Game over
-          this.gameOver();
+    // Update invulnerability timer
+    if (this.invulnerabilityTimer > 0) {
+      this.invulnerabilityTimer--;
+    }
+    
+    // Check ghost collisions (only if not invulnerable)
+    if (this.invulnerabilityTimer <= 0) {
+      this.ghosts.forEach(ghost => {
+        if (ghost.gridX === this.pacman.gridX && ghost.gridY === this.pacman.gridY) {
+          if (ghost.isVulnerable) {
+            // Eat ghost
+            this.score += 200;
+            this.onScoreUpdate(this.score);
+            // Reset ghost to center
+            ghost.gridX = 19;
+            ghost.gridY = 11;
+            ghost.x = 19 * this.cellSize;
+            ghost.y = 11 * this.cellSize;
+            ghost.isVulnerable = false;
+            ghost.isBlinking = false;
+          } else {
+            // Lose a life
+            this.lives--;
+            this.invulnerabilityTimer = 120; // 2 seconds of invulnerability
+            
+            if (this.lives <= 0) {
+              // Game over - no more lives
+              this.gameOver();
+            } else {
+              // Reset Pac-Man position
+              this.pacman.gridX = 19;
+              this.pacman.gridY = 21;
+              this.pacman.x = 19 * this.cellSize;
+              this.pacman.y = 21 * this.cellSize;
+              this.pacman.direction = 'right';
+              this.pacman.nextDirection = null;
+              
+              // Reset ghosts to center
+              this.ghosts.forEach(g => {
+                g.gridX = 19 + (g === this.ghosts[1] ? 1 : 0);
+                g.gridY = 11 + (g === this.ghosts[2] || g === this.ghosts[3] ? 1 : 0);
+                g.x = g.gridX * this.cellSize;
+                g.y = g.gridY * this.cellSize;
+                g.isVulnerable = false;
+                g.isBlinking = false;
+              });
+              
+              // Reset vulnerability timer
+              this.vulnerabilityTimer = 0;
+            }
+          }
         }
-      }
-    });
+      });
+    }
     
     // Check if all pellets collected
     const remainingPellets = this.pellets.filter(p => !p.collected);
     if (remainingPellets.length === 0) {
-      this.gameOver(); // Level complete
+      this.nextLevel();
     }
+  }
+  
+  private nextLevel() {
+    this.level++;
+    console.log("🎉 Level complete! Moving to level", this.level);
+    
+    // Add level complete bonus
+    this.score += 1000;
+    this.onScoreUpdate(this.score);
+    
+    // Reset game state for next level
+    this.initializeMissPoopeeMan();
+    
+    // Keep current score and level
+    const currentScore = this.score;
+    const currentLevel = this.level;
+    const currentLives = this.lives;
+    
+    // Re-initialize but preserve game state
+    this.initializeMissPoopeeMan();
+    this.score = currentScore;
+    this.level = currentLevel;
+    this.lives = currentLives;
+    
+    // Generate new maze pattern (simple variation)
+    this.generateMazeVariation();
+  }
+  
+  private generateMazeVariation() {
+    // Simple maze variations - just change power pellet positions
+    const variations = [
+      [[1, 3], [38, 3], [1, 17], [38, 17]], // Original
+      [[1, 1], [38, 1], [1, 21], [38, 21]], // Variation 1
+      [[1, 5], [38, 5], [1, 15], [38, 15]], // Variation 2
+      [[3, 3], [36, 3], [3, 17], [36, 17]], // Variation 3
+    ];
+    
+    const currentVariation = variations[this.level % variations.length];
+    
+    // Reset all power pellets to regular pellets
+    this.pellets.forEach(pellet => {
+      pellet.isPowerPellet = false;
+    });
+    
+    // Set new power pellet positions
+    currentVariation.forEach(([x, y]) => {
+      const pellet = this.pellets.find(p => p.gridX === x && p.gridY === y);
+      if (pellet) {
+        pellet.isPowerPellet = true;
+      }
+    });
+  }
+  
+  // Override getCurrentShields for Miss POOPEE-Man to return lives
+  getCurrentShields() {
+    if (this.gameMode === 'miss_poopee_man') {
+      return this.lives;
+    }
+    return this.pipeHitsRemaining;
   }
 
   render() {

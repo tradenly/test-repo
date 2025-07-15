@@ -224,6 +224,13 @@ export class GameRenderer {
     this.ctx.fillStyle = '#000000';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     
+    // Render score at the top, above the game area
+    this.renderMissPoopeeManScore(score);
+    
+    // Offset the game area down to make room for the score
+    this.ctx.save();
+    this.ctx.translate(0, 40); // Move game area down by 40 pixels
+    
     // Render maze
     this.renderMaze(maze, cellSize);
     
@@ -236,8 +243,7 @@ export class GameRenderer {
     // Render Pac-Man
     this.renderPacMan(pacman, cellSize);
     
-    // Render score
-    this.renderMissPoopeeManScore(score);
+    this.ctx.restore();
   }
 
   private renderMaze(maze: number[][], cellSize: number) {

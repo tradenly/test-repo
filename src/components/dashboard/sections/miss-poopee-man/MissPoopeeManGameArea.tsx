@@ -36,7 +36,7 @@ export const MissPoopeeManGameArea = ({
               <li>• Collect all pellets to win</li>
               <li>• Avoid the ghosts</li>
               <li>• Power pellets make ghosts vulnerable</li>
-              <li>• Costs 1 credit per game</li>
+              <li>• Costs 3 credits per game (3 lives)</li>
             </ul>
           </div>
           
