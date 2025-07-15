@@ -14,6 +14,7 @@ export type DashboardSection =
   | "flappy-hippos"
   | "falling-logs"
   | "poopee-crush"
+  | "miss-poopee-man"
   | "leaderboard"
   | "documents"
   | "wallets" 
@@ -37,7 +38,7 @@ const Dashboard = () => {
     const section = searchParams.get('section');
     const validSections: DashboardSection[] = [
       "overview", "profile", "flappy-hippos", "falling-logs", "poopee-crush",
-      "leaderboard", "documents", "wallets", "staking", "social", "portfolio",
+      "miss-poopee-man", "leaderboard", "documents", "wallets", "staking", "social", "portfolio",
       "rewards", "free-tools", "news-updates", "tokenomics"
     ];
     

@@ -41,6 +41,7 @@ export const DashboardSidebar = ({
     { id: "flappy-hippos" as DashboardSection, label: "Flappy Hippos", icon: Gamepad2, isIconComponent: true },
     { id: "falling-logs" as DashboardSection, label: "Falling Logs", icon: TreePine, isIconComponent: true },
     { id: "poopee-crush" as DashboardSection, label: "POOPEE Crush", icon: "💩", isIconComponent: false },
+    { id: "miss-poopee-man" as DashboardSection, label: "Miss POOPEE-Man", icon: "👻", isIconComponent: false },
     { id: "leaderboard" as DashboardSection, label: "Leaderboard", icon: Trophy, isIconComponent: true },
     { id: "documents" as DashboardSection, label: "Documents", icon: FileText, isIconComponent: true },
     { id: "wallets" as DashboardSection, label: "Wallets", icon: Wallet, isIconComponent: true },
