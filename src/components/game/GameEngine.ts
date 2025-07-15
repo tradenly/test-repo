@@ -6,6 +6,43 @@ import { CollisionDetector, Pipe, Missile } from './engine/CollisionDetector';
 import { GameObjectManager } from './engine/GameObjectManager';
 import type { GameSpeed } from './useGameState';
 
+// Miss POOPEE-Man game types
+export interface PacManState {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  direction: 'up' | 'down' | 'left' | 'right';
+  nextDirection: 'up' | 'down' | 'left' | 'right' | null;
+  gridX: number;
+  gridY: number;
+}
+
+export interface Ghost {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  gridX: number;
+  gridY: number;
+  direction: 'up' | 'down' | 'left' | 'right';
+  color: string;
+  isVulnerable: boolean;
+  isBlinking: boolean;
+  ai: 'chase' | 'scatter' | 'flee';
+}
+
+export interface Pellet {
+  x: number;
+  y: number;
+  gridX: number;
+  gridY: number;
+  isPowerPellet: boolean;
+  collected: boolean;
+}
+
+export type GameMode = 'flappy_hippos' | 'miss_poopee_man';
+
 export class GameEngine {
   private ctx: CanvasRenderingContext2D;
   private canvas: HTMLCanvasElement;
@@ -13,10 +50,22 @@ export class GameEngine {
   private renderer: GameRenderer;
   private collisionDetector: CollisionDetector;
   private objectManager: GameObjectManager;
+  private gameMode: GameMode;
 
+  // Flappy Hippos game state
   private hippo: HippoState;
   private pipes: Pipe[] = [];
   private missiles: Missile[] = [];
+  
+  // Miss POOPEE-Man game state
+  private pacman: PacManState;
+  private ghosts: Ghost[] = [];
+  private pellets: Pellet[] = [];
+  private maze: number[][] = [];
+  private vulnerabilityTimer = 0;
+  private blinkTimer = 0;
+  private cellSize = 20;
+  private keys: { [key: string]: boolean } = {};
   
   private gameRunning = false;
   private animationId: number | null = null;
@@ -40,23 +89,25 @@ export class GameEngine {
     context: CanvasRenderingContext2D, 
     canvasElement: HTMLCanvasElement,
     onGameEnd: (score: number, pipesPassedCount: number, duration: number) => void,
-    onScoreUpdate: (score: number) => void
+    onScoreUpdate: (score: number) => void,
+    gameMode: GameMode = 'flappy_hippos'
   ) {
     this.ctx = context;
     this.canvas = canvasElement;
     this.onGameEnd = onGameEnd;
     this.onScoreUpdate = onScoreUpdate;
+    this.gameMode = gameMode;
     
     // Initialize modules
     this.physics = new GamePhysics();
-    this.renderer = new GameRenderer(context, canvasElement);
+    this.renderer = new GameRenderer(context, canvasElement, gameMode);
     this.collisionDetector = new CollisionDetector();
     this.objectManager = new GameObjectManager(canvasElement);
     
     this.reset();
     this.bindEvents();
     this.render();
-    console.log("🎮 Game engine initialized successfully");
+    console.log("🎮 Game engine initialized successfully for mode:", gameMode);
   }
 
   private getSpeedMultiplier(): number {
@@ -74,31 +125,70 @@ export class GameEngine {
   }
 
   bindEvents() {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.key === ' ') {
+    if (this.gameMode === 'flappy_hippos') {
+      const handleKeyPress = (e: KeyboardEvent) => {
+        if (e.code === 'Space' || e.key === ' ') {
+          e.preventDefault();
+          this.flap();
+        }
+      };
+
+      const handleClick = (e: MouseEvent) => {
         e.preventDefault();
         this.flap();
-      }
-    };
+      };
 
-    const handleClick = (e: MouseEvent) => {
-      e.preventDefault();
-      this.flap();
-    };
+      document.addEventListener('keydown', handleKeyPress);
+      this.canvas.addEventListener('click', handleClick);
 
-    document.addEventListener('keydown', handleKeyPress);
-    this.canvas.addEventListener('click', handleClick);
+      this.eventListeners.push(() => {
+        document.removeEventListener('keydown', handleKeyPress);
+        this.canvas.removeEventListener('click', handleClick);
+      });
+    } else {
+      // Miss POOPEE-Man controls
+      const handleKeyDown = (e: KeyboardEvent) => {
+        this.keys[e.key] = true;
+        
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+          e.preventDefault();
+          this.handlePacManMovement(e.key);
+        }
+      };
 
-    this.eventListeners.push(() => {
-      document.removeEventListener('keydown', handleKeyPress);
-      this.canvas.removeEventListener('click', handleClick);
-    });
+      const handleKeyUp = (e: KeyboardEvent) => {
+        this.keys[e.key] = false;
+      };
+
+      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('keyup', handleKeyUp);
+
+      this.eventListeners.push(() => {
+        document.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('keyup', handleKeyUp);
+      });
+    }
   }
 
   flap() {
-    if (this.gameRunning) {
+    if (this.gameRunning && this.gameMode === 'flappy_hippos') {
       this.hippo = this.physics.flap(this.hippo);
     }
+  }
+
+  private handlePacManMovement(key: string) {
+    if (!this.gameRunning || this.gameMode !== 'miss_poopee_man') return;
+
+    let newDirection: 'up' | 'down' | 'left' | 'right';
+    switch (key) {
+      case 'ArrowUp': newDirection = 'up'; break;
+      case 'ArrowDown': newDirection = 'down'; break;
+      case 'ArrowLeft': newDirection = 'left'; break;
+      case 'ArrowRight': newDirection = 'right'; break;
+      default: return;
+    }
+
+    this.pacman.nextDirection = newDirection;
   }
 
   cleanup() {
@@ -120,32 +210,40 @@ export class GameEngine {
   }
 
   reset(startingShields = 3) {
-    console.log("🔄 Game engine reset with shields:", startingShields);
-    this.hippo = {
-      x: 100,
-      y: 285,
-      width: 60,
-      height: 40,
-      velocity: 0,
-      rotation: 0
-    };
-    this.pipes = [];
-    this.missiles = [];
+    console.log("🔄 Game engine reset with shields:", startingShields, "for mode:", this.gameMode);
+    
+    if (this.gameMode === 'flappy_hippos') {
+      this.hippo = {
+        x: 100,
+        y: 285,
+        width: 60,
+        height: 40,
+        velocity: 0,
+        rotation: 0
+      };
+      this.pipes = [];
+      this.missiles = [];
+      this.pipes.push(this.objectManager.createPipe());
+      
+      // CRITICAL: Always reset to the provided starting shields
+      this.pipeHitsRemaining = startingShields;
+      this.maxShields = startingShields;
+      console.log("🔄 Reset complete - shields set to:", this.pipeHitsRemaining, "/", this.maxShields);
+      
+      this.invincibilityTime = 0;
+      this.hitEffectTime = 0;
+      this.lastMissileTime = 0;
+      this.missileWarningTime = 0;
+    } else {
+      // Miss POOPEE-Man reset
+      this.initializeMissPoopeeMan();
+    }
+    
     this.gameRunning = false;
     this.score = 0;
     this.pipesPassedCount = 0;
-    
-    // CRITICAL: Always reset to the provided starting shields
-    this.pipeHitsRemaining = startingShields;
-    this.maxShields = startingShields;
-    console.log("🔄 Reset complete - shields set to:", this.pipeHitsRemaining, "/", this.maxShields);
-    
-    this.invincibilityTime = 0;
-    this.hitEffectTime = 0;
     this.gameStartTime = 0;
-    this.lastMissileTime = 0;
-    this.missileWarningTime = 0;
-    this.pipes.push(this.objectManager.createPipe());
+    
     if (!this.gameRunning) {
       this.render();
     }
@@ -187,23 +285,28 @@ export class GameEngine {
     const currentTime = Date.now();
     const gameTimeElapsed = currentTime - this.gameStartTime;
 
-    this.renderer.updateParallax();
+    if (this.gameMode === 'flappy_hippos') {
+      this.renderer.updateParallax();
 
-    // Update timers
-    if (this.invincibilityTime > 0) this.invincibilityTime--;
-    if (this.hitEffectTime > 0) this.hitEffectTime--;
-    if (this.missileWarningTime > 0) this.missileWarningTime--;
+      // Update timers
+      if (this.invincibilityTime > 0) this.invincibilityTime--;
+      if (this.hitEffectTime > 0) this.hitEffectTime--;
+      if (this.missileWarningTime > 0) this.missileWarningTime--;
 
-    // Missile system - 15 seconds
-    this.handleMissileSystem(gameTimeElapsed);
+      // Missile system - 15 seconds
+      this.handleMissileSystem(gameTimeElapsed);
 
-    // Update hippo physics
-    this.hippo = this.physics.updateHippo(this.hippo, this.canvas.height);
-    this.hippo = this.physics.handleCeilingBounce(this.hippo);
+      // Update hippo physics
+      this.hippo = this.physics.updateHippo(this.hippo, this.canvas.height);
+      this.hippo = this.physics.handleCeilingBounce(this.hippo);
 
-    // Update game objects
-    this.updateGameObjects();
-    this.checkCollisions();
+      // Update game objects
+      this.updateGameObjects();
+      this.checkCollisions();
+    } else {
+      // Miss POOPEE-Man update
+      this.updateMissPoopeeMan();
+    }
   }
 
   private handleMissileSystem(gameTimeElapsed: number) {
@@ -310,17 +413,274 @@ export class GameEngine {
     return this.pipeHitsRemaining;
   }
 
+  // Miss POOPEE-Man specific methods
+  private initializeMissPoopeeMan() {
+    this.cellSize = 20;
+    this.vulnerabilityTimer = 0;
+    this.blinkTimer = 0;
+    
+    // Create classic Pac-Man maze layout
+    this.maze = [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+      [1,2,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,2,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
+      [1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1],
+      [1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1],
+      [1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1],
+      [1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1],
+      [0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0],
+      [1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1],
+      [1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1],
+      [1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+      [1,2,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,2,1],
+      [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
+      [1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
+    
+    // Initialize Pac-Man
+    this.pacman = {
+      x: 19 * this.cellSize,
+      y: 21 * this.cellSize,
+      width: this.cellSize,
+      height: this.cellSize,
+      direction: 'right',
+      nextDirection: null,
+      gridX: 19,
+      gridY: 21
+    };
+    
+    // Initialize ghosts
+    this.ghosts = [
+      {
+        x: 19 * this.cellSize, y: 11 * this.cellSize, width: this.cellSize, height: this.cellSize,
+        gridX: 19, gridY: 11, direction: 'up', color: '#FF0000', isVulnerable: false, isBlinking: false, ai: 'chase'
+      },
+      {
+        x: 20 * this.cellSize, y: 11 * this.cellSize, width: this.cellSize, height: this.cellSize,
+        gridX: 20, gridY: 11, direction: 'down', color: '#FFB6C1', isVulnerable: false, isBlinking: false, ai: 'chase'
+      },
+      {
+        x: 19 * this.cellSize, y: 12 * this.cellSize, width: this.cellSize, height: this.cellSize,
+        gridX: 19, gridY: 12, direction: 'left', color: '#00FFFF', isVulnerable: false, isBlinking: false, ai: 'chase'
+      },
+      {
+        x: 20 * this.cellSize, y: 12 * this.cellSize, width: this.cellSize, height: this.cellSize,
+        gridX: 20, gridY: 12, direction: 'right', color: '#FFA500', isVulnerable: false, isBlinking: false, ai: 'chase'
+      }
+    ];
+    
+    // Initialize pellets
+    this.pellets = [];
+    for (let y = 0; y < this.maze.length; y++) {
+      for (let x = 0; x < this.maze[y].length; x++) {
+        if (this.maze[y][x] === 0) {
+          this.pellets.push({
+            x: x * this.cellSize + this.cellSize / 2,
+            y: y * this.cellSize + this.cellSize / 2,
+            gridX: x,
+            gridY: y,
+            isPowerPellet: false,
+            collected: false
+          });
+        } else if (this.maze[y][x] === 2) {
+          this.pellets.push({
+            x: x * this.cellSize + this.cellSize / 2,
+            y: y * this.cellSize + this.cellSize / 2,
+            gridX: x,
+            gridY: y,
+            isPowerPellet: true,
+            collected: false
+          });
+        }
+      }
+    }
+  }
+
+  private updateMissPoopeeMan() {
+    this.updatePacMan();
+    this.updateGhosts();
+    this.checkMissPoopeeManCollisions();
+    
+    // Update power pellet timers
+    if (this.vulnerabilityTimer > 0) {
+      this.vulnerabilityTimer--;
+      if (this.vulnerabilityTimer <= 180) { // Last 3 seconds
+        this.blinkTimer++;
+        if (this.blinkTimer > 30) { // Blink every 0.5 seconds
+          this.blinkTimer = 0;
+          this.ghosts.forEach(ghost => {
+            if (ghost.isVulnerable) {
+              ghost.isBlinking = !ghost.isBlinking;
+            }
+          });
+        }
+      }
+      
+      if (this.vulnerabilityTimer <= 0) {
+        this.ghosts.forEach(ghost => {
+          ghost.isVulnerable = false;
+          ghost.isBlinking = false;
+        });
+      }
+    }
+  }
+
+  private updatePacMan() {
+    // Check if we can change direction
+    if (this.pacman.nextDirection) {
+      const newGridX = this.pacman.gridX + (this.pacman.nextDirection === 'right' ? 1 : this.pacman.nextDirection === 'left' ? -1 : 0);
+      const newGridY = this.pacman.gridY + (this.pacman.nextDirection === 'down' ? 1 : this.pacman.nextDirection === 'up' ? -1 : 0);
+      
+      if (this.isValidMove(newGridX, newGridY)) {
+        this.pacman.direction = this.pacman.nextDirection;
+        this.pacman.nextDirection = null;
+      }
+    }
+    
+    // Move in current direction
+    let newGridX = this.pacman.gridX;
+    let newGridY = this.pacman.gridY;
+    
+    switch (this.pacman.direction) {
+      case 'right': newGridX++; break;
+      case 'left': newGridX--; break;
+      case 'down': newGridY++; break;
+      case 'up': newGridY--; break;
+    }
+    
+    // Handle tunnel wraparound
+    if (newGridX < 0) newGridX = this.maze[0].length - 1;
+    if (newGridX >= this.maze[0].length) newGridX = 0;
+    
+    if (this.isValidMove(newGridX, newGridY)) {
+      this.pacman.gridX = newGridX;
+      this.pacman.gridY = newGridY;
+      this.pacman.x = newGridX * this.cellSize;
+      this.pacman.y = newGridY * this.cellSize;
+    }
+  }
+
+  private updateGhosts() {
+    this.ghosts.forEach(ghost => {
+      let newGridX = ghost.gridX;
+      let newGridY = ghost.gridY;
+      
+      // Simple AI: move towards or away from Pac-Man
+      if (ghost.isVulnerable) {
+        // Flee from Pac-Man
+        if (ghost.gridX < this.pacman.gridX) newGridX--;
+        else if (ghost.gridX > this.pacman.gridX) newGridX++;
+        else if (ghost.gridY < this.pacman.gridY) newGridY--;
+        else if (ghost.gridY > this.pacman.gridY) newGridY++;
+      } else {
+        // Chase Pac-Man
+        if (ghost.gridX < this.pacman.gridX) newGridX++;
+        else if (ghost.gridX > this.pacman.gridX) newGridX--;
+        else if (ghost.gridY < this.pacman.gridY) newGridY++;
+        else if (ghost.gridY > this.pacman.gridY) newGridY--;
+      }
+      
+      // Handle tunnel wraparound
+      if (newGridX < 0) newGridX = this.maze[0].length - 1;
+      if (newGridX >= this.maze[0].length) newGridX = 0;
+      
+      if (this.isValidMove(newGridX, newGridY)) {
+        ghost.gridX = newGridX;
+        ghost.gridY = newGridY;
+        ghost.x = newGridX * this.cellSize;
+        ghost.y = newGridY * this.cellSize;
+      }
+    });
+  }
+
+  private isValidMove(gridX: number, gridY: number): boolean {
+    if (gridY < 0 || gridY >= this.maze.length || gridX < 0 || gridX >= this.maze[0].length) {
+      return false;
+    }
+    return this.maze[gridY][gridX] !== 1;
+  }
+
+  private checkMissPoopeeManCollisions() {
+    // Check pellet collection
+    this.pellets.forEach(pellet => {
+      if (!pellet.collected && pellet.gridX === this.pacman.gridX && pellet.gridY === this.pacman.gridY) {
+        pellet.collected = true;
+        
+        if (pellet.isPowerPellet) {
+          this.score += 50;
+          this.vulnerabilityTimer = 600; // 10 seconds at 60fps
+          this.ghosts.forEach(ghost => {
+            ghost.isVulnerable = true;
+            ghost.isBlinking = false;
+          });
+        } else {
+          this.score += 10;
+        }
+        
+        this.onScoreUpdate(this.score);
+      }
+    });
+    
+    // Check ghost collisions
+    this.ghosts.forEach(ghost => {
+      if (ghost.gridX === this.pacman.gridX && ghost.gridY === this.pacman.gridY) {
+        if (ghost.isVulnerable) {
+          // Eat ghost
+          this.score += 200;
+          this.onScoreUpdate(this.score);
+          // Reset ghost to center
+          ghost.gridX = 19;
+          ghost.gridY = 11;
+          ghost.x = 19 * this.cellSize;
+          ghost.y = 11 * this.cellSize;
+          ghost.isVulnerable = false;
+          ghost.isBlinking = false;
+        } else {
+          // Game over
+          this.gameOver();
+        }
+      }
+    });
+    
+    // Check if all pellets collected
+    const remainingPellets = this.pellets.filter(p => !p.collected);
+    if (remainingPellets.length === 0) {
+      this.gameOver(); // Level complete
+    }
+  }
+
   render() {
     try {
-      this.renderer.renderBackground(this.missileWarningTime, this.hitEffectTime);
-      this.renderer.renderClouds();
-      this.pipes.forEach(pipe => this.renderer.renderPipe(pipe));
-      this.missiles.forEach(missile => this.renderer.renderMissile(missile));
-      this.renderer.renderGround();
-      this.renderer.renderHippo(this.hippo, this.invincibilityTime);
-      this.renderer.renderScore(this.score);
-      this.renderer.renderShieldCounter(this.pipeHitsRemaining, this.maxShields);
-      this.renderer.restoreContext(this.hitEffectTime);
+      if (this.gameMode === 'flappy_hippos') {
+        this.renderer.renderBackground(this.missileWarningTime, this.hitEffectTime);
+        this.renderer.renderClouds();
+        this.pipes.forEach(pipe => this.renderer.renderPipe(pipe));
+        this.missiles.forEach(missile => this.renderer.renderMissile(missile));
+        this.renderer.renderGround();
+        this.renderer.renderHippo(this.hippo, this.invincibilityTime);
+        this.renderer.renderScore(this.score);
+        this.renderer.renderShieldCounter(this.pipeHitsRemaining, this.maxShields);
+        this.renderer.restoreContext(this.hitEffectTime);
+      } else {
+        // Miss POOPEE-Man render
+        this.renderer.renderMissPoopeeManGame(
+          this.maze, 
+          this.pacman, 
+          this.ghosts, 
+          this.pellets, 
+          this.score, 
+          this.cellSize
+        );
+      }
     } catch (error) {
       console.error("❌ Error in render:", error);
     }

@@ -1,7 +1,7 @@
 
 
 import { useEffect, useCallback } from 'react';
-import { GameEngine } from '../GameEngine';
+import { GameEngine, GameMode } from '../GameEngine';
 import type { GameSpeed } from '../useGameState';
 
 interface UseGameEngineManagerProps {
@@ -15,6 +15,7 @@ interface UseGameEngineManagerProps {
   onGameEnd: (score: number, pipesPassedCount: number, duration: number) => void;
   setScore: (score: number) => void;
   updateGameEngineShields: () => void;
+  gameMode?: GameMode;
 }
 
 export const useGameEngineManager = ({
@@ -27,7 +28,8 @@ export const useGameEngineManager = ({
   gameSpeed,
   onGameEnd,
   setScore,
-  updateGameEngineShields
+  updateGameEngineShields,
+  gameMode = 'flappy_hippos'
 }: UseGameEngineManagerProps) => {
 
   // Initialize game engine
@@ -52,7 +54,8 @@ export const useGameEngineManager = ({
         ctx,
         canvas,
         onGameEnd,
-        setScore
+        setScore,
+        gameMode
       );
 
       gameRef.current = gameEngine;

@@ -14,9 +14,10 @@ interface GameCanvasProps {
   onGameStart: () => void;
   canPlay: boolean;
   credits: number;
+  gameMode?: 'flappy_hippos' | 'miss_poopee_man';
 }
 
-export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCanvasProps) => {
+export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits, gameMode = 'flappy_hippos' }: GameCanvasProps) => {
   const isMobile = useIsMobile();
   
   // State management
@@ -65,7 +66,8 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits }: GameCan
       onGameEnd(finalScore, pipesPassedCount, duration);
     },
     setScore,
-    updateGameEngineShields
+    updateGameEngineShields,
+    gameMode
   });
 
   const handleStartGame = () => {

@@ -1,14 +1,17 @@
 import { HippoState } from './GamePhysics';
 import { Pipe, Missile } from './CollisionDetector';
+import { PacManState, Ghost, Pellet, GameMode } from '../GameEngine';
 
 export class GameRenderer {
   private ctx: CanvasRenderingContext2D;
   private canvas: HTMLCanvasElement;
   private parallaxOffset = 0;
+  private gameMode: GameMode;
 
-  constructor(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
+  constructor(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, gameMode: GameMode = 'flappy_hippos') {
     this.ctx = ctx;
     this.canvas = canvas;
+    this.gameMode = gameMode;
   }
 
   updateParallax() {
@@ -206,5 +209,141 @@ export class GameRenderer {
     if (hitEffectTime > 0) {
       this.ctx.restore();
     }
+  }
+
+  // Miss POOPEE-Man rendering methods
+  renderMissPoopeeManGame(
+    maze: number[][], 
+    pacman: PacManState, 
+    ghosts: Ghost[], 
+    pellets: Pellet[], 
+    score: number, 
+    cellSize: number
+  ) {
+    // Clear canvas with black background
+    this.ctx.fillStyle = '#000000';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    // Render maze
+    this.renderMaze(maze, cellSize);
+    
+    // Render pellets
+    this.renderPellets(pellets, cellSize);
+    
+    // Render ghosts
+    this.renderGhosts(ghosts, cellSize);
+    
+    // Render Pac-Man
+    this.renderPacMan(pacman, cellSize);
+    
+    // Render score
+    this.renderMissPoopeeManScore(score);
+  }
+
+  private renderMaze(maze: number[][], cellSize: number) {
+    this.ctx.fillStyle = '#0000FF';
+    this.ctx.strokeStyle = '#0000FF';
+    this.ctx.lineWidth = 2;
+    
+    for (let y = 0; y < maze.length; y++) {
+      for (let x = 0; x < maze[y].length; x++) {
+        if (maze[y][x] === 1) {
+          this.ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+  }
+
+  private renderPellets(pellets: Pellet[], cellSize: number) {
+    pellets.forEach(pellet => {
+      if (!pellet.collected) {
+        if (pellet.isPowerPellet) {
+          // Render power pellet (💩)
+          this.ctx.font = `${cellSize * 0.8}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", system-ui, sans-serif`;
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.fillText('💩', pellet.x, pellet.y);
+        } else {
+          // Render regular pellet
+          this.ctx.fillStyle = '#FFFF00';
+          this.ctx.beginPath();
+          this.ctx.arc(pellet.x, pellet.y, 2, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
+      }
+    });
+  }
+
+  private renderGhosts(ghosts: Ghost[], cellSize: number) {
+    ghosts.forEach(ghost => {
+      this.ctx.save();
+      this.ctx.translate(ghost.x + cellSize/2, ghost.y + cellSize/2);
+      
+      if (ghost.isVulnerable) {
+        if (ghost.isBlinking) {
+          this.ctx.fillStyle = '#FFFFFF';
+        } else {
+          this.ctx.fillStyle = '#0000FF';
+        }
+      } else {
+        this.ctx.fillStyle = ghost.color;
+      }
+      
+      // Draw ghost body
+      this.ctx.beginPath();
+      this.ctx.arc(0, -cellSize/4, cellSize/3, Math.PI, 0, false);
+      this.ctx.lineTo(cellSize/3, cellSize/4);
+      this.ctx.lineTo(cellSize/4, cellSize/6);
+      this.ctx.lineTo(cellSize/6, cellSize/4);
+      this.ctx.lineTo(0, cellSize/6);
+      this.ctx.lineTo(-cellSize/6, cellSize/4);
+      this.ctx.lineTo(-cellSize/4, cellSize/6);
+      this.ctx.lineTo(-cellSize/3, cellSize/4);
+      this.ctx.closePath();
+      this.ctx.fill();
+      
+      // Draw eyes
+      this.ctx.fillStyle = '#FFFFFF';
+      this.ctx.beginPath();
+      this.ctx.arc(-cellSize/6, -cellSize/6, cellSize/12, 0, Math.PI * 2);
+      this.ctx.arc(cellSize/6, -cellSize/6, cellSize/12, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      this.ctx.fillStyle = '#000000';
+      this.ctx.beginPath();
+      this.ctx.arc(-cellSize/6, -cellSize/6, cellSize/18, 0, Math.PI * 2);
+      this.ctx.arc(cellSize/6, -cellSize/6, cellSize/18, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      this.ctx.restore();
+    });
+  }
+
+  private renderPacMan(pacman: PacManState, cellSize: number) {
+    this.ctx.save();
+    this.ctx.translate(pacman.x + cellSize/2, pacman.y + cellSize/2);
+    
+    // Rotate based on direction
+    switch (pacman.direction) {
+      case 'right': break;
+      case 'left': this.ctx.rotate(Math.PI); break;
+      case 'up': this.ctx.rotate(-Math.PI/2); break;
+      case 'down': this.ctx.rotate(Math.PI/2); break;
+    }
+    
+    // Draw Pac-Man using emoji
+    this.ctx.font = `${cellSize * 0.8}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", system-ui, sans-serif`;
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText('🟡', 0, 0);
+    
+    this.ctx.restore();
+  }
+
+  private renderMissPoopeeManScore(score: number) {
+    this.ctx.fillStyle = '#FFFF00';
+    this.ctx.font = 'bold 24px Arial';
+    this.ctx.textAlign = 'left';
+    this.ctx.fillText(`Score: ${score}`, 10, 30);
   }
 }
