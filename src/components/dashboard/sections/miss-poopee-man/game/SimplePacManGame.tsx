@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSpendCredits, useEarnCredits } from '@/hooks/useCreditOperations';
@@ -12,7 +11,8 @@ import {
   GAME_CONFIG,
   Position,
   Player,
-  GhostMode
+  GhostMode,
+  CellType
 } from './GameTypes';
 import { MAZE_LAYOUT } from './MazeData';
 import { GhostAI } from './GhostAI';
@@ -101,8 +101,8 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
       pellets[y] = [];
       powerPellets[y] = [];
       for (let x = 0; x < MAZE_LAYOUT[y].length; x++) {
-        pellets[y][x] = MAZE_LAYOUT[y][x] === 1; // 1 = regular pellet
-        powerPellets[y][x] = MAZE_LAYOUT[y][x] === 2; // 2 = power pellet
+        pellets[y][x] = MAZE_LAYOUT[y][x] === CellType.PELLET; // 0 = regular pellet
+        powerPellets[y][x] = MAZE_LAYOUT[y][x] === CellType.POWER_PELLET; // 2 = power pellet
         if (pellets[y][x] || powerPellets[y][x]) pelletsCount++;
       }
     }
@@ -139,7 +139,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     setLevel(1);
     setPowerModeDisplay(false);
     setPowerTimeLeft(0);
-    console.log('🎮 Game initialized with proper architecture');
+    console.log('🎮 Game initialized with correct maze rendering');
   }, []);
 
   // Check if position is valid (not a wall)
@@ -147,7 +147,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     if (x < 0 || x >= GAME_CONFIG.MAZE_WIDTH || y < 0 || y >= GAME_CONFIG.MAZE_HEIGHT) {
       return true; // Allow tunnel wrapping
     }
-    return MAZE_LAYOUT[y][x] !== 0; // Not a wall
+    return MAZE_LAYOUT[y][x] !== CellType.WALL; // Not a wall (1)
   };
 
   // Move player
@@ -265,7 +265,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
                                ghost.isInHouse;
         
         if (isValidPosition(newPos.x, newPos.y) || 
-            (allowGhostHouse && MAZE_LAYOUT[newPos.y] && MAZE_LAYOUT[newPos.y][newPos.x] === 4)) {
+            (allowGhostHouse && MAZE_LAYOUT[newPos.y] && MAZE_LAYOUT[newPos.y][newPos.x] === CellType.GHOST_HOUSE)) {
           ghost.position = newPos;
           ghost.direction = ghost.nextDirection;
           ghost.nextDirection = null;
@@ -485,7 +485,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     ctx.fillStyle = '#0000FF';
     for (let y = 0; y < MAZE_LAYOUT.length; y++) {
       for (let x = 0; x < MAZE_LAYOUT[y].length; x++) {
-        if (MAZE_LAYOUT[y][x] === 0) { // wall
+        if (MAZE_LAYOUT[y][x] === CellType.WALL) { // 1 = wall, render as blue
           ctx.fillRect(x * GAME_CONFIG.CELL_SIZE, y * GAME_CONFIG.CELL_SIZE, GAME_CONFIG.CELL_SIZE, GAME_CONFIG.CELL_SIZE);
         }
       }
