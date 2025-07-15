@@ -380,11 +380,11 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
           <div className="flex justify-center items-center bg-black rounded-lg p-4 relative border-2 border-gray-600">
             <canvas
               ref={canvasRef}
+              width={MAZE_WIDTH * CELL_SIZE}
+              height={MAZE_HEIGHT * CELL_SIZE}
               className="border border-gray-500 rounded"
               style={{ 
                 imageRendering: 'pixelated',
-                width: `${MAZE_WIDTH * CELL_SIZE}px`,
-                height: `${MAZE_HEIGHT * CELL_SIZE}px`,
                 maxWidth: '100%',
                 maxHeight: '70vh'
               }}
