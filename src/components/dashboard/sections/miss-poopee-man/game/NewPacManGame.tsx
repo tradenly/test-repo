@@ -8,7 +8,7 @@ import { UnifiedUser } from '@/hooks/useUnifiedAuth';
 import { useToast } from '@/hooks/use-toast';
 import { GameEngine, GameState, DIRECTIONS, MAZE_WIDTH, MAZE_HEIGHT, CELL_SIZE } from './GameEngine';
 import { GameRenderer } from './GameRenderer';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, Trophy, Heart, Star } from 'lucide-react';
 
 interface NewPacManGameProps {
   user: UnifiedUser;
@@ -38,7 +38,7 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
     if (!canvas) return;
 
     try {
-      console.log('🎮 Initializing canvas and renderer...');
+      console.log('🎮 Initializing Miss POOPEE-Man game...');
       
       // Initialize game engine and renderer
       gameEngineRef.current = new GameEngine();
@@ -52,9 +52,9 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
       // Initial render
       gameRendererRef.current.render(initialState);
       
-      console.log('✅ Game initialized successfully');
+      console.log('✅ Miss POOPEE-Man game initialized successfully');
     } catch (error) {
-      console.error('❌ Failed to initialize game:', error);
+      console.error('❌ Failed to initialize Miss POOPEE-Man game:', error);
       setEngineReady(false);
       toast({
         title: "Game Error",
@@ -127,7 +127,7 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
         description: "Use arrow keys or WASD to control Miss POOPEE-Man"
       });
     } catch (error: any) {
-      console.error('❌ Failed to start game:', error);
+      console.error('❌ Failed to start Miss POOPEE-Man game:', error);
       toast({
         title: "Cannot Start Game",
         description: error.message || "Failed to start game",
@@ -186,7 +186,7 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
 
       onGameEnd(finalState.score, durationSeconds);
     } catch (error) {
-      console.error('❌ Error recording game session:', error);
+      console.error('❌ Error recording Miss POOPEE-Man game session:', error);
       toast({
         title: "Error",
         description: "Failed to save game results",
@@ -294,38 +294,52 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
 
   if (!gameStarted) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
-        <Card className="bg-gray-800/90 border-gray-700 w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center justify-center gap-2">
-              <span className="text-2xl">👾</span>
+      <div className="w-full h-full flex items-center justify-center p-4">
+        <Card className="bg-gray-900 border-gray-700 w-full max-w-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="text-white flex items-center justify-center gap-2 text-2xl">
+              <span className="text-4xl">👾</span>
               Miss POOPEE-Man
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="text-center">
               <div className="text-6xl mb-4">🎮</div>
-              <h3 className="text-xl font-bold text-white mb-2">Ready to Play?</h3>
-              <p className="text-gray-400 mb-4">
+              <h3 className="text-2xl font-bold text-white mb-3">Ready to Play?</h3>
+              <p className="text-gray-300 mb-4 text-lg">
                 Navigate the maze, collect pellets, and avoid the ghosts!
               </p>
-              <p className="text-sm text-gray-500 mb-6">
+              <div className="bg-gray-800 rounded-lg p-4 mb-6">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2 text-yellow-400">
+                    <Star className="h-4 w-4" />
+                    <span>Collect pellets: 10pts</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-orange-400">
+                    <Trophy className="h-4 w-4" />
+                    <span>Power pellets: 50pts</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-blue-400">
+                    <Heart className="h-4 w-4" />
+                    <span>Eat ghosts: 200pts</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-green-400">
+                    <span>💰</span>
+                    <span>1 credit per 100pts</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-gray-400 mb-6">
                 Use arrow keys or WASD to move • Spacebar to pause
               </p>
               <Button 
                 onClick={startGame}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="bg-purple-600 hover:bg-purple-700 text-white text-lg py-6 px-8"
                 disabled={!engineReady || spendCredits.isPending}
               >
                 {spendCredits.isPending ? 'Starting...' : 
                  !engineReady ? 'Loading...' : 'Start Game (1 Credit)'}
               </Button>
-            </div>
-            
-            <div className="text-xs text-gray-500 space-y-1">
-              <p>• Collect all pellets to complete the level</p>
-              <p>• Eat 💩 power pellets to turn ghosts blue</p>
-              <p>• Earn 1 credit per 100 points scored</p>
             </div>
           </CardContent>
         </Card>
@@ -334,9 +348,9 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
   }
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center">
-      <Card className="bg-gray-800/90 border-gray-700 w-full max-w-fit">
-        <CardHeader className="pb-2">
+    <div className="w-full h-full flex flex-col items-center justify-center p-4">
+      <Card className="bg-gray-900 border-gray-700 w-full max-w-fit">
+        <CardHeader className="pb-3">
           <CardTitle className="text-white flex items-center justify-between">
             <span className="flex items-center gap-2">
               <span className="text-2xl">👾</span>
@@ -362,21 +376,23 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-4">
-          <div className="flex justify-center items-center bg-black rounded-lg p-4 relative">
+        <CardContent className="p-6">
+          <div className="flex justify-center items-center bg-black rounded-lg p-4 relative border-2 border-gray-600">
             <canvas
               ref={canvasRef}
-              className="border border-gray-600 rounded"
+              className="border border-gray-500 rounded"
               style={{ 
                 imageRendering: 'pixelated',
                 width: `${MAZE_WIDTH * CELL_SIZE}px`,
-                height: `${MAZE_HEIGHT * CELL_SIZE}px`
+                height: `${MAZE_HEIGHT * CELL_SIZE}px`,
+                maxWidth: '100%',
+                maxHeight: '70vh'
               }}
             />
             
             {gameState?.gameStatus === 'paused' && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
-                <div className="text-white text-2xl font-bold">PAUSED</div>
+              <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-lg">
+                <div className="text-white text-3xl font-bold">PAUSED</div>
               </div>
             )}
           </div>

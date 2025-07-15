@@ -13,7 +13,7 @@ export class GameRenderer {
     this.ctx = context;
     this.canvas = canvas;
     
-    // Set canvas size
+    // Set canvas size with increased cell size
     this.canvas.width = MAZE_WIDTH * CELL_SIZE;
     this.canvas.height = MAZE_HEIGHT * CELL_SIZE;
     
@@ -50,35 +50,51 @@ export class GameRenderer {
         const cellY = y * CELL_SIZE;
         
         if (cell.type === 'wall') {
-          this.ctx.fillStyle = '#0066FF';
+          this.ctx.fillStyle = '#2563eb'; // Blue walls
           this.ctx.fillRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
           
-          // Add border
-          this.ctx.strokeStyle = '#0088FF';
-          this.ctx.lineWidth = 1;
-          this.ctx.strokeRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
+          // Add 3D effect border
+          this.ctx.strokeStyle = '#3b82f6';
+          this.ctx.lineWidth = 2;
+          this.ctx.strokeRect(cellX + 1, cellY + 1, CELL_SIZE - 2, CELL_SIZE - 2);
         } else if (cell.type === 'pellet') {
-          this.ctx.fillStyle = '#FFFF00';
+          this.ctx.fillStyle = '#fbbf24';
           this.ctx.beginPath();
           this.ctx.arc(
             cellX + CELL_SIZE / 2,
             cellY + CELL_SIZE / 2,
-            3,
+            4,
             0,
             Math.PI * 2
           );
           this.ctx.fill();
         } else if (cell.type === 'powerPellet') {
-          // Animated power pellet using emoji
-          const pulseSize = 16 + Math.sin(this.animationFrame * 0.2) * 3;
-          this.ctx.font = `${pulseSize}px Arial`;
-          this.ctx.textAlign = 'center';
-          this.ctx.textBaseline = 'middle';
-          this.ctx.fillText(
-            '💩',
+          // Animated power pellet
+          const pulseSize = 8 + Math.sin(this.animationFrame * 0.2) * 3;
+          this.ctx.fillStyle = '#f59e0b';
+          this.ctx.beginPath();
+          this.ctx.arc(
             cellX + CELL_SIZE / 2,
-            cellY + CELL_SIZE / 2
+            cellY + CELL_SIZE / 2,
+            pulseSize,
+            0,
+            Math.PI * 2
           );
+          this.ctx.fill();
+          
+          // Add glow effect
+          this.ctx.shadowColor = '#f59e0b';
+          this.ctx.shadowBlur = 10;
+          this.ctx.beginPath();
+          this.ctx.arc(
+            cellX + CELL_SIZE / 2,
+            cellY + CELL_SIZE / 2,
+            pulseSize,
+            0,
+            Math.PI * 2
+          );
+          this.ctx.fill();
+          this.ctx.shadowBlur = 0;
         }
       }
     }
@@ -88,7 +104,7 @@ export class GameRenderer {
     const centerX = player.position.x * CELL_SIZE + CELL_SIZE / 2;
     const centerY = player.position.y * CELL_SIZE + CELL_SIZE / 2;
     
-    this.ctx.fillStyle = '#FFFF00';
+    this.ctx.fillStyle = '#eab308';
     this.ctx.beginPath();
     
     // Animated mouth based on direction
@@ -110,7 +126,7 @@ export class GameRenderer {
       endAngle = -Math.PI / 2 - mouthAnimation;
     }
     
-    this.ctx.arc(centerX, centerY, CELL_SIZE / 2 - 2, startAngle, endAngle);
+    this.ctx.arc(centerX, centerY, CELL_SIZE / 2 - 3, startAngle, endAngle);
     this.ctx.lineTo(centerX, centerY);
     this.ctx.fill();
   }
@@ -123,59 +139,59 @@ export class GameRenderer {
       // Ghost body
       this.ctx.fillStyle = ghost.color;
       this.ctx.beginPath();
-      this.ctx.arc(centerX, centerY - 3, CELL_SIZE / 2 - 2, Math.PI, 0);
-      this.ctx.lineTo(centerX + CELL_SIZE / 2 - 2, centerY + CELL_SIZE / 2 - 2);
+      this.ctx.arc(centerX, centerY - 4, CELL_SIZE / 2 - 3, Math.PI, 0);
+      this.ctx.lineTo(centerX + CELL_SIZE / 2 - 3, centerY + CELL_SIZE / 2 - 3);
       
       // Ghost bottom with wavy pattern
       for (let i = 0; i < 4; i++) {
-        const waveX = centerX + (i - 2) * 4;
-        const waveY = centerY + CELL_SIZE / 2 - 2 + Math.sin(this.animationFrame * 0.1 + i) * 2;
+        const waveX = centerX + (i - 2) * 6;
+        const waveY = centerY + CELL_SIZE / 2 - 3 + Math.sin(this.animationFrame * 0.1 + i) * 3;
         this.ctx.lineTo(waveX, waveY);
       }
       
-      this.ctx.lineTo(centerX - CELL_SIZE / 2 + 2, centerY + CELL_SIZE / 2 - 2);
+      this.ctx.lineTo(centerX - CELL_SIZE / 2 + 3, centerY + CELL_SIZE / 2 - 3);
       this.ctx.closePath();
       this.ctx.fill();
       
       // Ghost eyes
-      this.ctx.fillStyle = '#FFFFFF';
+      this.ctx.fillStyle = '#ffffff';
       this.ctx.beginPath();
-      this.ctx.arc(centerX - 4, centerY - 4, 3, 0, Math.PI * 2);
-      this.ctx.arc(centerX + 4, centerY - 4, 3, 0, Math.PI * 2);
+      this.ctx.arc(centerX - 6, centerY - 6, 4, 0, Math.PI * 2);
+      this.ctx.arc(centerX + 6, centerY - 6, 4, 0, Math.PI * 2);
       this.ctx.fill();
       
       // Pupils
       this.ctx.fillStyle = '#000000';
       this.ctx.beginPath();
-      this.ctx.arc(centerX - 4, centerY - 4, 1, 0, Math.PI * 2);
-      this.ctx.arc(centerX + 4, centerY - 4, 1, 0, Math.PI * 2);
+      this.ctx.arc(centerX - 6, centerY - 6, 2, 0, Math.PI * 2);
+      this.ctx.arc(centerX + 6, centerY - 6, 2, 0, Math.PI * 2);
       this.ctx.fill();
     });
   }
 
   private renderUI(gameState: GameState): void {
-    this.ctx.fillStyle = '#FFFFFF';
-    this.ctx.font = '16px Arial';
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = 'bold 18px Arial';
     this.ctx.textAlign = 'left';
     
     // Score
-    this.ctx.fillText(`Score: ${gameState.score}`, 10, 20);
+    this.ctx.fillText(`Score: ${gameState.score}`, 10, 25);
     
     // Lives
-    this.ctx.fillText(`Lives: ${gameState.lives}`, 10, 40);
+    this.ctx.fillText(`Lives: ${gameState.lives}`, 10, 50);
     
     // Level
-    this.ctx.fillText(`Level: ${gameState.level}`, 10, 60);
+    this.ctx.fillText(`Level: ${gameState.level}`, 10, 75);
     
     // Progress
     const progress = Math.round((gameState.pellets.collected / gameState.pellets.total) * 100);
-    this.ctx.fillText(`Progress: ${progress}%`, 10, 80);
+    this.ctx.fillText(`Progress: ${progress}%`, 10, 100);
     
     // Power mode timer
     if (gameState.powerMode.active) {
       const timeLeft = Math.ceil(gameState.powerMode.timeLeft / 60);
-      this.ctx.fillStyle = '#00FFFF';
-      this.ctx.font = 'bold 18px Arial';
+      this.ctx.fillStyle = '#00ffff';
+      this.ctx.font = 'bold 24px Arial';
       this.ctx.textAlign = 'center';
       this.ctx.fillText(`POWER MODE! ${timeLeft}s`, this.canvas.width / 2, 30);
     }

@@ -46,9 +46,9 @@ export interface GameState {
   };
 }
 
-// Game constants
-export const CELL_SIZE = 20;
-export const MAZE_WIDTH = 25;
+// Game constants - INCREASED for better visibility
+export const CELL_SIZE = 32; // Increased from 20 to 32
+export const MAZE_WIDTH = 19; // Reduced to fit better
 export const MAZE_HEIGHT = 21;
 
 // Direction constants
@@ -62,34 +62,33 @@ export const DIRECTIONS = {
 
 // Simplified maze layout (1=wall, 0=empty, 2=pellet, 3=power pellet)
 const MAZE_LAYOUT = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,3,1,1,1,2,1,1,1,1,1,2,1,2,1,1,1,1,1,2,1,1,1,3,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,2,1,1,1,2,1,2,1,1,1,1,1,1,1,1,1,2,1,2,1,1,1,2,1],
-  [1,2,2,2,2,2,1,2,2,2,2,2,1,2,2,2,2,2,1,2,2,2,2,2,1],
-  [1,1,1,1,1,2,1,1,1,1,0,2,1,2,0,1,1,1,1,2,1,1,1,1,1],
-  [0,0,0,0,1,2,1,0,0,0,0,2,1,2,0,0,0,0,1,2,1,0,0,0,0],
-  [1,1,1,1,1,2,1,0,1,1,0,2,0,2,0,1,1,0,1,2,1,1,1,1,1],
-  [0,0,0,0,0,2,0,0,1,0,0,2,0,2,0,0,1,0,0,2,0,0,0,0,0],
-  [1,1,1,1,1,2,1,0,1,0,0,2,0,2,0,0,1,0,1,2,1,1,1,1,1],
-  [0,0,0,0,1,2,1,0,1,1,1,1,0,1,1,1,1,0,1,2,1,0,0,0,0],
-  [1,1,1,1,1,2,1,0,0,0,0,0,0,0,0,0,0,0,1,2,1,1,1,1,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,2,1,1,1,2,1,1,1,1,1,2,1,2,1,1,1,1,1,2,1,1,1,2,1],
-  [1,3,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,3,1],
-  [1,1,1,2,1,2,1,2,1,1,1,1,1,1,1,1,1,2,1,2,1,2,1,1,1],
-  [1,2,2,2,2,2,1,2,2,2,2,2,1,2,2,2,2,2,1,2,2,2,2,2,1],
-  [1,2,1,1,1,1,1,1,1,1,1,2,1,2,1,1,1,1,1,1,1,1,1,2,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1],
+  [1,3,1,1,1,2,1,1,2,1,2,1,1,2,1,1,1,3,1],
+  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+  [1,2,1,1,1,2,1,2,1,1,1,2,1,2,1,1,1,2,1],
+  [1,2,2,2,2,2,1,2,2,1,2,2,1,2,2,2,2,2,1],
+  [1,1,1,1,1,2,1,1,0,1,0,1,1,2,1,1,1,1,1],
+  [0,0,0,0,1,2,1,0,0,0,0,0,1,2,1,0,0,0,0],
+  [1,1,1,1,1,2,1,0,1,0,1,0,1,2,1,1,1,1,1],
+  [0,0,0,0,0,2,0,0,1,0,1,0,0,2,0,0,0,0,0],
+  [1,1,1,1,1,2,1,0,1,0,1,0,1,2,1,1,1,1,1],
+  [0,0,0,0,1,2,1,0,0,0,0,0,1,2,1,0,0,0,0],
+  [1,1,1,1,1,2,1,1,0,1,0,1,1,2,1,1,1,1,1],
+  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+  [1,2,1,1,1,2,1,1,1,1,1,1,1,2,1,1,1,2,1],
+  [1,3,2,2,1,2,2,2,2,1,2,2,2,2,1,2,2,3,1],
+  [1,1,1,2,1,2,1,2,1,1,1,2,1,2,1,2,1,1,1],
+  [1,2,2,2,2,2,1,2,2,1,2,2,1,2,2,2,2,2,1],
+  [1,2,1,1,1,1,1,1,2,1,2,1,1,1,1,1,1,2,1],
+  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
 export class GameEngine {
   private gameState: GameState;
   private gameStartTime: number = 0;
   private lastUpdateTime: number = 0;
-  private animationId: number | null = null;
 
   constructor() {
     this.gameState = this.initializeGame();
@@ -101,36 +100,36 @@ export class GameEngine {
     
     return {
       player: {
-        position: { x: 12, y: 18 },
+        position: { x: 9, y: 15 }, // Center bottom
         direction: DIRECTIONS.NONE
       },
       ghosts: [
         {
           id: 'red',
-          position: { x: 12, y: 9 },
+          position: { x: 9, y: 9 },
           direction: DIRECTIONS.UP,
           mode: 'chase',
           color: '#FF0000',
           originalColor: '#FF0000',
-          target: { x: 12, y: 18 }
+          target: { x: 9, y: 15 }
         },
         {
           id: 'pink',
-          position: { x: 11, y: 10 },
+          position: { x: 8, y: 10 },
           direction: DIRECTIONS.LEFT,
           mode: 'chase',
           color: '#FFB8FF',
           originalColor: '#FFB8FF',
-          target: { x: 12, y: 18 }
+          target: { x: 9, y: 15 }
         },
         {
           id: 'cyan',
-          position: { x: 13, y: 10 },
+          position: { x: 10, y: 10 },
           direction: DIRECTIONS.RIGHT,
           mode: 'chase',
           color: '#00FFFF',
           originalColor: '#00FFFF',
-          target: { x: 12, y: 18 }
+          target: { x: 9, y: 15 }
         }
       ],
       maze,
@@ -309,7 +308,7 @@ export class GameEngine {
           this.gameState.score += 200;
           ghost.mode = 'chase';
           ghost.color = ghost.originalColor;
-          ghost.position = { x: 12, y: 9 }; // Reset to center
+          ghost.position = { x: 9, y: 9 }; // Reset to center
         } else {
           // Player dies
           this.gameState.lives--;
@@ -324,11 +323,11 @@ export class GameEngine {
   }
 
   private resetPositions(): void {
-    this.gameState.player.position = { x: 12, y: 18 };
+    this.gameState.player.position = { x: 9, y: 15 };
     this.gameState.player.direction = DIRECTIONS.NONE;
     
     this.gameState.ghosts.forEach((ghost, index) => {
-      ghost.position = { x: 12 + (index - 1), y: 9 + Math.floor(index / 2) };
+      ghost.position = { x: 9 + (index - 1), y: 9 + Math.floor(index / 2) };
       ghost.mode = 'chase';
       ghost.color = ghost.originalColor;
     });
