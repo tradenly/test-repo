@@ -1,5 +1,4 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { NewPacManGame } from "./game/NewPacManGame";
 
@@ -17,12 +16,12 @@ export const MissPoopeeManGameArea = ({
   onGameStart 
 }: MissPoopeeManGameAreaProps) => {
   const handleGameEnd = (score: number, duration: number) => {
-    console.log('Game ended with score:', score, 'duration:', duration);
+    console.log('🎮 Game ended with score:', score, 'duration:', duration);
     onGameEnd(score, duration);
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full h-full">
       <NewPacManGame
         user={user}
         onGameEnd={handleGameEnd}

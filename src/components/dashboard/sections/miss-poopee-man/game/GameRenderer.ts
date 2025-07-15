@@ -1,20 +1,26 @@
 
-// Advanced canvas renderer for Miss POOPEE-Man
-import { GameState, Position, Ghost, MazeCell, CELL_SIZE } from './GameEngine';
+// Canvas renderer for Miss POOPEE-Man
+import { GameState, Position, Ghost, MazeCell, CELL_SIZE, MAZE_WIDTH, MAZE_HEIGHT } from './GameEngine';
 
 export class GameRenderer {
   private ctx: CanvasRenderingContext2D;
+  private canvas: HTMLCanvasElement;
   private animationFrame: number = 0;
 
-  constructor(private canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement) {
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Could not get canvas context');
     this.ctx = context;
+    this.canvas = canvas;
+    
+    // Set canvas size
+    this.canvas.width = MAZE_WIDTH * CELL_SIZE;
+    this.canvas.height = MAZE_HEIGHT * CELL_SIZE;
     
     // Enable smooth rendering
-    this.ctx.imageSmoothingEnabled = false;
+    this.ctx.imageSmoothingEnabled = true;
     
-    console.log('🎨 GameRenderer initialized with canvas dimensions:', canvas.width, 'x', canvas.height);
+    console.log('🎨 GameRenderer initialized:', this.canvas.width, 'x', this.canvas.height);
   }
 
   public render(gameState: GameState): void {
@@ -22,7 +28,6 @@ export class GameRenderer {
     this.clearCanvas();
     
     this.renderMaze(gameState.maze);
-    this.renderPellets(gameState.maze);
     this.renderPlayer(gameState.player);
     this.renderGhosts(gameState.ghosts);
     this.renderUI(gameState);
@@ -33,41 +38,35 @@ export class GameRenderer {
   }
 
   private clearCanvas(): void {
-    this.ctx.fillStyle = '#000011';
+    this.ctx.fillStyle = '#000000';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
   private renderMaze(maze: MazeCell[][]): void {
-    this.ctx.fillStyle = '#0066FF';
-    this.ctx.strokeStyle = '#0088FF';
-    this.ctx.lineWidth = 1;
-    
-    maze.forEach((row, y) => {
-      row.forEach((cell, x) => {
+    for (let y = 0; y < MAZE_HEIGHT; y++) {
+      for (let x = 0; x < MAZE_WIDTH; x++) {
+        const cell = maze[y][x];
+        const cellX = x * CELL_SIZE;
+        const cellY = y * CELL_SIZE;
+        
         if (cell.type === 'wall') {
-          const cellX = x * CELL_SIZE;
-          const cellY = y * CELL_SIZE;
-          
-          // Fill the wall
+          this.ctx.fillStyle = '#0066FF';
           this.ctx.fillRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
           
-          // Add border for better visibility
+          // Add border
+          this.ctx.strokeStyle = '#0088FF';
+          this.ctx.lineWidth = 1;
           this.ctx.strokeRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
-        }
-      });
-    });
-  }
-
-  private renderPellets(maze: MazeCell[][]): void {
-    maze.forEach((row, y) => {
-      row.forEach((cell, x) => {
-        const centerX = x * CELL_SIZE + CELL_SIZE / 2;
-        const centerY = y * CELL_SIZE + CELL_SIZE / 2;
-        
-        if (cell.type === 'pellet') {
+        } else if (cell.type === 'pellet') {
           this.ctx.fillStyle = '#FFFF00';
           this.ctx.beginPath();
-          this.ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
+          this.ctx.arc(
+            cellX + CELL_SIZE / 2,
+            cellY + CELL_SIZE / 2,
+            3,
+            0,
+            Math.PI * 2
+          );
           this.ctx.fill();
         } else if (cell.type === 'powerPellet') {
           // Animated power pellet using emoji
@@ -75,10 +74,14 @@ export class GameRenderer {
           this.ctx.font = `${pulseSize}px Arial`;
           this.ctx.textAlign = 'center';
           this.ctx.textBaseline = 'middle';
-          this.ctx.fillText('💩', centerX, centerY);
+          this.ctx.fillText(
+            '💩',
+            cellX + CELL_SIZE / 2,
+            cellY + CELL_SIZE / 2
+          );
         }
-      });
-    });
+      }
+    }
   }
 
   private renderPlayer(player: GameState['player']): void {
@@ -88,7 +91,7 @@ export class GameRenderer {
     this.ctx.fillStyle = '#FFFF00';
     this.ctx.beginPath();
     
-    // Animated mouth based on direction and animation frame
+    // Animated mouth based on direction
     const mouthAnimation = (Math.sin(this.animationFrame * 0.3) + 1) * 0.4;
     let startAngle = 0;
     let endAngle = Math.PI * 2;
