@@ -41,6 +41,56 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
   const createGameSession = useCreateGameSession();
   const { toast } = useToast();
 
+  // Shared function to record game session
+  const recordGameSession = useCallback(async (finalGameState: GameState, gameStatus: GameStatus) => {
+    if (!finalGameState) return { success: false, creditsEarned: 0 };
+
+    const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
+    const finalScore = finalGameState.score;
+    
+    // Calculate credits earned based on performance and outcome
+    let creditsEarned = 0;
+    if (finalScore > 0) {
+      creditsEarned = Math.floor(finalScore / 500); // 1 credit per 500 points
+      
+      // Bonus credits for level completion
+      if (gameStatus === GameStatus.LEVEL_COMPLETE) {
+        creditsEarned += (finalGameState.level - 1) * 3; // 3 credits per level completed
+      }
+    }
+
+    try {
+      await createGameSession.mutateAsync({
+        user_id: user.id,
+        score: finalScore,
+        duration_seconds: duration,
+        credits_spent: 1,
+        credits_earned: creditsEarned,
+        pipes_passed: 0,
+        metadata: {
+          game_type: 'miss_poopee_man',
+          level: finalGameState.level,
+          lives_remaining: finalGameState.lives,
+          pellets_eaten: Math.floor(finalScore / 10),
+          game_status: gameStatus === GameStatus.LEVEL_COMPLETE ? 'level_complete' : 'game_over'
+        }
+      });
+
+      if (creditsEarned > 0) {
+        await earnCredits.mutateAsync({
+          userId: user.id,
+          amount: creditsEarned,
+          description: `Miss POOPEE-Man - Level ${finalGameState.level}, ${finalScore} points`,
+        });
+      }
+
+      return { success: true, creditsEarned };
+    } catch (error) {
+      console.error('❌ Error recording game session:', error);
+      return { success: false, creditsEarned: 0 };
+    }
+  }, [user.id, createGameSession, earnCredits]);
+
   // Initialize game state
   const initializeGame = useCallback(() => {
     const pellets: boolean[][] = [];
@@ -320,19 +370,34 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
   };
 
   // Level complete
-  const levelComplete = () => {
+  const levelComplete = useCallback(async () => {
     if (!gameStateRef.current) return;
     
     const gameState = gameStateRef.current;
+    const currentLevel = gameState.level;
+    
+    // Set status to level complete
     gameState.gameStatus = GameStatus.LEVEL_COMPLETE;
-    gameState.level++;
-    setLevel(gameState.level);
     
     // Bonus points for completing level
-    gameState.score += 1000 * gameState.level;
+    gameState.score += 1000 * currentLevel;
     setScore(gameState.score);
     
-    console.log(`🏆 Level ${gameState.level - 1} complete! Bonus: ${1000 * gameState.level} points`);
+    console.log(`🏆 Level ${currentLevel} complete! Bonus: ${1000 * currentLevel} points`);
+    
+    // Record the level completion session
+    const sessionResult = await recordGameSession(gameState, GameStatus.LEVEL_COMPLETE);
+    
+    if (sessionResult.success && sessionResult.creditsEarned > 0) {
+      toast({
+        title: "Level Complete!",
+        description: `Level ${currentLevel} completed! Score: ${gameState.score} | Earned ${sessionResult.creditsEarned} credits`
+      });
+    }
+    
+    // Advance to next level
+    gameState.level++;
+    setLevel(gameState.level);
     
     // Start next level after delay
     setTimeout(() => {
@@ -345,13 +410,18 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         setScore(gameState.score);
       }
     }, 2000);
-  };
+  }, [recordGameSession, toast, initializeGame]);
 
   // End game
   const endGame = useCallback(async () => {
     if (!gameStateRef.current) return;
 
     console.log('🏁 Ending game...');
+    
+    // Capture the current game state before modifying it
+    const finalGameState = { ...gameStateRef.current };
+    
+    // Set game status to game over
     gameStateRef.current.gameStatus = GameStatus.GAME_OVER;
     setGameStarted(false);
     setPowerModeDisplay(false);
@@ -360,52 +430,25 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
       cancelAnimationFrame(animationRef.current);
     }
 
-    const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
-    const finalScore = gameStateRef.current.score;
+    // Record the game session with game over status
+    const sessionResult = await recordGameSession(finalGameState, GameStatus.GAME_OVER);
     
-    // Calculate credits earned (1 credit per 500 points + level bonus)
-    const creditsEarned = Math.floor(finalScore / 500) + (gameStateRef.current.level - 1) * 2;
-
-    try {
-      await createGameSession.mutateAsync({
-        user_id: user.id,
-        score: finalScore,
-        duration_seconds: duration,
-        credits_spent: 1,
-        credits_earned: creditsEarned,
-        pipes_passed: 0,
-        metadata: {
-          game_type: 'miss_poopee_man',
-          level: gameStateRef.current.level,
-          lives_remaining: gameStateRef.current.lives,
-          pellets_eaten: Math.floor(finalScore / 10),
-          level_completed: gameStateRef.current.gameStatus === GameStatus.LEVEL_COMPLETE
-        }
+    if (sessionResult.success) {
+      toast({
+        title: "Game Over!",
+        description: `Final Score: ${finalGameState.score}${sessionResult.creditsEarned > 0 ? ` | Earned ${sessionResult.creditsEarned} credits` : ''}`
       });
 
-      if (creditsEarned > 0) {
-        await earnCredits.mutateAsync({
-          userId: user.id,
-          amount: creditsEarned,
-          description: `Miss POOPEE-Man completed - Level ${gameStateRef.current.level}, ${finalScore} points`,
-        });
-      }
-
+      const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      onGameEnd(finalGameState.score, duration);
+    } else {
       toast({
-        title: "Game Complete!",
-        description: `Level ${gameStateRef.current.level} | Score: ${finalScore}${creditsEarned > 0 ? ` | Earned ${creditsEarned} credits` : ''}`
-      });
-
-      onGameEnd(finalScore, duration);
-    } catch (error) {
-      console.error('❌ Error recording game session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save game results",
+        title: "Game Over!",
+        description: `Final Score: ${finalGameState.score}`,
         variant: "destructive"
       });
     }
-  }, [user.id, createGameSession, earnCredits, onGameEnd, toast]);
+  }, [recordGameSession, onGameEnd, toast]);
 
   // Game loop
   const gameLoop = useCallback(() => {
