@@ -21,87 +21,58 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
   const gameRendererRef = useRef<GameRenderer | null>(null);
   const gameLoopRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
-  const initializationAttempted = useRef<boolean>(false);
   
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isGameActive, setIsGameActive] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [engineReady, setEngineReady] = useState(false);
-  const [initError, setInitError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   
   const spendCredits = useSpendCredits();
   const earnCredits = useEarnCredits();
   const createGameSession = useCreateGameSession();
   const { toast } = useToast();
 
-  // Initialize canvas and renderer with better error handling
+  // Simple initialization function
+  const initializeGame = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      console.log('Canvas not ready, retrying...');
+      if (retryCount < 5) {
+        setRetryCount(prev => prev + 1);
+        setTimeout(() => initializeGame(), 200);
+      }
+      return;
+    }
+
+    try {
+      console.log('🎮 Initializing Miss POOPEE-Man game...');
+      
+      // Create game engine
+      const engine = new GameEngine();
+      gameEngineRef.current = engine;
+      
+      // Create renderer
+      const renderer = new GameRenderer(canvas);
+      gameRendererRef.current = renderer;
+      
+      // Get initial state and render
+      const initialState = engine.getGameState();
+      setGameState(initialState);
+      renderer.render(initialState);
+      
+      setEngineReady(true);
+      console.log('✅ Game initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to initialize game:', error);
+      setEngineReady(false);
+    }
+  }, [retryCount]);
+
+  // Initialize when component mounts
   useEffect(() => {
-    if (initializationAttempted.current) return;
-    initializationAttempted.current = true;
-
-    const initializeGame = async () => {
-      const canvas = canvasRef.current;
-      if (!canvas) {
-        console.error('❌ Canvas ref not available');
-        setInitError('Canvas not available');
-        return;
-      }
-
-      try {
-        console.log('🎮 Starting Miss POOPEE-Man game initialization...');
-        
-        // Set canvas size first
-        canvas.width = MAZE_WIDTH * CELL_SIZE;
-        canvas.height = MAZE_HEIGHT * CELL_SIZE;
-        
-        console.log(`🎮 Canvas size set to: ${canvas.width}x${canvas.height}`);
-        
-        // Get canvas context
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          throw new Error('Failed to get canvas 2D context');
-        }
-        
-        console.log('🎮 Canvas context obtained');
-        
-        // Initialize game engine
-        console.log('🎮 Creating game engine...');
-        const engine = new GameEngine();
-        gameEngineRef.current = engine;
-        
-        // Initialize renderer
-        console.log('🎮 Creating game renderer...');
-        const renderer = new GameRenderer(canvas);
-        gameRendererRef.current = renderer;
-        
-        // Get initial game state
-        const initialState = engine.getGameState();
-        console.log('🎮 Initial game state:', initialState);
-        setGameState(initialState);
-        
-        // Initial render
-        renderer.render(initialState);
-        console.log('🎮 Initial render complete');
-        
-        setEngineReady(true);
-        setInitError(null);
-        
-        console.log('✅ Miss POOPEE-Man game initialized successfully');
-      } catch (error) {
-        console.error('❌ Failed to initialize Miss POOPEE-Man game:', error);
-        setEngineReady(false);
-        setInitError(error instanceof Error ? error.message : 'Unknown initialization error');
-        toast({
-          title: "Game Initialization Error",
-          description: "Failed to initialize the game. Please refresh and try again.",
-          variant: "destructive"
-        });
-      }
-    };
-
-    // Small delay to ensure DOM is ready
-    setTimeout(initializeGame, 100);
-  }, [toast]);
+    initializeGame();
+  }, [initializeGame]);
 
   // Game loop with better error handling
   const gameLoop = useCallback(() => {
@@ -146,7 +117,7 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
     if (!engineReady || !gameEngineRef.current || !gameRendererRef.current) {
       toast({
         title: "Game Not Ready",
-        description: initError || "Please wait for the game to initialize",
+        description: "Please wait for the game to initialize",
         variant: "destructive"
       });
       return;
@@ -188,7 +159,7 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
         variant: "destructive"
       });
     }
-  }, [user.id, spendCredits, gameLoop, engineReady, initError, toast]);
+  }, [user.id, spendCredits, gameLoop, engineReady, toast]);
 
   // Handle game end
   const handleGameEnd = useCallback(async (finalState: GameState, duration: number) => {
@@ -326,24 +297,28 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
     };
   }, []);
 
-  // Show initialization error
-  if (initError) {
+  // Show retry button if initialization failed
+  if (!engineReady && retryCount >= 5) {
     return (
       <div className="w-full h-full flex items-center justify-center p-4">
         <Card className="bg-gray-900 border-gray-700 w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-white flex items-center justify-center gap-2 text-2xl">
               <span className="text-4xl">❌</span>
-              Game Error
+              Game Loading Failed
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 text-center">
-            <p className="text-red-400 text-lg">{initError}</p>
+            <p className="text-red-400 text-lg">Unable to initialize game after multiple attempts</p>
             <Button 
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                setRetryCount(0);
+                setEngineReady(false);
+                initializeGame();
+              }}
               className="bg-purple-600 hover:bg-purple-700 text-white"
             >
-              Refresh Page
+              Try Again
             </Button>
           </CardContent>
         </Card>
