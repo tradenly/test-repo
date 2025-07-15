@@ -124,21 +124,22 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits, gameMode 
       {/* Mobile Controls - Show above canvas on mobile */}
       {isMobile && (
         <div className="w-full max-w-md order-1">
-          <MobileGameControls
-            gameState={gameState}
-            score={score}
-            totalShields={totalShields}
-            credits={credits}
-            canPlay={canPlay}
-            isInitialized={isInitialized}
-            gameSpeed={gameSpeed}
-            countdown={countdown}
-            onStartGame={handleStartGame}
-            onResetGame={handleResetGame}
-            onBuyShields={buyShields}
-            onSpeedChange={changeSpeed}
-            isPurchasing={isPurchasing}
-          />
+            <MobileGameControls
+              gameState={gameState}
+              score={score}
+              totalShields={totalShields}
+              credits={credits}
+              canPlay={canPlay}
+              isInitialized={isInitialized}
+              gameSpeed={gameSpeed}
+              countdown={countdown}
+              onStartGame={handleStartGame}
+              onResetGame={handleResetGame}
+              onBuyShields={buyShields}
+              onSpeedChange={changeSpeed}
+              isPurchasing={isPurchasing}
+              gameMode={gameMode}
+            />
         </div>
       )}
 
@@ -260,6 +261,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits, gameMode 
             onBuyShields={buyShields}
             onSpeedChange={changeSpeed}
             isPurchasing={isPurchasing}
+            gameMode={gameMode}
           />
         </div>
       )}

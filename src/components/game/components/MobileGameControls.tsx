@@ -20,6 +20,7 @@ interface MobileGameControlsProps {
   onBuyShields: () => void;
   onSpeedChange: (speed: GameSpeed) => void;
   isPurchasing: boolean;
+  gameMode?: 'flappy_hippos' | 'miss_poopee_man';
 }
 
 export const MobileGameControls = ({ 
@@ -35,9 +36,11 @@ export const MobileGameControls = ({
   onResetGame, 
   onBuyShields,
   onSpeedChange,
-  isPurchasing 
+  isPurchasing,
+  gameMode = 'flappy_hippos'
 }: MobileGameControlsProps) => {
   const isMobile = useIsMobile();
+  const isFlappyHippos = gameMode === 'flappy_hippos';
 
   if (!isMobile) {
     return null;
@@ -48,12 +51,16 @@ export const MobileGameControls = ({
       <div className="flex flex-col gap-3">
         {/* Game Info */}
         <div className="text-center">
-          <h3 className="text-lg font-bold text-white mb-2">💩 Flappy Hippos</h3>
+          <h3 className="text-lg font-bold text-white mb-2">
+            {isFlappyHippos ? '💩 Flappy Hippos' : '💩 Miss POOPEE-Man'}
+          </h3>
           {gameState === 'starting' && (
             <p className="text-xl text-yellow-400 mb-2">Get Ready! {countdown}</p>
           )}
           {gameState === 'playing' && (
-            <p className="text-sm text-gray-300 mb-2">Tap anywhere on the screen to flap!</p>
+            <p className="text-sm text-gray-300 mb-2">
+              {isFlappyHippos ? 'Tap anywhere on the screen to flap!' : 'Use arrow keys to move!'}
+            </p>
           )}
           {gameState === 'gameOver' && (
             <p className="text-lg text-yellow-400 mb-2">Score: {score}</p>
@@ -68,7 +75,9 @@ export const MobileGameControls = ({
           </div>
           <div className="flex items-center gap-1">
             <Shield className="h-4 w-4 text-green-400" />
-            <span className="text-white text-sm">{totalShields} Shields</span>
+            <span className="text-white text-sm">
+              {totalShields} {isFlappyHippos ? 'Shields' : 'Lives'}
+            </span>
           </div>
         </div>
 
@@ -82,8 +91,8 @@ export const MobileGameControls = ({
             </Button>
           )}
 
-          {/* Shield Purchase - available in menu and gameOver states */}
-          {(gameState === 'menu' || gameState === 'gameOver') && (
+          {/* Shield Purchase - available in menu and gameOver states, only for Flappy Hippos */}
+          {isFlappyHippos && (gameState === 'menu' || gameState === 'gameOver') && (
             <Button 
               onClick={onBuyShields} 
               disabled={credits < 5 || isPurchasing}

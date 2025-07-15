@@ -597,37 +597,172 @@ export class GameEngine {
     if (this.ghostMoveTimer >= this.framesBetweenGhostMoves) {
       this.ghostMoveTimer = 0; // Reset timer
       
-      this.ghosts.forEach(ghost => {
-        let newGridX = ghost.gridX;
-        let newGridY = ghost.gridY;
+      this.ghosts.forEach((ghost, index) => {
+        // Get possible moves (don't reverse unless stuck)
+        const possibleMoves = this.getGhostPossibleMoves(ghost);
         
-        // Simple AI: move towards or away from Pac-Man
+        if (possibleMoves.length === 0) {
+          // If stuck, allow any move including reversing
+          const allMoves = this.getGhostPossibleMoves(ghost, true);
+          if (allMoves.length > 0) {
+            const randomMove = allMoves[Math.floor(Math.random() * allMoves.length)];
+            this.moveGhost(ghost, randomMove);
+          }
+          return;
+        }
+        
+        let targetMove;
+        
         if (ghost.isVulnerable) {
-          // Flee from Pac-Man
-          if (ghost.gridX < this.pacman.gridX) newGridX--;
-          else if (ghost.gridX > this.pacman.gridX) newGridX++;
-          else if (ghost.gridY < this.pacman.gridY) newGridY--;
-          else if (ghost.gridY > this.pacman.gridY) newGridY++;
+          // Flee from Pac-Man - choose move that increases distance
+          targetMove = this.getFleeMove(ghost, possibleMoves);
         } else {
-          // Chase Pac-Man
-          if (ghost.gridX < this.pacman.gridX) newGridX++;
-          else if (ghost.gridX > this.pacman.gridX) newGridX--;
-          else if (ghost.gridY < this.pacman.gridY) newGridY++;
-          else if (ghost.gridY > this.pacman.gridY) newGridY--;
+          // Chase Pac-Man with individual ghost personalities
+          targetMove = this.getChaseMove(ghost, possibleMoves, index);
         }
         
-        // Handle tunnel wraparound
-        if (newGridX < 0) newGridX = this.maze[0].length - 1;
-        if (newGridX >= this.maze[0].length) newGridX = 0;
-        
-        if (this.isValidMove(newGridX, newGridY)) {
-          ghost.gridX = newGridX;
-          ghost.gridY = newGridY;
-          ghost.x = newGridX * this.cellSize;
-          ghost.y = newGridY * this.cellSize;
+        // If no specific target move, choose randomly from available moves
+        if (!targetMove) {
+          targetMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
         }
+        
+        this.moveGhost(ghost, targetMove);
       });
     }
+  }
+  
+  private getGhostPossibleMoves(ghost: Ghost, allowReverse: boolean = false): Array<{dx: number, dy: number, direction: 'up' | 'down' | 'left' | 'right'}> {
+    const moves = [
+      { dx: 0, dy: -1, direction: 'up' as const },
+      { dx: 0, dy: 1, direction: 'down' as const },
+      { dx: -1, dy: 0, direction: 'left' as const },
+      { dx: 1, dy: 0, direction: 'right' as const }
+    ];
+    
+    const oppositeDirection = this.getOppositeDirection(ghost.direction);
+    
+    return moves.filter(move => {
+      const newGridX = ghost.gridX + move.dx;
+      const newGridY = ghost.gridY + move.dy;
+      
+      // Handle tunnel wraparound
+      let wrappedX = newGridX;
+      if (wrappedX < 0) wrappedX = this.maze[0].length - 1;
+      if (wrappedX >= this.maze[0].length) wrappedX = 0;
+      
+      const isValidMove = this.isValidMove(wrappedX, newGridY);
+      const isReverse = move.direction === oppositeDirection;
+      
+      return isValidMove && (allowReverse || !isReverse);
+    });
+  }
+  
+  private getOppositeDirection(direction: string): string {
+    switch (direction) {
+      case 'up': return 'down';
+      case 'down': return 'up';
+      case 'left': return 'right';
+      case 'right': return 'left';
+      default: return '';
+    }
+  }
+  
+  private getFleeMove(ghost: Ghost, possibleMoves: Array<{dx: number, dy: number, direction: 'up' | 'down' | 'left' | 'right'}>) {
+    // Choose move that maximizes distance from Pac-Man
+    let bestMove = null;
+    let maxDistance = -1;
+    
+    for (const move of possibleMoves) {
+      const newGridX = ghost.gridX + move.dx;
+      const newGridY = ghost.gridY + move.dy;
+      
+      // Handle tunnel wraparound
+      let wrappedX = newGridX;
+      if (wrappedX < 0) wrappedX = this.maze[0].length - 1;
+      if (wrappedX >= this.maze[0].length) wrappedX = 0;
+      
+      const distance = Math.abs(wrappedX - this.pacman.gridX) + Math.abs(newGridY - this.pacman.gridY);
+      
+      if (distance > maxDistance) {
+        maxDistance = distance;
+        bestMove = move;
+      }
+    }
+    
+    return bestMove;
+  }
+  
+  private getChaseMove(ghost: Ghost, possibleMoves: Array<{dx: number, dy: number, direction: 'up' | 'down' | 'left' | 'right'}>, ghostIndex: number) {
+    // Different ghost personalities
+    let targetX = this.pacman.gridX;
+    let targetY = this.pacman.gridY;
+    
+    switch (ghostIndex) {
+      case 0: // Red ghost - direct chase
+        break;
+      case 1: // Pink ghost - target 4 tiles ahead of Pac-Man
+        switch (this.pacman.direction) {
+          case 'up': targetY -= 4; break;
+          case 'down': targetY += 4; break;
+          case 'left': targetX -= 4; break;
+          case 'right': targetX += 4; break;
+        }
+        break;
+      case 2: // Cyan ghost - ambush behavior
+        const redGhost = this.ghosts[0];
+        const vectorX = this.pacman.gridX - redGhost.gridX;
+        const vectorY = this.pacman.gridY - redGhost.gridY;
+        targetX = this.pacman.gridX + vectorX;
+        targetY = this.pacman.gridY + vectorY;
+        break;
+      case 3: // Orange ghost - chase when far, scatter when close
+        const distance = Math.abs(ghost.gridX - this.pacman.gridX) + Math.abs(ghost.gridY - this.pacman.gridY);
+        if (distance < 8) {
+          // Scatter to corner when close
+          targetX = 0;
+          targetY = this.maze.length - 1;
+        }
+        break;
+    }
+    
+    // Choose move that minimizes distance to target
+    let bestMove = null;
+    let minDistance = Infinity;
+    
+    for (const move of possibleMoves) {
+      const newGridX = ghost.gridX + move.dx;
+      const newGridY = ghost.gridY + move.dy;
+      
+      // Handle tunnel wraparound
+      let wrappedX = newGridX;
+      if (wrappedX < 0) wrappedX = this.maze[0].length - 1;
+      if (wrappedX >= this.maze[0].length) wrappedX = 0;
+      
+      const distance = Math.abs(wrappedX - targetX) + Math.abs(newGridY - targetY);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        bestMove = move;
+      }
+    }
+    
+    return bestMove;
+  }
+  
+  private moveGhost(ghost: Ghost, move: {dx: number, dy: number, direction: 'up' | 'down' | 'left' | 'right'}) {
+    const newGridX = ghost.gridX + move.dx;
+    const newGridY = ghost.gridY + move.dy;
+    
+    // Handle tunnel wraparound
+    let wrappedX = newGridX;
+    if (wrappedX < 0) wrappedX = this.maze[0].length - 1;
+    if (wrappedX >= this.maze[0].length) wrappedX = 0;
+    
+    ghost.gridX = wrappedX;
+    ghost.gridY = newGridY;
+    ghost.x = wrappedX * this.cellSize;
+    ghost.y = newGridY * this.cellSize;
+    ghost.direction = move.direction;
   }
 
   private isValidMove(gridX: number, gridY: number): boolean {

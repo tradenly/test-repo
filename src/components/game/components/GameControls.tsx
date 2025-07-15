@@ -18,6 +18,7 @@ interface GameControlsProps {
   onBuyShields: () => void;
   onSpeedChange: (speed: GameSpeed) => void;
   isPurchasing: boolean;
+  gameMode?: 'flappy_hippos' | 'miss_poopee_man';
 }
 
 export const GameControls = ({
@@ -33,7 +34,8 @@ export const GameControls = ({
   onResetGame,
   onBuyShields,
   onSpeedChange,
-  isPurchasing
+  isPurchasing,
+  gameMode = 'flappy_hippos'
 }: GameControlsProps) => {
   if (gameState === 'menu') {
     return (
@@ -47,6 +49,7 @@ export const GameControls = ({
         onBuyShields={onBuyShields}
         onSpeedChange={onSpeedChange}
         isPurchasing={isPurchasing}
+        gameMode={gameMode}
       />
     );
   }
@@ -66,6 +69,7 @@ export const GameControls = ({
         onBuyShields={onBuyShields}
         onSpeedChange={onSpeedChange}
         isPurchasing={isPurchasing}
+        gameMode={gameMode}
       />
     );
   }
