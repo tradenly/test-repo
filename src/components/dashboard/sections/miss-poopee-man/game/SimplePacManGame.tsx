@@ -5,91 +5,34 @@ import { useSpendCredits, useEarnCredits } from '@/hooks/useCreditOperations';
 import { useCreateGameSession } from '@/hooks/useGameSessions';
 import { UnifiedUser } from '@/hooks/useUnifiedAuth';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  GameState, 
+  Direction, 
+  GameStatus, 
+  GAME_CONFIG,
+  Position,
+  Player,
+  GhostMode
+} from './GameTypes';
+import { MAZE_LAYOUT } from './MazeData';
+import { GhostAI } from './GhostAI';
+import { PathfindingAI } from './PathfindingAI';
 
 interface SimplePacManGameProps {
   user: UnifiedUser;
   onGameEnd: (score: number, duration: number) => void;
 }
 
-// Game constants - increased width by 30%
-const CELL_SIZE = 20;
-const MAZE_WIDTH = 33; // Increased from 25 to 33 (32% increase)
-const MAZE_HEIGHT = 21;
-
-// Directions
-const DIRECTIONS = {
-  UP: { x: 0, y: -1 },
-  DOWN: { x: 0, y: 1 },
-  LEFT: { x: -1, y: 0 },
-  RIGHT: { x: 1, y: 0 }
-};
-
-// Game entities
-interface Position {
-  x: number;
-  y: number;
-}
-
-interface Ghost {
-  x: number;
-  y: number;
-  direction: { x: number; y: number };
-  color: string;
-  baseColor: string; // Store original color
-  mode: 'chase' | 'scatter' | 'frightened';
-  homeCorner: Position;
-  stuckCounter: number;
-  lastPositions: Position[];
-}
-
-interface GameState {
-  pacman: Position & { direction: { x: number; y: number }; nextDirection: { x: number; y: number } | null };
-  ghosts: Ghost[];
-  pellets: boolean[][];
-  powerPellets: boolean[][];
-  score: number;
-  lives: number;
-  gameRunning: boolean;
-  gameOver: boolean;
-  powerMode: boolean;
-  powerModeTimer: number; // in game ticks (60 FPS)
-}
-
-// Wider maze layout
-const MAZE = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,3,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,1],
-  [1,2,1,1,1,1,2,1,1,1,1,1,2,1,2,1,2,1,2,1,1,1,1,1,2,1,1,1,1,1,2,2,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,2,1,1,1,1,2,1,2,1,1,1,1,1,2,1,2,1,1,1,1,1,2,1,2,1,1,1,1,1,2,2,1],
-  [1,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1],
-  [1,1,1,1,1,1,2,1,1,1,1,1,2,1,1,1,1,1,2,1,1,1,1,1,2,1,1,1,1,1,1,1,1],
-  [0,0,0,0,0,1,2,1,0,0,0,0,2,1,0,0,0,1,2,0,0,0,0,1,2,1,0,0,0,0,0,0,0],
-  [1,1,1,1,1,1,2,1,0,1,1,2,2,1,0,0,0,1,2,2,1,1,0,1,2,1,1,1,1,1,1,1,1],
-  [0,0,0,0,0,0,2,0,0,1,0,2,0,0,0,0,0,0,0,2,0,1,0,0,2,0,0,0,0,0,0,0,0],
-  [1,1,1,1,1,1,2,1,0,1,0,2,0,0,0,0,0,0,0,2,0,1,0,1,2,1,1,1,1,1,1,1,1],
-  [0,0,0,0,0,1,2,1,0,1,1,2,2,1,0,0,0,1,2,2,1,1,0,1,2,1,0,0,0,0,0,0,0],
-  [1,1,1,1,1,1,2,1,1,1,1,1,2,1,1,1,1,1,2,1,1,1,1,1,2,1,1,1,1,1,1,1,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,2,1,1,1,1,2,1,1,1,1,1,2,1,2,1,2,1,2,1,1,1,1,1,2,1,1,1,1,1,2,2,1],
-  [1,3,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,3,1],
-  [1,1,1,2,1,2,1,2,1,1,1,1,1,1,2,1,2,1,1,1,1,1,1,2,1,2,1,2,1,1,1,1,1],
-  [1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1],
-  [1,2,1,1,1,1,1,1,1,1,1,1,2,1,2,1,2,1,2,1,1,1,1,1,1,1,1,1,1,1,2,2,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-];
-
 export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameStateRef = useRef<GameState>();
   const animationRef = useRef<number>();
   const startTimeRef = useRef<number>(0);
-  const lastMoveTimeRef = useRef<number>(0);
   
   const [gameStarted, setGameStarted] = useState(false);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
+  const [level, setLevel] = useState(1);
   const [powerModeDisplay, setPowerModeDisplay] = useState(false);
   const [powerTimeLeft, setPowerTimeLeft] = useState(0);
   
@@ -102,571 +45,314 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
   const initializeGame = useCallback(() => {
     const pellets: boolean[][] = [];
     const powerPellets: boolean[][] = [];
+    let pelletsCount = 0;
     
-    for (let y = 0; y < MAZE.length; y++) {
+    for (let y = 0; y < MAZE_LAYOUT.length; y++) {
       pellets[y] = [];
       powerPellets[y] = [];
-      for (let x = 0; x < MAZE[y].length; x++) {
-        pellets[y][x] = MAZE[y][x] === 2; // 2 = regular pellet
-        powerPellets[y][x] = MAZE[y][x] === 3; // 3 = power pellet
+      for (let x = 0; x < MAZE_LAYOUT[y].length; x++) {
+        pellets[y][x] = MAZE_LAYOUT[y][x] === 1; // 1 = regular pellet
+        powerPellets[y][x] = MAZE_LAYOUT[y][x] === 2; // 2 = power pellet
+        if (pellets[y][x] || powerPellets[y][x]) pelletsCount++;
       }
     }
 
-    // Initialize ghosts with proper home corners and spawn positions
-    const ghosts: Ghost[] = [
-      { 
-        x: 16, y: 9, 
-        direction: DIRECTIONS.UP, 
-        color: '#FF0000',
-        baseColor: '#FF0000', 
-        mode: 'chase',
-        homeCorner: { x: 32, y: 0 }, // Top right
-        stuckCounter: 0,
-        lastPositions: []
-      },
-      { 
-        x: 16, y: 10, 
-        direction: DIRECTIONS.DOWN, 
-        color: '#FFB8FF',
-        baseColor: '#FFB8FF', 
-        mode: 'chase',
-        homeCorner: { x: 0, y: 0 }, // Top left
-        stuckCounter: 0,
-        lastPositions: []
-      },
-      { 
-        x: 15, y: 10, 
-        direction: DIRECTIONS.UP, 
-        color: '#00FFFF',
-        baseColor: '#00FFFF', 
-        mode: 'chase',
-        homeCorner: { x: 0, y: 20 }, // Bottom left
-        stuckCounter: 0,
-        lastPositions: []
-      },
-      { 
-        x: 17, y: 10, 
-        direction: DIRECTIONS.UP, 
-        color: '#FFB852',
-        baseColor: '#FFB852', 
-        mode: 'chase',
-        homeCorner: { x: 32, y: 20 }, // Bottom right
-        stuckCounter: 0,
-        lastPositions: []
-      }
-    ];
+    const player: Player = {
+      position: { x: 16, y: 17 },
+      direction: Direction.LEFT,
+      nextDirection: null,
+      isMoving: false,
+      animationFrame: 0
+    };
 
     gameStateRef.current = {
-      pacman: { x: 16, y: 15, direction: DIRECTIONS.LEFT, nextDirection: null },
-      ghosts,
+      player,
+      ghosts: GhostAI.initializeGhosts(),
       pellets,
       powerPellets,
       score: 0,
+      level: 1,
       lives: 3,
-      gameRunning: true,
-      gameOver: false,
+      gameStatus: GameStatus.PLAYING,
       powerMode: false,
-      powerModeTimer: 0
+      powerModeTimer: 0,
+      pelletsRemaining: pelletsCount,
+      gameTime: 0,
+      lastMoveTime: Date.now(),
+      ghostEatenCount: 0,
+      modeTimer: 0,
+      currentMode: 'scatter'
     };
     
     setScore(0);
     setLives(3);
+    setLevel(1);
     setPowerModeDisplay(false);
     setPowerTimeLeft(0);
-    lastMoveTimeRef.current = Date.now();
-    console.log('🎮 Game initialized with fixed ghost AI and power mode mechanics');
+    console.log('🎮 Game initialized with proper architecture');
   }, []);
 
   // Check if position is valid (not a wall)
-  const isValidPosition = (x: number, y: number) => {
-    if (x < 0 || x >= MAZE_WIDTH || y < 0 || y >= MAZE_HEIGHT) return false;
-    return MAZE[y][x] !== 1;
+  const isValidPosition = (x: number, y: number): boolean => {
+    if (x < 0 || x >= GAME_CONFIG.MAZE_WIDTH || y < 0 || y >= GAME_CONFIG.MAZE_HEIGHT) {
+      return true; // Allow tunnel wrapping
+    }
+    return MAZE_LAYOUT[y][x] !== 0; // Not a wall
   };
 
-  // Calculate distance between two points (Manhattan distance)
-  const calculateDistance = (pos1: Position, pos2: Position) => {
-    return Math.abs(pos1.x - pos2.x) + Math.abs(pos1.y - pos2.y);
-  };
-
-  // Get opposite direction
-  const getOppositeDirection = (direction: { x: number; y: number }) => {
-    return { x: -direction.x, y: -direction.y };
-  };
-
-  // Get all valid directions from a position
-  const getValidDirections = (x: number, y: number, currentDirection: { x: number; y: number }) => {
-    const allDirections = [DIRECTIONS.UP, DIRECTIONS.DOWN, DIRECTIONS.LEFT, DIRECTIONS.RIGHT];
-    const validDirections = allDirections.filter(dir => isValidPosition(x + dir.x, y + dir.y));
-    
-    // Prefer not to reverse direction unless it's the only option
-    const nonReverseDirections = validDirections.filter(dir => {
-      const opposite = getOppositeDirection(currentDirection);
-      return !(dir.x === opposite.x && dir.y === opposite.y);
-    });
-    
-    return nonReverseDirections.length > 0 ? nonReverseDirections : validDirections;
-  };
-
-  // Enhanced ghost AI with proper chase/flee behavior
-  const moveGhosts = useCallback(() => {
-    if (!gameStateRef.current?.gameRunning) return;
+  // Move player
+  const movePlayer = useCallback(() => {
+    if (!gameStateRef.current || gameStateRef.current.gameStatus !== GameStatus.PLAYING) return;
 
     const gameState = gameStateRef.current;
-    const pacman = gameState.pacman;
+    const player = gameState.player;
 
-    gameState.ghosts.forEach(ghost => {
-      // Track last positions to detect if stuck
-      ghost.lastPositions.push({ x: ghost.x, y: ghost.y });
-      if (ghost.lastPositions.length > 4) {
-        ghost.lastPositions.shift();
-      }
-
-      // Check if ghost is stuck (oscillating in same positions)
-      const isStuck = ghost.lastPositions.length === 4 && 
-                     ghost.lastPositions.slice(0, 2).every((pos, i) => 
-                       pos.x === ghost.lastPositions[i + 2].x && pos.y === ghost.lastPositions[i + 2].y);
-
-      if (isStuck) {
-        ghost.stuckCounter += 3;
-        console.log('👻 Ghost stuck detected, counter:', ghost.stuckCounter);
-      } else if (ghost.stuckCounter > 0) {
-        ghost.stuckCounter = Math.max(0, ghost.stuckCounter - 1);
-      }
-
-      const validDirections = getValidDirections(ghost.x, ghost.y, ghost.direction);
-      if (validDirections.length === 0) return;
-
-      let bestDirection = ghost.direction;
-
-      if (ghost.stuckCounter > 5) {
-        // Force random direction to break free
-        const randomDirections = validDirections.filter(dir => 
-          !(dir.x === ghost.direction.x && dir.y === ghost.direction.y)
-        );
-        if (randomDirections.length > 0) {
-          bestDirection = randomDirections[Math.floor(Math.random() * randomDirections.length)];
-          ghost.stuckCounter = 0;
-          ghost.lastPositions = [];
-          console.log('👻 Ghost broke free with random direction');
-        }
-      } else {
-        // AI behavior based on mode
-        if (ghost.mode === 'frightened') {
-          // FRIGHTENED: Run away from Pac-Man
-          const awayDirections = validDirections.map(dir => {
-            const newX = ghost.x + dir.x;
-            const newY = ghost.y + dir.y;
-            const distanceFromPacman = calculateDistance({ x: newX, y: newY }, pacman);
-            return { direction: dir, distance: distanceFromPacman };
-          }).sort((a, b) => b.distance - a.distance); // Sort by distance descending
-
-          bestDirection = awayDirections[0].direction;
-        } else {
-          // CHASE: Actively pursue Pac-Man
-          let targetPosition = { x: pacman.x, y: pacman.y };
-
-          // Each ghost has different targeting strategy
-          if (ghost.baseColor === '#FFB8FF') { // Pink ghost - ambush 4 cells ahead
-            targetPosition = {
-              x: Math.max(0, Math.min(MAZE_WIDTH - 1, pacman.x + pacman.direction.x * 4)),
-              y: Math.max(0, Math.min(MAZE_HEIGHT - 1, pacman.y + pacman.direction.y * 4))
-            };
-          } else if (ghost.baseColor === '#00FFFF') { // Cyan ghost - ambush behavior
-            const distanceFromPacman = calculateDistance({ x: ghost.x, y: ghost.y }, pacman);
-            if (distanceFromPacman > 8) {
-              targetPosition = { x: pacman.x, y: pacman.y };
-            } else {
-              // Get behind Pac-Man when close
-              targetPosition = {
-                x: Math.max(0, Math.min(MAZE_WIDTH - 1, pacman.x - pacman.direction.x * 2)),
-                y: Math.max(0, Math.min(MAZE_HEIGHT - 1, pacman.y - pacman.direction.y * 2))
-              };
-            }
-          } else if (ghost.baseColor === '#FFB852') { // Orange ghost - conditional chase
-            const distanceFromPacman = calculateDistance({ x: ghost.x, y: ghost.y }, pacman);
-            targetPosition = distanceFromPacman > 8 ? { x: pacman.x, y: pacman.y } : ghost.homeCorner;
-          }
-
-          // Find best direction toward target
-          const targetDirections = validDirections.map(dir => {
-            const newX = ghost.x + dir.x;
-            const newY = ghost.y + dir.y;
-            const distanceToTarget = calculateDistance({ x: newX, y: newY }, targetPosition);
-            return { direction: dir, distance: distanceToTarget };
-          }).sort((a, b) => a.distance - b.distance); // Sort by distance ascending
-
-          bestDirection = targetDirections[0].direction;
-        }
-      }
-
-      // Apply movement
-      const newX = ghost.x + bestDirection.x;
-      const newY = ghost.y + bestDirection.y;
-
-      if (isValidPosition(newX, newY)) {
-        ghost.x = newX;
-        ghost.y = newY;
-        ghost.direction = bestDirection;
-        
-        // Reset stuck counter on successful movement
-        if (ghost.stuckCounter > 0) {
-          ghost.stuckCounter = Math.max(0, ghost.stuckCounter - 1);
-        }
-      } else {
-        ghost.stuckCounter++;
-      }
-    });
-  }, []);
-
-  // Move Pac-Man
-  const movePacMan = useCallback(() => {
-    if (!gameStateRef.current?.gameRunning) return;
-
-    const gameState = gameStateRef.current;
-    const pacman = gameState.pacman;
-
-    // Try to change direction if a next direction is queued
-    if (pacman.nextDirection) {
-      const nextX = pacman.x + pacman.nextDirection.x;
-      const nextY = pacman.y + pacman.nextDirection.y;
-      
-      if (isValidPosition(nextX, nextY)) {
-        pacman.direction = pacman.nextDirection;
-        pacman.nextDirection = null;
+    // Try to change direction if requested
+    if (player.nextDirection) {
+      const nextPos = getNextPosition(player.position, player.nextDirection);
+      if (isValidPosition(nextPos.x, nextPos.y)) {
+        player.direction = player.nextDirection;
+        player.nextDirection = null;
       }
     }
 
     // Move in current direction
-    const newX = pacman.x + pacman.direction.x;
-    const newY = pacman.y + pacman.direction.y;
+    if (player.direction !== Direction.NONE) {
+      const newPos = getNextPosition(player.position, player.direction);
+      
+      // Handle tunnel wrapping
+      if (newPos.x < 0) newPos.x = GAME_CONFIG.MAZE_WIDTH - 1;
+      if (newPos.x >= GAME_CONFIG.MAZE_WIDTH) newPos.x = 0;
 
-    // Handle tunnel (left-right wrap)
-    let finalX = newX;
-    if (newX < 0) finalX = MAZE_WIDTH - 1;
-    if (newX >= MAZE_WIDTH) finalX = 0;
+      if (isValidPosition(newPos.x, newPos.y)) {
+        player.position = newPos;
+        player.isMoving = true;
+        player.animationFrame = (player.animationFrame + 1) % 4;
 
-    if (isValidPosition(finalX, newY)) {
-      pacman.x = finalX;
-      pacman.y = newY;
+        // Check for pellet consumption
+        if (gameState.pellets[newPos.y] && gameState.pellets[newPos.y][newPos.x]) {
+          gameState.pellets[newPos.y][newPos.x] = false;
+          gameState.score += 10;
+          gameState.pelletsRemaining--;
+          setScore(gameState.score);
+        }
 
-      // Check for pellet consumption
-      if (gameState.pellets[newY] && gameState.pellets[newY][finalX]) {
-        gameState.pellets[newY][finalX] = false;
-        gameState.score += 10;
-        setScore(gameState.score);
-      }
+        // Check for power pellet consumption
+        if (gameState.powerPellets[newPos.y] && gameState.powerPellets[newPos.y][newPos.x]) {
+          gameState.powerPellets[newPos.y][newPos.x] = false;
+          gameState.score += 50;
+          gameState.pelletsRemaining--;
+          
+          // Activate power mode
+          activatePowerMode();
+          setScore(gameState.score);
+        }
 
-      // Check for power pellet consumption
-      if (gameState.powerPellets[newY] && gameState.powerPellets[newY][finalX]) {
-        gameState.powerPellets[newY][finalX] = false;
-        gameState.score += 50;
-        
-        // Activate power mode for exactly 3 seconds (180 ticks at 60 FPS)
-        gameState.powerMode = true;
-        gameState.powerModeTimer = 180;
-        setPowerModeDisplay(true);
-        setPowerTimeLeft(3);
-        
-        // Make ALL ghosts frightened immediately and reverse their direction
-        gameState.ghosts.forEach(ghost => {
-          ghost.mode = 'frightened';
-          ghost.color = '#0000FF'; // Turn blue
-          ghost.stuckCounter = 0;
-          ghost.lastPositions = [];
-          // Reverse direction when becoming frightened
-          ghost.direction = getOppositeDirection(ghost.direction);
-        });
-        
-        setScore(gameState.score);
-        console.log('💩 Power mode activated! All ghosts frightened for exactly 3 seconds');
-      }
-
-      // Check win condition
-      const remainingPellets = gameState.pellets.flat().filter(p => p).length + 
-                              gameState.powerPellets.flat().filter(p => p).length;
-      if (remainingPellets === 0) {
-        console.log('🏆 Level complete!');
-        endGame();
+        // Check win condition
+        if (gameState.pelletsRemaining <= 0) {
+          levelComplete();
+        }
+      } else {
+        player.isMoving = false;
       }
     }
   }, []);
 
-  // Check collisions - CRITICAL: Must happen after movement
-  const checkCollisions = useCallback(() => {
-    if (!gameStateRef.current?.gameRunning) return;
+  // Get next position based on direction
+  const getNextPosition = (pos: Position, direction: Direction): Position => {
+    switch (direction) {
+      case Direction.UP: return { x: pos.x, y: pos.y - 1 };
+      case Direction.DOWN: return { x: pos.x, y: pos.y + 1 };
+      case Direction.LEFT: return { x: pos.x - 1, y: pos.y };
+      case Direction.RIGHT: return { x: pos.x + 1, y: pos.y };
+      default: return pos;
+    }
+  };
+
+  // Activate power mode
+  const activatePowerMode = () => {
+    if (!gameStateRef.current) return;
+    
+    const gameState = gameStateRef.current;
+    gameState.powerMode = true;
+    gameState.powerModeTimer = GAME_CONFIG.POWER_MODE_DURATION;
+    gameState.ghostEatenCount = 0;
+    
+    setPowerModeDisplay(true);
+    setPowerTimeLeft(3);
+    
+    console.log('💩 Power mode activated for exactly 3 seconds');
+  };
+
+  // Move ghosts
+  const moveGhosts = useCallback(() => {
+    if (!gameStateRef.current || gameStateRef.current.gameStatus !== GameStatus.PLAYING) return;
 
     const gameState = gameStateRef.current;
-    const pacman = gameState.pacman;
-
+    
     gameState.ghosts.forEach(ghost => {
-      // Check if ghost and Pac-Man are on the same position
-      if (ghost.x === pacman.x && ghost.y === pacman.y) {
-        if (ghost.mode === 'frightened') {
-          // Pac-Man eats ghost
-          ghost.mode = 'chase';
-          ghost.color = ghost.baseColor; // Restore original color
-          ghost.stuckCounter = 0;
-          ghost.lastPositions = [];
-          
-          // Teleport ghost back to center
-          ghost.x = 16;
-          ghost.y = 9;
-          
-          gameState.score += 200;
-          setScore(gameState.score);
-          console.log('👻 Ghost eaten! Score:', gameState.score, 'Ghost color restored to:', ghost.baseColor);
-        } else {
-          // Ghost kills Pac-Man
-          gameState.lives--;
-          setLives(gameState.lives);
-          console.log('💀 Pac-Man died! Lives remaining:', gameState.lives);
-          
-          if (gameState.lives <= 0) {
-            console.log('💀 Game Over!');
-            endGame();
-          } else {
-            // Reset positions
-            pacman.x = 16;
-            pacman.y = 15;
-            pacman.direction = DIRECTIONS.LEFT;
-            pacman.nextDirection = null;
-            
-            // Reset ghosts to original positions and states
-            gameState.ghosts.forEach((g, i) => {
-              g.x = 16;
-              g.y = 9 + (i % 2);
-              g.mode = 'chase';
-              g.color = g.baseColor;
-              g.stuckCounter = 0;
-              g.lastPositions = [];
-            });
-            
-            // Clear power mode
-            gameState.powerMode = false;
-            gameState.powerModeTimer = 0;
-            setPowerModeDisplay(false);
-            setPowerTimeLeft(0);
-          }
+      // Update ghost AI
+      const updatedGhost = GhostAI.updateGhost(
+        ghost, 
+        gameState.player, 
+        gameState.ghosts,
+        gameState.currentMode,
+        gameState.powerMode
+      );
+      
+      Object.assign(ghost, updatedGhost);
+
+      // Move ghost if it has a next direction
+      if (ghost.nextDirection) {
+        const newPos = getNextPosition(ghost.position, ghost.nextDirection);
+        
+        // Handle tunnel wrapping
+        if (newPos.x < 0) newPos.x = GAME_CONFIG.MAZE_WIDTH - 1;
+        if (newPos.x >= GAME_CONFIG.MAZE_WIDTH) newPos.x = 0;
+
+        const allowGhostHouse = ghost.mode === GhostMode.EATEN || 
+                               ghost.mode === GhostMode.EXITING_HOUSE || 
+                               ghost.isInHouse;
+        
+        if (isValidPosition(newPos.x, newPos.y) || 
+            (allowGhostHouse && MAZE_LAYOUT[newPos.y] && MAZE_LAYOUT[newPos.y][newPos.x] === 4)) {
+          ghost.position = newPos;
+          ghost.direction = ghost.nextDirection;
+          ghost.nextDirection = null;
         }
       }
     });
   }, []);
 
-  // Update power mode timer - CRITICAL: Must be in game loop for proper timing
+  // Update game mode (scatter/chase)
+  const updateGameMode = useCallback(() => {
+    if (!gameStateRef.current) return;
+    
+    const gameState = gameStateRef.current;
+    gameState.modeTimer += GAME_CONFIG.GAME_SPEED;
+    
+    if (gameState.currentMode === 'scatter' && gameState.modeTimer >= GAME_CONFIG.SCATTER_DURATION) {
+      gameState.currentMode = 'chase';
+      gameState.modeTimer = 0;
+    } else if (gameState.currentMode === 'chase' && gameState.modeTimer >= GAME_CONFIG.CHASE_DURATION) {
+      gameState.currentMode = 'scatter';
+      gameState.modeTimer = 0;
+    }
+  }, []);
+
+  // Update power mode
   const updatePowerMode = useCallback(() => {
     if (!gameStateRef.current) return;
 
     const gameState = gameStateRef.current;
     
     if (gameState.powerMode && gameState.powerModeTimer > 0) {
-      gameState.powerModeTimer--;
+      gameState.powerModeTimer -= GAME_CONFIG.GAME_SPEED;
       
-      // Update display timer
-      const secondsLeft = Math.ceil(gameState.powerModeTimer / 60);
-      setPowerTimeLeft(secondsLeft);
-      
-      // Handle blinking effect in last 60 frames (1 second)
-      const isBlinkingPhase = gameState.powerModeTimer <= 60;
+      const secondsLeft = Math.ceil(gameState.powerModeTimer / 1000);
+      setPowerTimeLeft(Math.max(0, secondsLeft));
       
       if (gameState.powerModeTimer <= 0) {
-        // Power mode expired - reset ALL ghosts immediately
+        // Power mode expired
         gameState.powerMode = false;
         setPowerModeDisplay(false);
         setPowerTimeLeft(0);
-        
-        gameState.ghosts.forEach(ghost => {
-          ghost.mode = 'chase';
-          ghost.color = ghost.baseColor; // Restore original color
-          ghost.stuckCounter = 0;
-          ghost.lastPositions = [];
-          console.log('👻 Ghost returned to chase mode, color:', ghost.baseColor);
-        });
-        console.log('💪 Power mode ended - ALL ghosts now chasing with original colors');
+        console.log('💪 Power mode ended - all ghosts return to normal behavior');
       }
     }
   }, []);
 
-  // Render game with improved graphics
-  const render = useCallback(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx || !gameStateRef.current) return;
-
-    // Clear canvas
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Check collisions
+  const checkCollisions = useCallback(() => {
+    if (!gameStateRef.current || gameStateRef.current.gameStatus !== GameStatus.PLAYING) return;
 
     const gameState = gameStateRef.current;
+    const player = gameState.player;
 
-    // Draw maze
-    ctx.fillStyle = '#0000FF';
-    for (let y = 0; y < MAZE.length; y++) {
-      for (let x = 0; x < MAZE[y].length; x++) {
-        if (MAZE[y][x] === 1) { // wall
-          ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-        }
-      }
-    }
-
-    // Draw pellets
-    ctx.fillStyle = '#FFFF00';
-    for (let y = 0; y < gameState.pellets.length; y++) {
-      for (let x = 0; x < gameState.pellets[y].length; x++) {
-        if (gameState.pellets[y][x]) {
-          ctx.beginPath();
-          ctx.arc(
-            x * CELL_SIZE + CELL_SIZE / 2,
-            y * CELL_SIZE + CELL_SIZE / 2,
-            2,
-            0,
-            Math.PI * 2
-          );
-          ctx.fill();
-        }
-      }
-    }
-
-    // Draw power pellets (💩) - larger and animated
-    const time = Date.now() / 300;
-    for (let y = 0; y < gameState.powerPellets.length; y++) {
-      for (let x = 0; x < gameState.powerPellets[y].length; x++) {
-        if (gameState.powerPellets[y][x]) {
-          const size = CELL_SIZE - 4 + Math.sin(time) * 2;
-          ctx.font = `${size}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(
-            '💩',
-            x * CELL_SIZE + CELL_SIZE / 2,
-            y * CELL_SIZE + CELL_SIZE / 2
-          );
-        }
-      }
-    }
-
-    // Draw ghosts with improved graphics
     gameState.ghosts.forEach(ghost => {
-      const centerX = ghost.x * CELL_SIZE + CELL_SIZE / 2;
-      const centerY = ghost.y * CELL_SIZE + CELL_SIZE / 2;
-      
-      // Determine if ghost should blink (last second of power mode)
-      const shouldBlink = gameState.powerMode && gameState.powerModeTimer <= 60 && 
-                         Math.floor(Date.now() / 200) % 2 === 0;
-      
-      if (ghost.mode === 'frightened') {
-        // Draw frightened ghost - blue with white when blinking
-        ctx.fillStyle = shouldBlink ? '#FFFFFF' : '#0000FF';
-        
-        // Ghost body
-        ctx.beginPath();
-        ctx.arc(centerX, centerY - 3, CELL_SIZE / 2 - 1, Math.PI, 0, false);
-        ctx.lineTo(centerX + CELL_SIZE / 2 - 1, centerY + CELL_SIZE / 2 - 1);
-        ctx.lineTo(centerX + 4, centerY + CELL_SIZE / 2 - 1);
-        ctx.lineTo(centerX + 2, centerY + 4);
-        ctx.lineTo(centerX, centerY + CELL_SIZE / 2 - 1);
-        ctx.lineTo(centerX - 2, centerY + 4);
-        ctx.lineTo(centerX - 4, centerY + CELL_SIZE / 2 - 1);
-        ctx.lineTo(centerX - CELL_SIZE / 2 + 1, centerY + CELL_SIZE / 2 - 1);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Frightened eyes
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(centerX - 6, centerY - 6, 4, 4);
-        ctx.fillRect(centerX + 2, centerY - 6, 4, 4);
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(centerX - 5, centerY - 5, 2, 2);
-        ctx.fillRect(centerX + 3, centerY - 5, 2, 2);
-        
-        // Frightened mouth
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(centerX - 4, centerY + 2, 2, 2);
-        ctx.fillRect(centerX - 1, centerY + 2, 2, 2);
-        ctx.fillRect(centerX + 2, centerY + 2, 2, 2);
-      } else {
-        // Draw normal colored ghost
-        ctx.fillStyle = ghost.color;
-        
-        // Ghost body
-        ctx.beginPath();
-        ctx.arc(centerX, centerY - 3, CELL_SIZE / 2 - 1, Math.PI, 0, false);
-        ctx.lineTo(centerX + CELL_SIZE / 2 - 1, centerY + CELL_SIZE / 2 - 1);
-        ctx.lineTo(centerX + 4, centerY + CELL_SIZE / 2 - 1);
-        ctx.lineTo(centerX + 2, centerY + 4);
-        ctx.lineTo(centerX, centerY + CELL_SIZE / 2 - 1);
-        ctx.lineTo(centerX - 2, centerY + 4);
-        ctx.lineTo(centerX - 4, centerY + CELL_SIZE / 2 - 1);
-        ctx.lineTo(centerX - CELL_SIZE / 2 + 1, centerY + CELL_SIZE / 2 - 1);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Eyes
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath();
-        ctx.arc(centerX - 4, centerY - 4, 3, 0, Math.PI * 2);
-        ctx.arc(centerX + 4, centerY - 4, 3, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Pupils - look toward Pac-Man for better AI visual feedback
-        const pacman = gameState.pacman;
-        const dx = pacman.x - ghost.x;
-        const dy = pacman.y - ghost.y;
-        const pupilOffsetX = Math.sign(dx) * 1;
-        const pupilOffsetY = Math.sign(dy) * 1;
-        
-        ctx.fillStyle = '#000000';
-        ctx.beginPath();
-        ctx.arc(centerX - 4 + pupilOffsetX, centerY - 4 + pupilOffsetY, 1.5, 0, Math.PI * 2);
-        ctx.arc(centerX + 4 + pupilOffsetX, centerY - 4 + pupilOffsetY, 1.5, 0, Math.PI * 2);
-        ctx.fill();
+      if (ghost.position.x === player.position.x && ghost.position.y === player.position.y) {
+        if (ghost.mode === GhostMode.FRIGHTENED) {
+          // Player eats ghost
+          ghost.mode = GhostMode.EATEN;
+          
+          // Score based on consecutive ghosts eaten
+          const points = 200 * Math.pow(2, gameState.ghostEatenCount);
+          gameState.score += points;
+          gameState.ghostEatenCount++;
+          
+          setScore(gameState.score);
+          console.log(`👻 Ghost eaten! +${points} points. Total ghosts eaten: ${gameState.ghostEatenCount}`);
+        } else if (ghost.mode !== GhostMode.EATEN) {
+          // Ghost kills player
+          gameState.lives--;
+          setLives(gameState.lives);
+          console.log('💀 Player killed! Lives remaining:', gameState.lives);
+          
+          if (gameState.lives <= 0) {
+            endGame();
+          } else {
+            resetPositions();
+          }
+        }
       }
     });
-
-    // Draw Pac-Man with animated mouth
-    const pacman = gameState.pacman;
-    ctx.fillStyle = '#FFFF00';
-    ctx.beginPath();
-    
-    // Determine mouth direction and create animated mouth
-    const mouthAnimation = Math.sin(Date.now() / 100) * 0.3 + 0.3;
-    let startAngle = 0.2 * Math.PI * mouthAnimation;
-    let endAngle = (2 - 0.2 * mouthAnimation) * Math.PI;
-    
-    if (pacman.direction === DIRECTIONS.RIGHT) {
-      startAngle = 0.2 * Math.PI * mouthAnimation;
-      endAngle = (2 - 0.2 * mouthAnimation) * Math.PI;
-    } else if (pacman.direction === DIRECTIONS.LEFT) {
-      startAngle = (1 + 0.2 * mouthAnimation) * Math.PI;
-      endAngle = (1 - 0.2 * mouthAnimation) * Math.PI;
-    } else if (pacman.direction === DIRECTIONS.UP) {
-      startAngle = (1.5 + 0.2 * mouthAnimation) * Math.PI;
-      endAngle = (1.5 - 0.2 * mouthAnimation) * Math.PI;
-    } else if (pacman.direction === DIRECTIONS.DOWN) {
-      startAngle = (0.5 + 0.2 * mouthAnimation) * Math.PI;
-      endAngle = (0.5 - 0.2 * mouthAnimation) * Math.PI;
-    }
-    
-    ctx.arc(
-      pacman.x * CELL_SIZE + CELL_SIZE / 2,
-      pacman.y * CELL_SIZE + CELL_SIZE / 2,
-      CELL_SIZE / 2 - 2,
-      startAngle,
-      endAngle
-    );
-    ctx.lineTo(
-      pacman.x * CELL_SIZE + CELL_SIZE / 2,
-      pacman.y * CELL_SIZE + CELL_SIZE / 2
-    );
-    ctx.fill();
   }, []);
+
+  // Reset positions after player death
+  const resetPositions = () => {
+    if (!gameStateRef.current) return;
+    
+    const gameState = gameStateRef.current;
+    
+    // Reset player
+    gameState.player.position = { x: 16, y: 17 };
+    gameState.player.direction = Direction.LEFT;
+    gameState.player.nextDirection = null;
+    
+    // Reset ghosts
+    gameState.ghosts = GhostAI.initializeGhosts();
+    
+    // Clear power mode
+    gameState.powerMode = false;
+    gameState.powerModeTimer = 0;
+    setPowerModeDisplay(false);
+    setPowerTimeLeft(0);
+  };
+
+  // Level complete
+  const levelComplete = () => {
+    if (!gameStateRef.current) return;
+    
+    const gameState = gameStateRef.current;
+    gameState.gameStatus = GameStatus.LEVEL_COMPLETE;
+    gameState.level++;
+    setLevel(gameState.level);
+    
+    // Bonus points for completing level
+    gameState.score += 1000 * gameState.level;
+    setScore(gameState.score);
+    
+    console.log(`🏆 Level ${gameState.level - 1} complete! Bonus: ${1000 * gameState.level} points`);
+    
+    // Start next level after delay
+    setTimeout(() => {
+      initializeGame();
+      if (gameStateRef.current) {
+        gameStateRef.current.level = gameState.level;
+        gameStateRef.current.score = gameState.score;
+        gameStateRef.current.lives = gameState.lives;
+        setLevel(gameState.level);
+        setScore(gameState.score);
+      }
+    }, 2000);
+  };
 
   // End game
   const endGame = useCallback(async () => {
     if (!gameStateRef.current) return;
 
     console.log('🏁 Ending game...');
-    gameStateRef.current.gameRunning = false;
-    gameStateRef.current.gameOver = true;
+    gameStateRef.current.gameStatus = GameStatus.GAME_OVER;
     setGameStarted(false);
     setPowerModeDisplay(false);
 
@@ -677,11 +363,10 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
     const finalScore = gameStateRef.current.score;
     
-    // Calculate credits earned
-    const creditsEarned = Math.floor(finalScore / 100); // 1 credit per 100 points
+    // Calculate credits earned (1 credit per 500 points + level bonus)
+    const creditsEarned = Math.floor(finalScore / 500) + (gameStateRef.current.level - 1) * 2;
 
     try {
-      // Record game session
       await createGameSession.mutateAsync({
         user_id: user.id,
         score: finalScore,
@@ -691,23 +376,24 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         pipes_passed: 0,
         metadata: {
           game_type: 'miss_poopee_man',
+          level: gameStateRef.current.level,
           lives_remaining: gameStateRef.current.lives,
-          level_completed: gameStateRef.current.pellets.flat().filter(p => p).length === 0
+          pellets_eaten: Math.floor(finalScore / 10),
+          level_completed: gameStateRef.current.gameStatus === GameStatus.LEVEL_COMPLETE
         }
       });
 
-      // Award credits if earned
       if (creditsEarned > 0) {
         await earnCredits.mutateAsync({
           userId: user.id,
           amount: creditsEarned,
-          description: `Miss POOPEE-Man game completed - ${finalScore} points`,
+          description: `Miss POOPEE-Man completed - Level ${gameStateRef.current.level}, ${finalScore} points`,
         });
       }
 
       toast({
         title: "Game Complete!",
-        description: `Score: ${finalScore}${creditsEarned > 0 ? ` | Earned ${creditsEarned} credits` : ''}`
+        description: `Level ${gameStateRef.current.level} | Score: ${finalScore}${creditsEarned > 0 ? ` | Earned ${creditsEarned} credits` : ''}`
       });
 
       onGameEnd(finalScore, duration);
@@ -721,24 +407,198 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     }
   }, [user.id, createGameSession, earnCredits, onGameEnd, toast]);
 
-  // Game loop with proper timing
+  // Game loop
   const gameLoop = useCallback(() => {
-    if (!gameStateRef.current?.gameRunning) return;
+    if (!gameStateRef.current || gameStateRef.current.gameStatus !== GameStatus.PLAYING) return;
 
     const now = Date.now();
     
-    // Move every 150ms for smooth gameplay
-    if (now - lastMoveTimeRef.current > 150) {
-      movePacMan();
+    if (now - gameStateRef.current.lastMoveTime >= GAME_CONFIG.GAME_SPEED) {
+      movePlayer();
       moveGhosts();
-      checkCollisions(); // CRITICAL: Check collisions after movement
-      updatePowerMode(); // CRITICAL: Update power mode in game loop for proper timing
-      lastMoveTimeRef.current = now;
+      updateGameMode();
+      updatePowerMode();
+      checkCollisions();
+      gameStateRef.current.lastMoveTime = now;
     }
 
     render();
     animationRef.current = requestAnimationFrame(gameLoop);
-  }, [render, movePacMan, moveGhosts, checkCollisions, updatePowerMode]);
+  }, [movePlayer, moveGhosts, updateGameMode, updatePowerMode, checkCollisions]);
+
+  // Render game
+  const render = useCallback(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx || !gameStateRef.current) return;
+
+    const gameState = gameStateRef.current;
+
+    // Clear canvas
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw maze walls
+    ctx.fillStyle = '#0000FF';
+    for (let y = 0; y < MAZE_LAYOUT.length; y++) {
+      for (let x = 0; x < MAZE_LAYOUT[y].length; x++) {
+        if (MAZE_LAYOUT[y][x] === 0) { // wall
+          ctx.fillRect(x * GAME_CONFIG.CELL_SIZE, y * GAME_CONFIG.CELL_SIZE, GAME_CONFIG.CELL_SIZE, GAME_CONFIG.CELL_SIZE);
+        }
+      }
+    }
+
+    // Draw pellets
+    ctx.fillStyle = '#FFFF00';
+    for (let y = 0; y < gameState.pellets.length; y++) {
+      for (let x = 0; x < gameState.pellets[y].length; x++) {
+        if (gameState.pellets[y][x]) {
+          ctx.beginPath();
+          ctx.arc(
+            x * GAME_CONFIG.CELL_SIZE + GAME_CONFIG.CELL_SIZE / 2,
+            y * GAME_CONFIG.CELL_SIZE + GAME_CONFIG.CELL_SIZE / 2,
+            2,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        }
+      }
+    }
+
+    // Draw power pellets
+    const time = Date.now() / 300;
+    for (let y = 0; y < gameState.powerPellets.length; y++) {
+      for (let x = 0; x < gameState.powerPellets[y].length; x++) {
+        if (gameState.powerPellets[y][x]) {
+          const size = GAME_CONFIG.CELL_SIZE - 4 + Math.sin(time) * 2;
+          ctx.font = `${size}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(
+            '💩',
+            x * GAME_CONFIG.CELL_SIZE + GAME_CONFIG.CELL_SIZE / 2,
+            y * GAME_CONFIG.CELL_SIZE + GAME_CONFIG.CELL_SIZE / 2
+          );
+        }
+      }
+    }
+
+    // Draw ghosts
+    gameState.ghosts.forEach(ghost => {
+      const centerX = ghost.position.x * GAME_CONFIG.CELL_SIZE + GAME_CONFIG.CELL_SIZE / 2;
+      const centerY = ghost.position.y * GAME_CONFIG.CELL_SIZE + GAME_CONFIG.CELL_SIZE / 2;
+      
+      if (ghost.mode === GhostMode.EATEN) {
+        // Draw eyes only
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(centerX - 4, centerY, 3, 0, Math.PI * 2);
+        ctx.arc(centerX + 4, centerY, 3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(centerX - 4, centerY, 1.5, 0, Math.PI * 2);
+        ctx.arc(centerX + 4, centerY, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Determine if ghost should blink during power mode
+        const shouldBlink = gameState.powerMode && gameState.powerModeTimer <= 1000 && 
+                           Math.floor(Date.now() / 200) % 2 === 0;
+        
+        if (ghost.mode === GhostMode.FRIGHTENED) {
+          ctx.fillStyle = shouldBlink ? '#FFFFFF' : '#0000FF';
+        } else {
+          ctx.fillStyle = ghost.color;
+        }
+        
+        // Draw ghost body
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - 3, GAME_CONFIG.CELL_SIZE / 2 - 1, Math.PI, 0, false);
+        ctx.lineTo(centerX + GAME_CONFIG.CELL_SIZE / 2 - 1, centerY + GAME_CONFIG.CELL_SIZE / 2 - 1);
+        ctx.lineTo(centerX + 4, centerY + GAME_CONFIG.CELL_SIZE / 2 - 1);
+        ctx.lineTo(centerX + 2, centerY + 4);
+        ctx.lineTo(centerX, centerY + GAME_CONFIG.CELL_SIZE / 2 - 1);
+        ctx.lineTo(centerX - 2, centerY + 4);
+        ctx.lineTo(centerX - 4, centerY + GAME_CONFIG.CELL_SIZE / 2 - 1);
+        ctx.lineTo(centerX - GAME_CONFIG.CELL_SIZE / 2 + 1, centerY + GAME_CONFIG.CELL_SIZE / 2 - 1);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Draw eyes
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(centerX - 4, centerY - 4, 3, 0, Math.PI * 2);
+        ctx.arc(centerX + 4, centerY - 4, 3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        if (ghost.mode === GhostMode.FRIGHTENED) {
+          // Frightened eyes
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(centerX - 6, centerY - 6, 4, 4);
+          ctx.fillRect(centerX + 2, centerY - 6, 4, 4);
+          ctx.fillRect(centerX - 4, centerY + 2, 2, 2);
+          ctx.fillRect(centerX - 1, centerY + 2, 2, 2);
+          ctx.fillRect(centerX + 2, centerY + 2, 2, 2);
+        } else {
+          // Normal eyes looking toward player
+          const dx = gameState.player.position.x - ghost.position.x;
+          const dy = gameState.player.position.y - ghost.position.y;
+          const pupilOffsetX = Math.sign(dx) * 1;
+          const pupilOffsetY = Math.sign(dy) * 1;
+          
+          ctx.fillStyle = '#000000';
+          ctx.beginPath();
+          ctx.arc(centerX - 4 + pupilOffsetX, centerY - 4 + pupilOffsetY, 1.5, 0, Math.PI * 2);
+          ctx.arc(centerX + 4 + pupilOffsetX, centerY - 4 + pupilOffsetY, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    });
+
+    // Draw Pac-Man
+    const player = gameState.player;
+    ctx.fillStyle = '#FFFF00';
+    ctx.beginPath();
+    
+    const mouthAnimation = Math.sin(Date.now() / 100) * 0.3 + 0.3;
+    let startAngle = 0.2 * Math.PI * mouthAnimation;
+    let endAngle = (2 - 0.2 * mouthAnimation) * Math.PI;
+    
+    // Adjust mouth direction based on movement
+    switch (player.direction) {
+      case Direction.RIGHT:
+        startAngle = 0.2 * Math.PI * mouthAnimation;
+        endAngle = (2 - 0.2 * mouthAnimation) * Math.PI;
+        break;
+      case Direction.LEFT:
+        startAngle = (1 + 0.2 * mouthAnimation) * Math.PI;
+        endAngle = (1 - 0.2 * mouthAnimation) * Math.PI;
+        break;
+      case Direction.UP:
+        startAngle = (1.5 + 0.2 * mouthAnimation) * Math.PI;
+        endAngle = (1.5 - 0.2 * mouthAnimation) * Math.PI;
+        break;
+      case Direction.DOWN:
+        startAngle = (0.5 + 0.2 * mouthAnimation) * Math.PI;
+        endAngle = (0.5 - 0.2 * mouthAnimation) * Math.PI;
+        break;
+    }
+    
+    ctx.arc(
+      player.position.x * GAME_CONFIG.CELL_SIZE + GAME_CONFIG.CELL_SIZE / 2,
+      player.position.y * GAME_CONFIG.CELL_SIZE + GAME_CONFIG.CELL_SIZE / 2,
+      GAME_CONFIG.CELL_SIZE / 2 - 2,
+      startAngle,
+      endAngle
+    );
+    ctx.lineTo(
+      player.position.x * GAME_CONFIG.CELL_SIZE + GAME_CONFIG.CELL_SIZE / 2,
+      player.position.y * GAME_CONFIG.CELL_SIZE + GAME_CONFIG.CELL_SIZE / 2
+    );
+    ctx.fill();
+  }, []);
 
   // Start game
   const startGame = useCallback(async () => {
@@ -750,12 +610,10 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         description: "Miss POOPEE-Man game entry fee"
       });
 
-      console.log('💳 Credit spent, initializing game...');
       initializeGame();
       startTimeRef.current = Date.now();
       setGameStarted(true);
 
-      // Start game loop
       setTimeout(() => {
         gameLoop();
       }, 100);
@@ -777,41 +635,40 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
   // Handle keyboard input
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
-      if (!gameStarted || !gameStateRef.current?.gameRunning) return;
+      if (!gameStarted || !gameStateRef.current || gameStateRef.current.gameStatus !== GameStatus.PLAYING) return;
 
       const gameState = gameStateRef.current;
-      let newDirection = null;
+      let newDirection: Direction | null = null;
 
       switch (event.key) {
         case 'ArrowUp':
         case 'w':
         case 'W':
           event.preventDefault();
-          newDirection = DIRECTIONS.UP;
+          newDirection = Direction.UP;
           break;
         case 'ArrowDown':
         case 's':
         case 'S':
           event.preventDefault();
-          newDirection = DIRECTIONS.DOWN;
+          newDirection = Direction.DOWN;
           break;
         case 'ArrowLeft':
         case 'a':
         case 'A':
           event.preventDefault();
-          newDirection = DIRECTIONS.LEFT;
+          newDirection = Direction.LEFT;
           break;
         case 'ArrowRight':
         case 'd':
         case 'D':
           event.preventDefault();
-          newDirection = DIRECTIONS.RIGHT;
+          newDirection = Direction.RIGHT;
           break;
       }
 
       if (newDirection) {
-        // Queue the direction change
-        gameState.pacman.nextDirection = newDirection;
+        gameState.player.nextDirection = newDirection;
       }
     };
 
@@ -824,15 +681,15 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    canvas.width = MAZE_WIDTH * CELL_SIZE;
-    canvas.height = MAZE_HEIGHT * CELL_SIZE;
+    canvas.width = GAME_CONFIG.MAZE_WIDTH * GAME_CONFIG.CELL_SIZE;
+    canvas.height = GAME_CONFIG.MAZE_HEIGHT * GAME_CONFIG.CELL_SIZE;
     
     if (gameStarted) {
       render();
     }
   }, [gameStarted, render]);
 
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
       if (animationRef.current) {
@@ -870,18 +727,21 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
       <div className="mb-4 flex gap-8 text-white">
         <div className="text-lg">Score: {score}</div>
         <div className="text-lg">Lives: {lives}</div>
+        <div className="text-lg">Level: {level}</div>
         {powerModeDisplay && (
           <div className="text-lg text-blue-400 font-bold animate-pulse">
             POWER MODE! ({powerTimeLeft}s)
           </div>
         )}
-        <div className="text-sm text-gray-400">Use arrow keys or WASD to control direction</div>
       </div>
       <canvas
         ref={canvasRef}
         className="border border-gray-600 bg-black"
         style={{ imageRendering: 'pixelated' }}
       />
+      <div className="mt-2 text-sm text-gray-400 text-center">
+        Use arrow keys or WASD to control direction
+      </div>
       <Button 
         onClick={endGame}
         variant="outline"
