@@ -8,32 +8,46 @@ export class GameRenderer {
   private animationFrame: number = 0;
 
   constructor(canvas: HTMLCanvasElement) {
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Could not get canvas context');
-    this.ctx = context;
     this.canvas = canvas;
     
-    // Set canvas size with increased cell size
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Could not get canvas 2D context');
+    }
+    this.ctx = context;
+    
+    // Set canvas size with proper cell size
     this.canvas.width = MAZE_WIDTH * CELL_SIZE;
     this.canvas.height = MAZE_HEIGHT * CELL_SIZE;
     
-    // Enable smooth rendering
-    this.ctx.imageSmoothingEnabled = true;
+    // Configure canvas for better rendering
+    this.ctx.imageSmoothingEnabled = false; // Pixel-perfect rendering
+    this.ctx.textBaseline = 'top';
     
     console.log('🎨 GameRenderer initialized:', this.canvas.width, 'x', this.canvas.height);
+    
+    // Test render to verify canvas is working
+    this.ctx.fillStyle = '#000000';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.fillText('Game Loading...', 10, 10);
   }
 
   public render(gameState: GameState): void {
-    this.animationFrame++;
-    this.clearCanvas();
-    
-    this.renderMaze(gameState.maze);
-    this.renderPlayer(gameState.player);
-    this.renderGhosts(gameState.ghosts);
-    this.renderUI(gameState);
-    
-    if (gameState.powerMode.active) {
-      this.renderPowerModeEffect();
+    try {
+      this.animationFrame++;
+      this.clearCanvas();
+      
+      this.renderMaze(gameState.maze);
+      this.renderPlayer(gameState.player);
+      this.renderGhosts(gameState.ghosts);
+      this.renderUI(gameState);
+      
+      if (gameState.powerMode.active) {
+        this.renderPowerModeEffect();
+      }
+    } catch (error) {
+      console.error('❌ Error in render:', error);
     }
   }
 
@@ -50,27 +64,33 @@ export class GameRenderer {
         const cellY = y * CELL_SIZE;
         
         if (cell.type === 'wall') {
-          this.ctx.fillStyle = '#2563eb'; // Blue walls
+          // Enhanced wall rendering with 3D effect
+          this.ctx.fillStyle = '#2563eb';
           this.ctx.fillRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
           
-          // Add 3D effect border
-          this.ctx.strokeStyle = '#3b82f6';
-          this.ctx.lineWidth = 2;
-          this.ctx.strokeRect(cellX + 1, cellY + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+          // Add 3D border effect
+          this.ctx.fillStyle = '#3b82f6';
+          this.ctx.fillRect(cellX, cellY, CELL_SIZE, 2);
+          this.ctx.fillRect(cellX, cellY, 2, CELL_SIZE);
+          
+          this.ctx.fillStyle = '#1e40af';
+          this.ctx.fillRect(cellX + CELL_SIZE - 2, cellY, 2, CELL_SIZE);
+          this.ctx.fillRect(cellX, cellY + CELL_SIZE - 2, CELL_SIZE, 2);
         } else if (cell.type === 'pellet') {
+          // Regular pellets - bright yellow
           this.ctx.fillStyle = '#fbbf24';
           this.ctx.beginPath();
           this.ctx.arc(
             cellX + CELL_SIZE / 2,
             cellY + CELL_SIZE / 2,
-            4,
+            3,
             0,
             Math.PI * 2
           );
           this.ctx.fill();
         } else if (cell.type === 'powerPellet') {
-          // Animated power pellet
-          const pulseSize = 8 + Math.sin(this.animationFrame * 0.2) * 3;
+          // Animated power pellets - larger and pulsing
+          const pulseSize = 8 + Math.sin(this.animationFrame * 0.15) * 2;
           this.ctx.fillStyle = '#f59e0b';
           this.ctx.beginPath();
           this.ctx.arc(
@@ -84,12 +104,12 @@ export class GameRenderer {
           
           // Add glow effect
           this.ctx.shadowColor = '#f59e0b';
-          this.ctx.shadowBlur = 10;
+          this.ctx.shadowBlur = 15;
           this.ctx.beginPath();
           this.ctx.arc(
             cellX + CELL_SIZE / 2,
             cellY + CELL_SIZE / 2,
-            pulseSize,
+            pulseSize - 2,
             0,
             Math.PI * 2
           );
@@ -103,12 +123,14 @@ export class GameRenderer {
   private renderPlayer(player: GameState['player']): void {
     const centerX = player.position.x * CELL_SIZE + CELL_SIZE / 2;
     const centerY = player.position.y * CELL_SIZE + CELL_SIZE / 2;
+    const radius = CELL_SIZE / 2 - 4;
     
+    // Player body - bright yellow
     this.ctx.fillStyle = '#eab308';
     this.ctx.beginPath();
     
-    // Animated mouth based on direction
-    const mouthAnimation = (Math.sin(this.animationFrame * 0.3) + 1) * 0.4;
+    // Animated mouth based on direction and time
+    const mouthAnimation = (Math.sin(this.animationFrame * 0.25) + 1) * 0.3;
     let startAngle = 0;
     let endAngle = Math.PI * 2;
     
@@ -126,80 +148,133 @@ export class GameRenderer {
       endAngle = -Math.PI / 2 - mouthAnimation;
     }
     
-    this.ctx.arc(centerX, centerY, CELL_SIZE / 2 - 3, startAngle, endAngle);
+    this.ctx.arc(centerX, centerY, radius, startAngle, endAngle);
     this.ctx.lineTo(centerX, centerY);
     this.ctx.fill();
+    
+    // Add subtle outline
+    this.ctx.strokeStyle = '#ca8a04';
+    this.ctx.lineWidth = 2;
+    this.ctx.stroke();
   }
 
   private renderGhosts(ghosts: Ghost[]): void {
     ghosts.forEach(ghost => {
       const centerX = ghost.position.x * CELL_SIZE + CELL_SIZE / 2;
       const centerY = ghost.position.y * CELL_SIZE + CELL_SIZE / 2;
+      const radius = CELL_SIZE / 2 - 4;
       
-      // Ghost body
+      // Ghost body with rounded top
       this.ctx.fillStyle = ghost.color;
       this.ctx.beginPath();
-      this.ctx.arc(centerX, centerY - 4, CELL_SIZE / 2 - 3, Math.PI, 0);
-      this.ctx.lineTo(centerX + CELL_SIZE / 2 - 3, centerY + CELL_SIZE / 2 - 3);
+      this.ctx.arc(centerX, centerY - 2, radius, Math.PI, 0);
+      this.ctx.lineTo(centerX + radius, centerY + radius);
       
       // Ghost bottom with wavy pattern
-      for (let i = 0; i < 4; i++) {
-        const waveX = centerX + (i - 2) * 6;
-        const waveY = centerY + CELL_SIZE / 2 - 3 + Math.sin(this.animationFrame * 0.1 + i) * 3;
+      const waveCount = 4;
+      for (let i = 0; i <= waveCount; i++) {
+        const waveX = centerX - radius + (i * (radius * 2) / waveCount);
+        const waveY = centerY + radius + Math.sin(this.animationFrame * 0.1 + i) * 3;
         this.ctx.lineTo(waveX, waveY);
       }
       
-      this.ctx.lineTo(centerX - CELL_SIZE / 2 + 3, centerY + CELL_SIZE / 2 - 3);
+      this.ctx.lineTo(centerX - radius, centerY + radius);
       this.ctx.closePath();
       this.ctx.fill();
       
-      // Ghost eyes
+      // Ghost eyes - larger and more expressive
       this.ctx.fillStyle = '#ffffff';
       this.ctx.beginPath();
-      this.ctx.arc(centerX - 6, centerY - 6, 4, 0, Math.PI * 2);
-      this.ctx.arc(centerX + 6, centerY - 6, 4, 0, Math.PI * 2);
+      this.ctx.arc(centerX - 8, centerY - 8, 5, 0, Math.PI * 2);
+      this.ctx.arc(centerX + 8, centerY - 8, 5, 0, Math.PI * 2);
       this.ctx.fill();
       
       // Pupils
       this.ctx.fillStyle = '#000000';
       this.ctx.beginPath();
-      this.ctx.arc(centerX - 6, centerY - 6, 2, 0, Math.PI * 2);
-      this.ctx.arc(centerX + 6, centerY - 6, 2, 0, Math.PI * 2);
+      this.ctx.arc(centerX - 8, centerY - 8, 2, 0, Math.PI * 2);
+      this.ctx.arc(centerX + 8, centerY - 8, 2, 0, Math.PI * 2);
       this.ctx.fill();
+      
+      // Add outline for better visibility
+      this.ctx.strokeStyle = '#000000';
+      this.ctx.lineWidth = 1;
+      this.ctx.beginPath();
+      this.ctx.arc(centerX, centerY - 2, radius, Math.PI, 0);
+      this.ctx.stroke();
     });
   }
 
   private renderUI(gameState: GameState): void {
+    // Score display - top left
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    this.ctx.fillRect(5, 5, 150, 25);
+    
     this.ctx.fillStyle = '#ffffff';
-    this.ctx.font = 'bold 18px Arial';
+    this.ctx.font = 'bold 16px Arial';
     this.ctx.textAlign = 'left';
+    this.ctx.fillText(`Score: ${gameState.score}`, 10, 8);
     
-    // Score
-    this.ctx.fillText(`Score: ${gameState.score}`, 10, 25);
+    // Lives display - top left below score
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    this.ctx.fillRect(5, 35, 150, 25);
     
-    // Lives
-    this.ctx.fillText(`Lives: ${gameState.lives}`, 10, 50);
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.fillText(`Lives: ${gameState.lives}`, 10, 38);
     
-    // Level
-    this.ctx.fillText(`Level: ${gameState.level}`, 10, 75);
+    // Level display - top left below lives
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    this.ctx.fillRect(5, 65, 150, 25);
     
-    // Progress
-    const progress = Math.round((gameState.pellets.collected / gameState.pellets.total) * 100);
-    this.ctx.fillText(`Progress: ${progress}%`, 10, 100);
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.fillText(`Level: ${gameState.level}`, 10, 68);
     
-    // Power mode timer
+    // Progress bar - top right
+    const progressWidth = 200;
+    const progressHeight = 20;
+    const progressX = this.canvas.width - progressWidth - 10;
+    const progressY = 10;
+    const progressPercent = gameState.pellets.collected / gameState.pellets.total;
+    
+    // Progress background
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    this.ctx.fillRect(progressX - 5, progressY - 5, progressWidth + 10, progressHeight + 10);
+    
+    // Progress bar background
+    this.ctx.fillStyle = '#333333';
+    this.ctx.fillRect(progressX, progressY, progressWidth, progressHeight);
+    
+    // Progress bar fill
+    this.ctx.fillStyle = '#4ade80';
+    this.ctx.fillRect(progressX, progressY, progressWidth * progressPercent, progressHeight);
+    
+    // Progress text
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = 'bold 12px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText(
+      `${gameState.pellets.collected}/${gameState.pellets.total}`,
+      progressX + progressWidth / 2,
+      progressY + 6
+    );
+    
+    // Power mode indicator
     if (gameState.powerMode.active) {
       const timeLeft = Math.ceil(gameState.powerMode.timeLeft / 60);
-      this.ctx.fillStyle = '#00ffff';
+      this.ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
       this.ctx.font = 'bold 24px Arial';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText(`POWER MODE! ${timeLeft}s`, this.canvas.width / 2, 30);
+      this.ctx.fillText(
+        `POWER MODE! ${timeLeft}s`,
+        this.canvas.width / 2,
+        50
+      );
     }
   }
 
   private renderPowerModeEffect(): void {
     // Screen flash effect during power mode
-    const alpha = 0.1 + Math.sin(this.animationFrame * 0.2) * 0.05;
+    const alpha = 0.05 + Math.sin(this.animationFrame * 0.2) * 0.03;
     this.ctx.fillStyle = `rgba(0, 255, 255, ${alpha})`;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
