@@ -84,17 +84,17 @@ export enum GameStatus {
 }
 
 export enum CellType {
-  WALL = 0,
-  PELLET = 1,
-  POWER_PELLET = 2,
-  EMPTY = 3,
-  GHOST_HOUSE = 4
+  WALL = 1,           // Blue walls
+  PELLET = 0,         // Regular pellets (yellow dots)
+  POWER_PELLET = 2,   // Power pellets (💩)
+  EMPTY = 3,          // Empty space (no pellet)
+  GHOST_HOUSE = 4     // Ghost house area
 }
 
 export const GAME_CONFIG: GameConfig = {
   CELL_SIZE: 20,
   MAZE_WIDTH: 33,
-  MAZE_HEIGHT: 21,
+  MAZE_HEIGHT: 23,
   GAME_SPEED: 120, // milliseconds per move
   POWER_MODE_DURATION: 3000, // 3 seconds
   SCATTER_DURATION: 7000, // 7 seconds

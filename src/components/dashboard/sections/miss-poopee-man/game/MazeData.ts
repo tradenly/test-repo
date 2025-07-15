@@ -1,7 +1,7 @@
 
 import { CellType } from './GameTypes';
 
-// Optimized 33x21 maze layout for proper Pac-Man gameplay
+// Proper Pac-Man style maze layout (33x23) with open pathways and tunnels
 export const MAZE_LAYOUT = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
   [1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1],
