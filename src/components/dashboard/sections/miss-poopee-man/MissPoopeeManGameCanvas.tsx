@@ -32,9 +32,7 @@ export const MissPoopeeManGameCanvas = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size
-    canvas.width = isMobile ? 400 : 600;
-    canvas.height = isMobile ? 500 : 600;
+    // Canvas size will be set by the engine based on maze dimensions
 
     try {
       gameRef.current = new MissPoopeeManEngine(

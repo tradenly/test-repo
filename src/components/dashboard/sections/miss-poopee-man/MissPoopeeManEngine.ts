@@ -35,12 +35,16 @@ export class MissPoopeeManEngine {
   private pelletsCollected = 0;
   private gameStartTime = 0;
   private powerPelletTime = 0;
+  private powerPelletMaxTime = 600; // 10 seconds at 60fps
   private eventListeners: (() => void)[] = [];
+  private lastMoveTime = 0;
+  private moveInterval = 150; // milliseconds between moves
+  private ghostsEaten = 0;
   
   private cellSize = 20;
   private maze: number[][] = [];
-  private mazeWidth = 0;
-  private mazeHeight = 0;
+  private mazeWidth = 21;
+  private mazeHeight = 21;
   
   private onGameEnd: (score: number, pelletsCount: number, duration: number) => void;
   private onScoreUpdate: (score: number) => void;
@@ -63,8 +67,9 @@ export class MissPoopeeManEngine {
   }
 
   private initializeGame() {
-    this.mazeWidth = Math.floor(this.canvas.width / this.cellSize);
-    this.mazeHeight = Math.floor(this.canvas.height / this.cellSize);
+    // Set canvas size to fit the maze
+    this.canvas.width = this.mazeWidth * this.cellSize;
+    this.canvas.height = this.mazeHeight * this.cellSize;
     
     this.createMaze();
     this.createPlayer();
@@ -73,68 +78,57 @@ export class MissPoopeeManEngine {
   }
 
   private createMaze() {
-    // Create a simple maze pattern
-    // 0 = empty path, 1 = wall, 2 = pellet, 3 = power pellet
-    this.maze = Array(this.mazeHeight).fill(null).map(() => Array(this.mazeWidth).fill(0));
+    // Classic Pac-Man style maze layout
+    // 0 = empty path, 1 = wall, 2 = pellet, 3 = power pellet, 4 = ghost house
+    const mazeLayout = [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,3,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,3,1],
+      [1,2,1,1,1,2,1,1,1,2,1,2,1,1,1,2,1,1,1,2,1],
+      [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+      [1,2,1,1,1,2,1,2,1,1,1,1,1,2,1,2,1,1,1,2,1],
+      [1,2,2,2,2,2,1,2,2,2,1,2,2,2,1,2,2,2,2,2,1],
+      [1,1,1,1,1,2,1,1,1,0,1,0,1,1,1,2,1,1,1,1,1],
+      [1,1,1,1,1,2,1,0,0,0,0,0,0,0,1,2,1,1,1,1,1],
+      [1,1,1,1,1,2,1,0,1,4,4,4,1,0,1,2,1,1,1,1,1],
+      [0,0,0,0,0,2,0,0,1,4,4,4,1,0,0,2,0,0,0,0,0],
+      [1,1,1,1,1,2,1,0,1,4,4,4,1,0,1,2,1,1,1,1,1],
+      [1,1,1,1,1,2,1,0,0,0,0,0,0,0,1,2,1,1,1,1,1],
+      [1,1,1,1,1,2,1,1,1,0,1,0,1,1,1,2,1,1,1,1,1],
+      [1,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1],
+      [1,2,1,1,1,2,1,1,1,2,1,2,1,1,1,2,1,1,1,2,1],
+      [1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1],
+      [1,1,1,2,1,2,1,2,1,1,1,1,1,2,1,2,1,2,1,1,1],
+      [1,2,2,2,2,2,1,2,2,2,1,2,2,2,1,2,2,2,2,2,1],
+      [1,2,1,1,1,1,1,1,1,2,1,2,1,1,1,1,1,1,1,2,1],
+      [1,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
     
-    // Create border walls
-    for (let y = 0; y < this.mazeHeight; y++) {
-      for (let x = 0; x < this.mazeWidth; x++) {
-        if (x === 0 || x === this.mazeWidth - 1 || y === 0 || y === this.mazeHeight - 1) {
-          this.maze[y][x] = 1;
-        }
-      }
-    }
-    
-    // Add some internal walls
-    for (let y = 2; y < this.mazeHeight - 2; y += 3) {
-      for (let x = 2; x < this.mazeWidth - 2; x += 4) {
-        this.maze[y][x] = 1;
-        this.maze[y][x + 1] = 1;
-        this.maze[y + 1][x] = 1;
-      }
-    }
-    
-    // Add pellets to empty spaces
-    for (let y = 1; y < this.mazeHeight - 1; y++) {
-      for (let x = 1; x < this.mazeWidth - 1; x++) {
-        if (this.maze[y][x] === 0) {
-          // Add power pellets at corners
-          if ((x === 1 || x === this.mazeWidth - 2) && (y === 1 || y === this.mazeHeight - 2)) {
-            this.maze[y][x] = 3;
-          } else if (Math.random() < 0.7) {
-            this.maze[y][x] = 2;
-          }
-        }
-      }
-    }
+    this.maze = mazeLayout.map(row => [...row]);
   }
 
   private createPlayer() {
-    // Place player in a safe spot
+    // Place player in bottom center of maze
     this.player = {
-      x: Math.floor(this.mazeWidth / 2),
-      y: Math.floor(this.mazeHeight / 2),
+      x: 10,
+      y: 15,
       direction: 'right',
       nextDirection: 'right',
       moving: false
     };
-    
-    // Clear the starting position
-    this.maze[this.player.y][this.player.x] = 0;
   }
 
   private createGhosts() {
     const ghostData = [
-      { color: '#FF0000', emoji: '👻' },
-      { color: '#FFB8FF', emoji: '👻' },
-      { color: '#00FFFF', emoji: '👻' },
-      { color: '#FFB852', emoji: '👻' }
+      { color: '#FF0000', emoji: '👻', name: 'Blinky' }, // Red
+      { color: '#FFB8FF', emoji: '👻', name: 'Pinky' }, // Pink
+      { color: '#00FFFF', emoji: '👻', name: 'Inky' }, // Cyan
+      { color: '#FFB852', emoji: '👻', name: 'Clyde' } // Orange
     ];
     
     this.ghosts = ghostData.map((ghost, index) => ({
-      x: Math.floor(this.mazeWidth / 2) + index - 2,
-      y: Math.floor(this.mazeHeight / 2) - 2,
+      x: 9 + index,
+      y: 9,
       direction: ['up', 'down', 'left', 'right'][index] as 'up' | 'down' | 'left' | 'right',
       vulnerable: false,
       color: ghost.color,
@@ -190,10 +184,20 @@ export class MissPoopeeManEngine {
   }
 
   private isValidMove(x: number, y: number): boolean {
+    // Handle tunnel wraparound
+    if (y === 9 && (x < 0 || x >= this.mazeWidth)) {
+      return true;
+    }
+    
     return x >= 0 && x < this.mazeWidth && y >= 0 && y < this.mazeHeight && this.maze[y][x] !== 1;
   }
 
   private updatePlayer() {
+    const currentTime = Date.now();
+    if (currentTime - this.lastMoveTime < this.moveInterval) {
+      return;
+    }
+    
     // Try to change direction if possible
     const nextX = this.player.x + (this.player.nextDirection === 'left' ? -1 : this.player.nextDirection === 'right' ? 1 : 0);
     const nextY = this.player.y + (this.player.nextDirection === 'up' ? -1 : this.player.nextDirection === 'down' ? 1 : 0);
@@ -203,29 +207,70 @@ export class MissPoopeeManEngine {
     }
     
     // Move in current direction
-    const moveX = this.player.x + (this.player.direction === 'left' ? -1 : this.player.direction === 'right' ? 1 : 0);
-    const moveY = this.player.y + (this.player.direction === 'up' ? -1 : this.player.direction === 'down' ? 1 : 0);
+    let moveX = this.player.x + (this.player.direction === 'left' ? -1 : this.player.direction === 'right' ? 1 : 0);
+    let moveY = this.player.y + (this.player.direction === 'up' ? -1 : this.player.direction === 'down' ? 1 : 0);
+    
+    // Handle tunnel wraparound
+    if (moveY === 9 && moveX < 0) {
+      moveX = this.mazeWidth - 1;
+    } else if (moveY === 9 && moveX >= this.mazeWidth) {
+      moveX = 0;
+    }
     
     if (this.isValidMove(moveX, moveY)) {
       this.player.x = moveX;
       this.player.y = moveY;
       this.player.moving = true;
+      this.lastMoveTime = currentTime;
     } else {
       this.player.moving = false;
     }
   }
 
   private updateGhosts() {
-    this.ghosts.forEach(ghost => {
-      // Simple AI: random direction changes
-      if (Math.random() < 0.1) {
-        const directions: ('up' | 'down' | 'left' | 'right')[] = ['up', 'down', 'left', 'right'];
-        ghost.direction = directions[Math.floor(Math.random() * directions.length)];
+    const currentTime = Date.now();
+    if (currentTime - this.lastMoveTime < this.moveInterval) {
+      return;
+    }
+    
+    this.ghosts.forEach((ghost, index) => {
+      // Better AI: choose direction based on player position when not vulnerable
+      if (!ghost.vulnerable && Math.random() < 0.3) {
+        const directions: ('up' | 'down' | 'left' | 'right')[] = [];
+        
+        // Add directions that move towards player
+        if (this.player.x > ghost.x) directions.push('right');
+        if (this.player.x < ghost.x) directions.push('left');
+        if (this.player.y > ghost.y) directions.push('down');
+        if (this.player.y < ghost.y) directions.push('up');
+        
+        if (directions.length > 0) {
+          ghost.direction = directions[Math.floor(Math.random() * directions.length)];
+        }
+      } else if (ghost.vulnerable && Math.random() < 0.2) {
+        // Run away from player when vulnerable
+        const directions: ('up' | 'down' | 'left' | 'right')[] = [];
+        
+        if (this.player.x > ghost.x) directions.push('left');
+        if (this.player.x < ghost.x) directions.push('right');
+        if (this.player.y > ghost.y) directions.push('up');
+        if (this.player.y < ghost.y) directions.push('down');
+        
+        if (directions.length > 0) {
+          ghost.direction = directions[Math.floor(Math.random() * directions.length)];
+        }
       }
       
       // Move ghost
-      const moveX = ghost.x + (ghost.direction === 'left' ? -1 : ghost.direction === 'right' ? 1 : 0);
-      const moveY = ghost.y + (ghost.direction === 'up' ? -1 : ghost.direction === 'down' ? 1 : 0);
+      let moveX = ghost.x + (ghost.direction === 'left' ? -1 : ghost.direction === 'right' ? 1 : 0);
+      let moveY = ghost.y + (ghost.direction === 'up' ? -1 : ghost.direction === 'down' ? 1 : 0);
+      
+      // Handle tunnel wraparound
+      if (moveY === 9 && moveX < 0) {
+        moveX = this.mazeWidth - 1;
+      } else if (moveY === 9 && moveX >= this.mazeWidth) {
+        moveX = 0;
+      }
       
       if (this.isValidMove(moveX, moveY)) {
         ghost.x = moveX;
@@ -247,7 +292,8 @@ export class MissPoopeeManEngine {
         
         if (pellet.isPowerPellet) {
           this.score += 50;
-          this.powerPelletTime = 300; // 5 seconds at 60fps
+          this.powerPelletTime = this.powerPelletMaxTime;
+          this.ghostsEaten = 0;
           this.ghosts.forEach(ghost => {
             ghost.vulnerable = true;
           });
@@ -263,13 +309,15 @@ export class MissPoopeeManEngine {
     this.ghosts.forEach(ghost => {
       if (ghost.x === this.player.x && ghost.y === this.player.y) {
         if (ghost.vulnerable) {
-          // Eat ghost
-          this.score += 200;
+          // Eat ghost with increasing points
+          this.ghostsEaten++;
+          const points = 200 * Math.pow(2, this.ghostsEaten - 1);
+          this.score += points;
           this.onScoreUpdate(this.score);
           ghost.vulnerable = false;
-          // Respawn ghost (simple implementation)
-          ghost.x = Math.floor(this.mazeWidth / 2);
-          ghost.y = Math.floor(this.mazeHeight / 2) - 2;
+          // Respawn ghost in ghost house
+          ghost.x = 10;
+          ghost.y = 9;
         } else {
           // Game over
           this.gameOver();
@@ -316,23 +364,45 @@ export class MissPoopeeManEngine {
     // Draw pellets
     this.pellets.forEach(pellet => {
       if (!pellet.collected) {
-        this.ctx.fillStyle = pellet.isPowerPellet ? '#FFFF00' : '#FFFFFF';
-        const radius = pellet.isPowerPellet ? 6 : 2;
-        this.ctx.beginPath();
-        this.ctx.arc(
-          pellet.x * this.cellSize + this.cellSize / 2,
-          pellet.y * this.cellSize + this.cellSize / 2,
-          radius,
-          0,
-          Math.PI * 2
-        );
-        this.ctx.fill();
+        if (pellet.isPowerPellet) {
+          // Draw power pellet as 💩 emoji
+          this.ctx.font = `${this.cellSize - 4}px Arial`;
+          this.ctx.textAlign = 'center';
+          this.ctx.fillText(
+            '💩',
+            pellet.x * this.cellSize + this.cellSize / 2,
+            pellet.y * this.cellSize + this.cellSize - 2
+          );
+        } else {
+          // Draw regular pellet as small white dot
+          this.ctx.fillStyle = '#FFFFFF';
+          this.ctx.beginPath();
+          this.ctx.arc(
+            pellet.x * this.cellSize + this.cellSize / 2,
+            pellet.y * this.cellSize + this.cellSize / 2,
+            2,
+            0,
+            Math.PI * 2
+          );
+          this.ctx.fill();
+        }
       }
     });
     
     // Draw ghosts
     this.ghosts.forEach(ghost => {
-      this.ctx.fillStyle = ghost.vulnerable ? '#0000FF' : ghost.color;
+      if (ghost.vulnerable) {
+        // Show blinking effect when power pellet is about to end
+        const blinkThreshold = 120; // 2 seconds
+        if (this.powerPelletTime > blinkThreshold || Math.floor(this.powerPelletTime / 10) % 2 === 0) {
+          this.ctx.fillStyle = '#0000FF';
+        } else {
+          this.ctx.fillStyle = '#FFFFFF';
+        }
+      } else {
+        this.ctx.fillStyle = ghost.color;
+      }
+      
       this.ctx.font = `${this.cellSize - 2}px Arial`;
       this.ctx.textAlign = 'center';
       this.ctx.fillText(
