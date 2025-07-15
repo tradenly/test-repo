@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSpendCredits, useEarnCredits } from '@/hooks/useCreditOperations';
@@ -41,6 +42,8 @@ interface Ghost {
   lastDirection: { x: number; y: number } | null;
   stuckCounter: number;
   target: Position | null;
+  homeCorner: Position; // Each ghost has a home corner for scatter mode
+  lastValidDirections: { x: number; y: number }[];
 }
 
 interface GameState {
@@ -111,7 +114,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
       }
     }
 
-    // Initialize ghosts with better spawn positions and AI
+    // Initialize ghosts with proper home corners and spawn positions
     const ghosts: Ghost[] = [
       { 
         x: 16, y: 9, 
@@ -123,7 +126,9 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         respawnTimer: 0,
         lastDirection: null,
         stuckCounter: 0,
-        target: null
+        target: null,
+        homeCorner: { x: 32, y: 0 }, // Top right
+        lastValidDirections: []
       },
       { 
         x: 16, y: 10, 
@@ -135,7 +140,9 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         respawnTimer: 0,
         lastDirection: null,
         stuckCounter: 0,
-        target: null
+        target: null,
+        homeCorner: { x: 0, y: 0 }, // Top left
+        lastValidDirections: []
       },
       { 
         x: 15, y: 10, 
@@ -147,7 +154,9 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         respawnTimer: 0,
         lastDirection: null,
         stuckCounter: 0,
-        target: null
+        target: null,
+        homeCorner: { x: 0, y: 20 }, // Bottom left
+        lastValidDirections: []
       },
       { 
         x: 17, y: 10, 
@@ -159,7 +168,9 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         respawnTimer: 0,
         lastDirection: null,
         stuckCounter: 0,
-        target: null
+        target: null,
+        homeCorner: { x: 32, y: 20 }, // Bottom right
+        lastValidDirections: []
       }
     ];
 
@@ -179,7 +190,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     setScore(0);
     setLives(3);
     lastMoveTimeRef.current = Date.now();
-    console.log('Game initialized with improved mechanics and wider maze');
+    console.log('🎮 Game initialized with improved ghost AI and proper power mode mechanics');
   }, []);
 
   // Check if position is valid (not a wall)
@@ -188,32 +199,23 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     return MAZE[y][x] !== 1;
   };
 
-  // Get valid directions from a position, avoiding reverse if possible
-  const getValidDirections = (x: number, y: number, currentDir: { x: number; y: number } | null = null) => {
+  // Get valid directions from a position
+  const getValidDirections = (x: number, y: number) => {
     const allDirections = [DIRECTIONS.UP, DIRECTIONS.DOWN, DIRECTIONS.LEFT, DIRECTIONS.RIGHT];
-    const validDirections = allDirections.filter(dir => isValidPosition(x + dir.x, y + dir.y));
-    
-    // If we have more than one option, avoid reversing direction
-    if (validDirections.length > 1 && currentDir) {
-      const reverseDir = { x: -currentDir.x, y: -currentDir.y };
-      const nonReverseDirections = validDirections.filter(dir => 
-        !(dir.x === reverseDir.x && dir.y === reverseDir.y)
-      );
-      
-      if (nonReverseDirections.length > 0) {
-        return nonReverseDirections;
-      }
-    }
-    
-    return validDirections;
+    return allDirections.filter(dir => isValidPosition(x + dir.x, y + dir.y));
   };
 
-  // Calculate distance between two points
+  // Calculate distance between two points (Manhattan distance)
   const calculateDistance = (pos1: Position, pos2: Position) => {
     return Math.abs(pos1.x - pos2.x) + Math.abs(pos1.y - pos2.y);
   };
 
-  // Improved ghost AI
+  // Get opposite direction
+  const getOppositeDirection = (direction: { x: number; y: number }) => {
+    return { x: -direction.x, y: -direction.y };
+  };
+
+  // Advanced ghost AI with proper pathfinding
   const moveGhosts = useCallback(() => {
     if (!gameStateRef.current?.gameRunning) return;
 
@@ -231,69 +233,100 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
           ghost.x = 16;
           ghost.y = 9;
           ghost.stuckCounter = 0;
-          console.log('Ghost respawned');
+          ghost.lastValidDirections = [];
+          console.log('👻 Ghost respawned and ready to chase');
         }
         return;
       }
 
-      const validDirections = getValidDirections(ghost.x, ghost.y, ghost.direction);
+      const validDirections = getValidDirections(ghost.x, ghost.y);
       if (validDirections.length === 0) return;
 
+      // Remove reverse direction unless it's the only option
+      const nonReverseDirections = validDirections.filter(dir => {
+        const opposite = getOppositeDirection(ghost.direction);
+        return !(dir.x === opposite.x && dir.y === opposite.y);
+      });
+
+      const directionsToConsider = nonReverseDirections.length > 0 ? nonReverseDirections : validDirections;
+
       let bestDirection = ghost.direction;
-      
-      // Check if ghost is stuck (moving back and forth)
-      if (ghost.lastDirection && 
-          ghost.direction.x === -ghost.lastDirection.x && 
-          ghost.direction.y === -ghost.lastDirection.y) {
-        ghost.stuckCounter++;
-      } else {
-        ghost.stuckCounter = 0;
+
+      // Detect if ghost is stuck (oscillating between two positions)
+      ghost.lastValidDirections.push({ ...ghost.direction });
+      if (ghost.lastValidDirections.length > 4) {
+        ghost.lastValidDirections.shift();
       }
 
-      // If stuck for too long, choose a random direction to break free
-      if (ghost.stuckCounter > 3) {
-        const randomDirections = validDirections.filter(dir => 
+      // Check for oscillation pattern
+      const isOscillating = ghost.lastValidDirections.length === 4 &&
+        ghost.lastValidDirections[0].x === ghost.lastValidDirections[2].x &&
+        ghost.lastValidDirections[0].y === ghost.lastValidDirections[2].y &&
+        ghost.lastValidDirections[1].x === ghost.lastValidDirections[3].x &&
+        ghost.lastValidDirections[1].y === ghost.lastValidDirections[3].y;
+
+      if (isOscillating) {
+        ghost.stuckCounter += 3; // Penalize oscillation heavily
+        console.log('👻 Ghost oscillation detected, breaking pattern');
+      }
+
+      if (ghost.stuckCounter > 5) {
+        // Force a random direction to break free
+        const randomDirections = directionsToConsider.filter(dir => 
           !(dir.x === ghost.direction.x && dir.y === ghost.direction.y)
         );
         if (randomDirections.length > 0) {
           bestDirection = randomDirections[Math.floor(Math.random() * randomDirections.length)];
           ghost.stuckCounter = 0;
-          console.log('Ghost broke free from being stuck');
+          ghost.lastValidDirections = [];
+          console.log('👻 Ghost broke free from stuck state');
         }
       } else if (ghost.frightened) {
-        // Frightened mode: run away from Pac-Man
-        const awayDirections = validDirections.filter(dir => {
+        // FRIGHTENED MODE: Run away from Pac-Man
+        const awayDirections = directionsToConsider.map(dir => {
           const newX = ghost.x + dir.x;
           const newY = ghost.y + dir.y;
-          const currentDist = calculateDistance({ x: ghost.x, y: ghost.y }, pacman);
-          const newDist = calculateDistance({ x: newX, y: newY }, pacman);
-          return newDist > currentDist;
-        });
-        
-        if (awayDirections.length > 0) {
-          bestDirection = awayDirections[Math.floor(Math.random() * awayDirections.length)];
-        } else {
-          // If can't move away, pick a random direction
-          bestDirection = validDirections[Math.floor(Math.random() * validDirections.length)];
-        }
+          const distanceFromPacman = calculateDistance({ x: newX, y: newY }, pacman);
+          return { direction: dir, distance: distanceFromPacman };
+        }).sort((a, b) => b.distance - a.distance); // Sort by distance descending
+
+        bestDirection = awayDirections[0].direction;
+        console.log('😱 Ghost running away from Pac-Man');
       } else {
-        // Chase mode: move toward Pac-Man with better pathfinding
-        bestDirection = validDirections.reduce((best, dir) => {
+        // CHASE MODE: Move toward Pac-Man using proper pathfinding
+        let targetPosition = { x: pacman.x, y: pacman.y };
+
+        // Each ghost has slightly different targeting
+        if (ghost.color === '#FFB8FF') { // Pink ghost - target 4 cells ahead of Pac-Man
+          targetPosition = {
+            x: Math.max(0, Math.min(MAZE_WIDTH - 1, pacman.x + pacman.direction.x * 4)),
+            y: Math.max(0, Math.min(MAZE_HEIGHT - 1, pacman.y + pacman.direction.y * 4))
+          };
+        } else if (ghost.color === '#00FFFF') { // Cyan ghost - ambush behavior
+          const distanceFromPacman = calculateDistance({ x: ghost.x, y: ghost.y }, pacman);
+          if (distanceFromPacman > 8) {
+            targetPosition = { x: pacman.x, y: pacman.y };
+          } else {
+            targetPosition = ghost.homeCorner; // Retreat to corner when close
+          }
+        } else if (ghost.color === '#FFB852') { // Orange ghost - conditional chase
+          const distanceFromPacman = calculateDistance({ x: ghost.x, y: ghost.y }, pacman);
+          targetPosition = distanceFromPacman > 8 ? { x: pacman.x, y: pacman.y } : ghost.homeCorner;
+        }
+
+        // Find best direction toward target
+        const targetDirections = directionsToConsider.map(dir => {
           const newX = ghost.x + dir.x;
           const newY = ghost.y + dir.y;
-          const bestX = ghost.x + best.x;
-          const bestY = ghost.y + best.y;
-          
-          const newDistance = calculateDistance({ x: newX, y: newY }, pacman);
-          const bestDistance = calculateDistance({ x: bestX, y: bestY }, pacman);
-          
-          return newDistance < bestDistance ? dir : best;
-        });
+          const distanceToTarget = calculateDistance({ x: newX, y: newY }, targetPosition);
+          return { direction: dir, distance: distanceToTarget };
+        }).sort((a, b) => a.distance - b.distance); // Sort by distance ascending
+
+        bestDirection = targetDirections[0].direction;
+        ghost.target = targetPosition;
       }
 
-      // Store last direction for stuck detection
-      ghost.lastDirection = { ...ghost.direction };
-
+      // Apply movement
       const newX = ghost.x + bestDirection.x;
       const newY = ghost.y + bestDirection.y;
 
@@ -301,6 +334,13 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         ghost.x = newX;
         ghost.y = newY;
         ghost.direction = bestDirection;
+        
+        // Reset stuck counter if moving successfully
+        if (ghost.stuckCounter > 0) {
+          ghost.stuckCounter = Math.max(0, ghost.stuckCounter - 1);
+        }
+      } else {
+        ghost.stuckCounter++;
       }
     });
 
@@ -351,28 +391,29 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         gameState.powerPellets[newY][finalX] = false;
         gameState.score += 50;
         gameState.powerMode = true;
-        gameState.powerModeTimer = 150; // 5 seconds at 30 FPS (reduced from 600)
+        gameState.powerModeTimer = 180; // 3 seconds at 60 FPS
         
-        // Make all ghosts frightened and reverse their direction
+        // Make ALL ghosts frightened and reverse their direction
         gameState.ghosts.forEach(ghost => {
           if (!ghost.eaten) {
             ghost.frightened = true;
             ghost.mode = 'frightened';
-            ghost.stuckCounter = 0; // Reset stuck counter
+            ghost.stuckCounter = 0;
+            ghost.lastValidDirections = [];
             // Reverse direction when becoming frightened
-            ghost.direction = { x: -ghost.direction.x, y: -ghost.direction.y };
+            ghost.direction = getOppositeDirection(ghost.direction);
           }
         });
         
         setScore(gameState.score);
-        console.log('Power mode activated! Duration: 5 seconds');
+        console.log('💩 Power mode activated! All ghosts frightened for 3 seconds');
       }
 
       // Check win condition
       const remainingPellets = gameState.pellets.flat().filter(p => p).length + 
                               gameState.powerPellets.flat().filter(p => p).length;
       if (remainingPellets === 0) {
-        console.log('Level complete!');
+        console.log('🏆 Level complete!');
         endGame();
       }
     }
@@ -395,18 +436,18 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
           ghost.eaten = true;
           ghost.frightened = false;
           ghost.mode = 'chase';
-          ghost.respawnTimer = 180; // 6 seconds at 30 FPS
+          ghost.respawnTimer = 300; // 5 seconds at 60 FPS
           gameState.score += 200;
           setScore(gameState.score);
-          console.log('Ghost eaten! Score:', gameState.score);
+          console.log('👻 Ghost eaten! Score:', gameState.score);
         } else {
           // Ghost kills Pac-Man
           gameState.lives--;
           setLives(gameState.lives);
-          console.log('Pac-Man died! Lives remaining:', gameState.lives);
+          console.log('💀 Pac-Man died! Lives remaining:', gameState.lives);
           
           if (gameState.lives <= 0) {
-            console.log('Game Over!');
+            console.log('💀 Game Over!');
             endGame();
           } else {
             // Reset positions
@@ -424,6 +465,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
               g.respawnTimer = 0;
               g.mode = 'chase';
               g.stuckCounter = 0;
+              g.lastValidDirections = [];
             });
             
             // Clear power mode
@@ -435,23 +477,31 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
     });
   }, []);
 
-  // Handle power mode timer
+  // Handle power mode timer with proper ghost state management
   useEffect(() => {
-    if (!gameStateRef.current?.powerMode) return;
+    if (!gameStateRef.current) return;
 
     const gameState = gameStateRef.current;
-    if (gameState.powerModeTimer > 0) {
+    
+    if (gameState.powerMode && gameState.powerModeTimer > 0) {
       gameState.powerModeTimer--;
+      
+      // Handle blinking effect in last 60 frames (1 second)
+      const isBlinkingPhase = gameState.powerModeTimer <= 60;
+      
       if (gameState.powerModeTimer <= 0) {
+        // Power mode expired - reset ALL ghosts
         gameState.powerMode = false;
         gameState.ghosts.forEach(ghost => {
           if (!ghost.eaten) {
             ghost.frightened = false;
             ghost.mode = 'chase';
-            console.log('Ghost returned to chase mode');
+            ghost.stuckCounter = 0;
+            ghost.lastValidDirections = [];
+            console.log('👻 Ghost returned to chase mode');
           }
         });
-        console.log('Power mode ended');
+        console.log('💪 Power mode ended - all ghosts now chasing');
       }
     }
   });
@@ -523,7 +573,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
       
       if (ghost.frightened) {
         // Draw blue frightened ghost with blinking effect near end
-        const isBlinking = gameState.powerModeTimer <= 60; // Last 2 seconds
+        const isBlinking = gameState.powerModeTimer <= 60; // Last 1 second
         ctx.fillStyle = isBlinking && Math.floor(Date.now() / 200) % 2 ? 
                        '#FFFFFF' : '#0000FF';
         
@@ -634,7 +684,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
   const endGame = useCallback(async () => {
     if (!gameStateRef.current) return;
 
-    console.log('Ending game...');
+    console.log('🏁 Ending game...');
     gameStateRef.current.gameRunning = false;
     gameStateRef.current.gameOver = true;
     setGameStarted(false);
@@ -681,7 +731,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
 
       onGameEnd(finalScore, duration);
     } catch (error) {
-      console.error('Error recording game session:', error);
+      console.error('❌ Error recording game session:', error);
       toast({
         title: "Error",
         description: "Failed to save game results",
@@ -696,7 +746,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
 
     const now = Date.now();
     
-    // Move every 150ms for Pac-Man speed
+    // Move every 150ms for smooth gameplay
     if (now - lastMoveTimeRef.current > 150) {
       movePacMan();
       moveGhosts();
@@ -710,14 +760,14 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
   // Start game
   const startGame = useCallback(async () => {
     try {
-      console.log('Starting game - spending 1 credit...');
+      console.log('🎮 Starting game - spending 1 credit...');
       await spendCredits.mutateAsync({
         userId: user.id,
         amount: 1,
         description: "Miss POOPEE-Man game entry fee"
       });
 
-      console.log('Credit spent, initializing game...');
+      console.log('💳 Credit spent, initializing game...');
       initializeGame();
       startTimeRef.current = Date.now();
       setGameStarted(true);
@@ -732,7 +782,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         description: "Use arrow keys to control Miss POOPEE-Man"
       });
     } catch (error: any) {
-      console.error('Failed to start game:', error);
+      console.error('❌ Failed to start game:', error);
       toast({
         title: "Cannot Start Game",
         description: error.message || "Failed to start game",
@@ -839,7 +889,7 @@ export const SimplePacManGame = ({ user, onGameEnd }: SimplePacManGameProps) => 
         <div className="text-lg">Lives: {lives}</div>
         {gameStateRef.current?.powerMode && (
           <div className="text-lg text-blue-400">
-            POWER MODE! ({Math.ceil(gameStateRef.current.powerModeTimer / 30)}s)
+            POWER MODE! ({Math.ceil(gameStateRef.current.powerModeTimer / 60)}s)
           </div>
         )}
         <div className="text-sm text-gray-400">Use arrow keys or WASD to control direction</div>
