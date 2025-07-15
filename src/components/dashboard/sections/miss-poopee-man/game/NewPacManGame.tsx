@@ -36,11 +36,20 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    canvas.width = MAZE_WIDTH * CELL_SIZE;
-    canvas.height = MAZE_HEIGHT * CELL_SIZE;
+    // Set proper canvas dimensions
+    const canvasWidth = MAZE_WIDTH * CELL_SIZE;
+    const canvasHeight = MAZE_HEIGHT * CELL_SIZE;
+    
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    
+    // Set CSS size to match canvas size
+    canvas.style.width = `${canvasWidth}px`;
+    canvas.style.height = `${canvasHeight}px`;
     
     try {
       gameRendererRef.current = new GameRenderer(canvas);
+      console.log('🎮 Game renderer initialized with canvas size:', canvasWidth, 'x', canvasHeight);
     } catch (error) {
       console.error('Failed to initialize renderer:', error);
     }
@@ -307,20 +316,24 @@ export const NewPacManGame = ({ user, onGameEnd }: NewPacManGameProps) => {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="w-full bg-black flex flex-col items-center justify-center p-4">
+      <CardContent className="p-4">
+        <div className="flex justify-center items-center bg-black rounded-lg p-4">
           <canvas
             ref={canvasRef}
             className="border border-gray-600 rounded"
-            style={{ imageRendering: 'pixelated' }}
+            style={{ 
+              imageRendering: 'pixelated',
+              maxWidth: '100%',
+              height: 'auto'
+            }}
           />
-          
-          {gameState?.gameStatus === 'paused' && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <div className="text-white text-2xl font-bold">PAUSED</div>
-            </div>
-          )}
         </div>
+        
+        {gameState?.gameStatus === 'paused' && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+            <div className="text-white text-2xl font-bold">PAUSED</div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

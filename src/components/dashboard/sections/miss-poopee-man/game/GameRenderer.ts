@@ -10,6 +10,11 @@ export class GameRenderer {
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Could not get canvas context');
     this.ctx = context;
+    
+    // Enable smooth rendering
+    this.ctx.imageSmoothingEnabled = false;
+    
+    console.log('🎨 GameRenderer initialized with canvas dimensions:', canvas.width, 'x', canvas.height);
   }
 
   public render(gameState: GameState): void {
@@ -28,22 +33,26 @@ export class GameRenderer {
   }
 
   private clearCanvas(): void {
-    this.ctx.fillStyle = '#000000';
+    this.ctx.fillStyle = '#000011';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
   private renderMaze(maze: MazeCell[][]): void {
     this.ctx.fillStyle = '#0066FF';
+    this.ctx.strokeStyle = '#0088FF';
+    this.ctx.lineWidth = 1;
     
     maze.forEach((row, y) => {
       row.forEach((cell, x) => {
         if (cell.type === 'wall') {
-          this.ctx.fillRect(
-            x * CELL_SIZE,
-            y * CELL_SIZE,
-            CELL_SIZE,
-            CELL_SIZE
-          );
+          const cellX = x * CELL_SIZE;
+          const cellY = y * CELL_SIZE;
+          
+          // Fill the wall
+          this.ctx.fillRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
+          
+          // Add border for better visibility
+          this.ctx.strokeRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
         }
       });
     });
@@ -58,11 +67,11 @@ export class GameRenderer {
         if (cell.type === 'pellet') {
           this.ctx.fillStyle = '#FFFF00';
           this.ctx.beginPath();
-          this.ctx.arc(centerX, centerY, 2, 0, Math.PI * 2);
+          this.ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
           this.ctx.fill();
         } else if (cell.type === 'powerPellet') {
           // Animated power pellet using emoji
-          const pulseSize = 12 + Math.sin(this.animationFrame * 0.2) * 2;
+          const pulseSize = 16 + Math.sin(this.animationFrame * 0.2) * 3;
           this.ctx.font = `${pulseSize}px Arial`;
           this.ctx.textAlign = 'center';
           this.ctx.textBaseline = 'middle';
@@ -80,7 +89,7 @@ export class GameRenderer {
     this.ctx.beginPath();
     
     // Animated mouth based on direction and animation frame
-    const mouthAnimation = (Math.sin(this.animationFrame * 0.3) + 1) * 0.3;
+    const mouthAnimation = (Math.sin(this.animationFrame * 0.3) + 1) * 0.4;
     let startAngle = 0;
     let endAngle = Math.PI * 2;
     
@@ -154,6 +163,10 @@ export class GameRenderer {
     
     // Level
     this.ctx.fillText(`Level: ${gameState.level}`, 10, 60);
+    
+    // Progress
+    const progress = Math.round((gameState.pellets.collected / gameState.pellets.total) * 100);
+    this.ctx.fillText(`Progress: ${progress}%`, 10, 80);
     
     // Power mode timer
     if (gameState.powerMode.active) {
