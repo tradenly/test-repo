@@ -218,16 +218,18 @@ export class GameRenderer {
     ghosts: Ghost[], 
     pellets: Pellet[], 
     score: number, 
-    cellSize: number
+    cellSize: number,
+    lives: number = 3
   ) {
     // Clear canvas with black background
     this.ctx.fillStyle = '#000000';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     
-    // Render score at the top, above the game area
+    // Render score and lives at the top, above the game area
     this.renderMissPoopeeManScore(score);
+    this.renderMissPoopeeManLives(lives);
     
-    // Offset the game area down to make room for the score
+    // Offset the game area down to make room for the score and lives
     this.ctx.save();
     this.ctx.translate(0, 40); // Move game area down by 40 pixels
     
@@ -362,5 +364,25 @@ export class GameRenderer {
     this.ctx.font = 'bold 24px Arial';
     this.ctx.textAlign = 'left';
     this.ctx.fillText(`Score: ${score}`, 10, 30);
+  }
+
+  private renderMissPoopeeManLives(lives: number) {
+    this.ctx.font = 'bold 16px Arial';
+    this.ctx.fillStyle = '#FFFF00';
+    this.ctx.textAlign = 'left';
+    this.ctx.fillText('Lives:', 250, 25);
+    
+    // Render Pac-Man life icons
+    for (let i = 0; i < lives; i++) {
+      const x = 310 + (i * 25);
+      const y = 16;
+      
+      // Draw mini Pac-Man
+      this.ctx.fillStyle = '#FFFF00';
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, 8, 0.2 * Math.PI, 1.8 * Math.PI);
+      this.ctx.lineTo(x, y);
+      this.ctx.fill();
+    }
   }
 }

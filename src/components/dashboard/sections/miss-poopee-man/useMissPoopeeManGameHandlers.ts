@@ -18,20 +18,22 @@ export const useMissPoopeeManGameHandlers = ({ user, highScore }: UseMissPoopeeM
     try {
       await spendCredits.mutateAsync({
         userId: user.id,
-        amount: 1,
-        description: "Miss POOPEE-Man game play"
+        amount: 3,
+        description: "Miss POOPEE-Man game play (3 lives)"
       });
       
       toast({
         title: "Game Started!",
-        description: "1 credit deducted. Good luck!",
+        description: "3 credits deducted for 3 lives. Good luck!",
+        className: "max-w-xs"
       });
     } catch (error) {
       console.error("Error spending credits:", error);
       toast({
         title: "Error",
         description: "Failed to start game. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
+        className: "max-w-xs"
       });
     }
   };
@@ -41,19 +43,19 @@ export const useMissPoopeeManGameHandlers = ({ user, highScore }: UseMissPoopeeM
       // Calculate credits earned based on performance
       let creditsEarned = 0;
       
-      // Base rewards for pellets collected
-      creditsEarned += pelletsCount * 0.01;
+      // Base rewards for pellets collected (reduced by half)
+      creditsEarned += pelletsCount * 0.005;
       
-      // Performance bonuses
-      if (score >= 50) creditsEarned += 0.1;   // Basic performance
-      if (score >= 100) creditsEarned += 0.2;  // Good performance
-      if (score >= 200) creditsEarned += 0.5;  // Great performance
-      if (score >= 500) creditsEarned += 1;    // Excellent performance
-      if (score >= 1000) creditsEarned += 2;   // Master level
+      // Performance bonuses (reduced by half)
+      if (score >= 50) creditsEarned += 0.05;   // Basic performance
+      if (score >= 100) creditsEarned += 0.1;  // Good performance
+      if (score >= 200) creditsEarned += 0.25;  // Great performance
+      if (score >= 500) creditsEarned += 0.5;    // Excellent performance
+      if (score >= 1000) creditsEarned += 1;   // Master level
       
-      // Bonus for new high score
+      // Bonus for new high score (reduced by half)
       if (score > highScore) {
-        creditsEarned += 1;
+        creditsEarned += 0.5;
       }
       
       // Create game session record
@@ -61,7 +63,7 @@ export const useMissPoopeeManGameHandlers = ({ user, highScore }: UseMissPoopeeM
         user_id: user.id,
         score,
         duration_seconds: duration,
-        credits_spent: 1,
+        credits_spent: 3,
         credits_earned: creditsEarned,
         pipes_passed: pelletsCount, // Repurpose pipes_passed for pellets collected
         metadata: {
@@ -82,11 +84,13 @@ export const useMissPoopeeManGameHandlers = ({ user, highScore }: UseMissPoopeeM
         toast({
           title: "Game Complete!",
           description: `Score: ${score} | Earned: ${creditsEarned.toFixed(2)} credits`,
+          className: "max-w-xs"
         });
       } else {
         toast({
           title: "Game Complete!",
           description: `Score: ${score} | Keep practicing to earn credits!`,
+          className: "max-w-xs"
         });
       }
     } catch (error) {

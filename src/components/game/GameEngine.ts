@@ -30,6 +30,8 @@ export interface Ghost {
   isVulnerable: boolean;
   isBlinking: boolean;
   ai: 'chase' | 'scatter' | 'flee';
+  isInBox?: boolean;
+  releaseTimer?: number;
 }
 
 export interface Pellet {
@@ -470,23 +472,23 @@ export class GameEngine {
       gridY: 21
     };
     
-    // Initialize ghosts with better starting positions to avoid getting stuck
+    // Initialize ghosts in the center box
     this.ghosts = [
       {
-        x: 18 * this.cellSize, y: 9 * this.cellSize, width: this.cellSize, height: this.cellSize,
-        gridX: 18, gridY: 9, direction: 'up', color: '#FF0000', isVulnerable: false, isBlinking: false, ai: 'chase'
+        x: 19 * this.cellSize, y: 11 * this.cellSize, width: this.cellSize, height: this.cellSize,
+        gridX: 19, gridY: 11, direction: 'up', color: '#FF0000', isVulnerable: false, isBlinking: false, ai: 'chase', isInBox: true, releaseTimer: 60
       },
       {
-        x: 21 * this.cellSize, y: 9 * this.cellSize, width: this.cellSize, height: this.cellSize,
-        gridX: 21, gridY: 9, direction: 'down', color: '#FFB6C1', isVulnerable: false, isBlinking: false, ai: 'chase'
+        x: 20 * this.cellSize, y: 11 * this.cellSize, width: this.cellSize, height: this.cellSize,
+        gridX: 20, gridY: 11, direction: 'up', color: '#FFB6C1', isVulnerable: false, isBlinking: false, ai: 'chase', isInBox: true, releaseTimer: 120
       },
       {
-        x: 18 * this.cellSize, y: 13 * this.cellSize, width: this.cellSize, height: this.cellSize,
-        gridX: 18, gridY: 13, direction: 'left', color: '#00FFFF', isVulnerable: false, isBlinking: false, ai: 'chase'
+        x: 19 * this.cellSize, y: 12 * this.cellSize, width: this.cellSize, height: this.cellSize,
+        gridX: 19, gridY: 12, direction: 'up', color: '#00FFFF', isVulnerable: false, isBlinking: false, ai: 'chase', isInBox: true, releaseTimer: 180
       },
       {
-        x: 21 * this.cellSize, y: 13 * this.cellSize, width: this.cellSize, height: this.cellSize,
-        gridX: 21, gridY: 13, direction: 'right', color: '#FFA500', isVulnerable: false, isBlinking: false, ai: 'chase'
+        x: 20 * this.cellSize, y: 12 * this.cellSize, width: this.cellSize, height: this.cellSize,
+        gridX: 20, gridY: 12, direction: 'up', color: '#FFA500', isVulnerable: false, isBlinking: false, ai: 'chase', isInBox: true, releaseTimer: 240
       }
     ];
     
@@ -598,6 +600,32 @@ export class GameEngine {
       this.ghostMoveTimer = 0; // Reset timer
       
       this.ghosts.forEach((ghost, index) => {
+        // Handle ghost release from box
+        if (ghost.isInBox && ghost.releaseTimer !== undefined) {
+          ghost.releaseTimer--;
+          if (ghost.releaseTimer <= 0) {
+            ghost.isInBox = false;
+            // Move ghost to exit position above the box
+            ghost.gridY = 9;
+            ghost.y = ghost.gridY * this.cellSize;
+            ghost.direction = 'up';
+          } else {
+            // Ghost is still in box, just bob up and down
+            if (ghost.releaseTimer % 20 < 10) {
+              if (ghost.gridY > 11) {
+                ghost.gridY--;
+                ghost.y = ghost.gridY * this.cellSize;
+              }
+            } else {
+              if (ghost.gridY < 12) {
+                ghost.gridY++;
+                ghost.y = ghost.gridY * this.cellSize;
+              }
+            }
+            return; // Skip normal movement while in box
+          }
+        }
+        
         // Get possible moves (don't reverse unless stuck)
         const possibleMoves = this.getGhostPossibleMoves(ghost);
         
@@ -928,14 +956,15 @@ export class GameEngine {
         this.renderer.restoreContext(this.hitEffectTime);
       } else {
         // Miss POOPEE-Man render
-        this.renderer.renderMissPoopeeManGame(
-          this.maze, 
-          this.pacman, 
-          this.ghosts, 
-          this.pellets, 
-          this.score, 
-          this.cellSize
-        );
+      this.renderer.renderMissPoopeeManGame(
+        this.maze, 
+        this.pacman, 
+        this.ghosts, 
+        this.pellets, 
+        this.score, 
+        this.cellSize,
+        this.lives
+      );
       }
     } catch (error) {
       console.error("❌ Error in render:", error);
