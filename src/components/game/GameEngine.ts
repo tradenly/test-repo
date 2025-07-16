@@ -472,23 +472,23 @@ export class GameEngine {
       gridY: 21
     };
     
-    // Initialize ghosts in the center box
+    // Initialize ghosts in the center box with proper release timers
     this.ghosts = [
       {
         x: 19 * this.cellSize, y: 11 * this.cellSize, width: this.cellSize, height: this.cellSize,
-        gridX: 19, gridY: 11, direction: 'up', color: '#FF0000', isVulnerable: false, isBlinking: false, ai: 'chase', isInBox: true, releaseTimer: 60
+        gridX: 19, gridY: 11, direction: 'up', color: '#FF0000', isVulnerable: false, isBlinking: false, ai: 'chase', isInBox: true, releaseTimer: 0 // Red ghost leaves immediately
       },
       {
         x: 20 * this.cellSize, y: 11 * this.cellSize, width: this.cellSize, height: this.cellSize,
-        gridX: 20, gridY: 11, direction: 'up', color: '#FFB6C1', isVulnerable: false, isBlinking: false, ai: 'chase', isInBox: true, releaseTimer: 120
+        gridX: 20, gridY: 11, direction: 'up', color: '#FFB6C1', isVulnerable: false, isBlinking: false, ai: 'chase', isInBox: true, releaseTimer: 180 // Pink ghost leaves after 3 seconds
       },
       {
         x: 19 * this.cellSize, y: 12 * this.cellSize, width: this.cellSize, height: this.cellSize,
-        gridX: 19, gridY: 12, direction: 'up', color: '#00FFFF', isVulnerable: false, isBlinking: false, ai: 'chase', isInBox: true, releaseTimer: 180
+        gridX: 19, gridY: 12, direction: 'up', color: '#00FFFF', isVulnerable: false, isBlinking: false, ai: 'chase', isInBox: true, releaseTimer: 300 // Cyan ghost leaves after 5 seconds
       },
       {
         x: 20 * this.cellSize, y: 12 * this.cellSize, width: this.cellSize, height: this.cellSize,
-        gridX: 20, gridY: 12, direction: 'up', color: '#FFA500', isVulnerable: false, isBlinking: false, ai: 'chase', isInBox: true, releaseTimer: 240
+        gridX: 20, gridY: 12, direction: 'up', color: '#FFA500', isVulnerable: false, isBlinking: false, ai: 'chase', isInBox: true, releaseTimer: 420 // Orange ghost leaves after 7 seconds
       }
     ];
     
@@ -601,15 +601,9 @@ export class GameEngine {
       
       this.ghosts.forEach((ghost, index) => {
         // Handle ghost release from box
-        if (ghost.isInBox && ghost.releaseTimer !== undefined) {
-          ghost.releaseTimer--;
-          if (ghost.releaseTimer <= 0) {
-            ghost.isInBox = false;
-            // Move ghost to exit position above the box
-            ghost.gridY = 9;
-            ghost.y = ghost.gridY * this.cellSize;
-            ghost.direction = 'up';
-          } else {
+        if (ghost.isInBox) {
+          if (ghost.releaseTimer > 0) {
+            ghost.releaseTimer--;
             // Ghost is still in box, just bob up and down
             if (ghost.releaseTimer % 20 < 10) {
               if (ghost.gridY > 11) {
@@ -623,6 +617,14 @@ export class GameEngine {
               }
             }
             return; // Skip normal movement while in box
+          } else {
+            // Release the ghost
+            ghost.isInBox = false;
+            // Move ghost to exit position above the box
+            ghost.gridY = 9;
+            ghost.y = ghost.gridY * this.cellSize;
+            ghost.direction = 'up';
+            console.log(`Ghost ${index} released from box`);
           }
         }
         
@@ -721,32 +723,56 @@ export class GameEngine {
   }
   
   private getChaseMove(ghost: Ghost, possibleMoves: Array<{dx: number, dy: number, direction: 'up' | 'down' | 'left' | 'right'}>, ghostIndex: number) {
-    // Different ghost personalities
+    // Different ghost personalities - implement proper Pac-Man AI
     let targetX = this.pacman.gridX;
     let targetY = this.pacman.gridY;
     
     switch (ghostIndex) {
-      case 0: // Red ghost - direct chase
+      case 0: // Red ghost (Blinky) - direct chase
+        // Target Pac-Man directly
         break;
-      case 1: // Pink ghost - target 4 tiles ahead of Pac-Man
+      case 1: // Pink ghost (Pinky) - target 4 tiles ahead of Pac-Man
         switch (this.pacman.direction) {
-          case 'up': targetY -= 4; break;
+          case 'up': 
+            targetY -= 4; 
+            targetX -= 4; // Original bug in Pac-Man game
+            break;
           case 'down': targetY += 4; break;
           case 'left': targetX -= 4; break;
           case 'right': targetX += 4; break;
         }
+        // Clamp to maze bounds
+        targetX = Math.max(0, Math.min(targetX, this.maze[0].length - 1));
+        targetY = Math.max(0, Math.min(targetY, this.maze.length - 1));
         break;
-      case 2: // Cyan ghost - ambush behavior
+      case 2: // Cyan ghost (Inky) - ambush behavior using red ghost position
         const redGhost = this.ghosts[0];
-        const vectorX = this.pacman.gridX - redGhost.gridX;
-        const vectorY = this.pacman.gridY - redGhost.gridY;
-        targetX = this.pacman.gridX + vectorX;
-        targetY = this.pacman.gridY + vectorY;
+        if (redGhost && !redGhost.isInBox) {
+          // Calculate vector from red ghost to 2 tiles ahead of Pac-Man
+          let pacmanTargetX = this.pacman.gridX;
+          let pacmanTargetY = this.pacman.gridY;
+          
+          switch (this.pacman.direction) {
+            case 'up': pacmanTargetY -= 2; break;
+            case 'down': pacmanTargetY += 2; break;
+            case 'left': pacmanTargetX -= 2; break;
+            case 'right': pacmanTargetX += 2; break;
+          }
+          
+          // Double the vector from red ghost to this point
+          const vectorX = pacmanTargetX - redGhost.gridX;
+          const vectorY = pacmanTargetY - redGhost.gridY;
+          targetX = pacmanTargetX + vectorX;
+          targetY = pacmanTargetY + vectorY;
+        }
+        // Clamp to maze bounds
+        targetX = Math.max(0, Math.min(targetX, this.maze[0].length - 1));
+        targetY = Math.max(0, Math.min(targetY, this.maze.length - 1));
         break;
-      case 3: // Orange ghost - chase when far, scatter when close
+      case 3: // Orange ghost (Clyde) - chase when far, scatter when close
         const distance = Math.abs(ghost.gridX - this.pacman.gridX) + Math.abs(ghost.gridY - this.pacman.gridY);
         if (distance < 8) {
-          // Scatter to corner when close
+          // Scatter to bottom-left corner when close
           targetX = 0;
           targetY = this.maze.length - 1;
         }
