@@ -464,7 +464,7 @@ export class GameEngine {
       [1,2,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,2,1],
       [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
       [1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
-      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
       [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
       [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     ];
@@ -481,13 +481,13 @@ export class GameEngine {
       gridY: 21
     };
     
-    // Initialize ghosts with proper AI and release timers
+    // Initialize ghosts with proper sequential release timers
     this.ghosts = [
       {
         x: 19 * this.cellSize, y: 11 * this.cellSize, width: this.cellSize, height: this.cellSize,
         gridX: 19, gridY: 11, direction: 'up', color: '#FF0000', 
         isVulnerable: false, isBlinking: false, ai: 'chase', 
-        isInBox: true, releaseTimer: 0, // Blinky leaves immediately
+        isInBox: false, releaseTimer: 0, // Blinky starts immediately
         homeX: 38, homeY: 1, // Top-right corner for scatter
         mode: 'scatter', modeTimer: 420 // 7 seconds scatter mode
       },
@@ -495,7 +495,7 @@ export class GameEngine {
         x: 20 * this.cellSize, y: 11 * this.cellSize, width: this.cellSize, height: this.cellSize,
         gridX: 20, gridY: 11, direction: 'up', color: '#FFB6C1', 
         isVulnerable: false, isBlinking: false, ai: 'chase', 
-        isInBox: true, releaseTimer: 180, // Pinky leaves after 3 seconds
+        isInBox: true, releaseTimer: 300, // Pinky leaves after 5 seconds
         homeX: 1, homeY: 1, // Top-left corner for scatter
         mode: 'scatter', modeTimer: 420
       },
@@ -503,7 +503,7 @@ export class GameEngine {
         x: 19 * this.cellSize, y: 12 * this.cellSize, width: this.cellSize, height: this.cellSize,
         gridX: 19, gridY: 12, direction: 'up', color: '#00FFFF', 
         isVulnerable: false, isBlinking: false, ai: 'chase', 
-        isInBox: true, releaseTimer: 300, // Inky leaves after 5 seconds
+        isInBox: true, releaseTimer: 600, // Inky leaves after 10 seconds
         homeX: 38, homeY: 21, // Bottom-right corner for scatter
         mode: 'scatter', modeTimer: 420
       },
@@ -511,11 +511,11 @@ export class GameEngine {
         x: 20 * this.cellSize, y: 12 * this.cellSize, width: this.cellSize, height: this.cellSize,
         gridX: 20, gridY: 12, direction: 'up', color: '#FFA500', 
         isVulnerable: false, isBlinking: false, ai: 'chase', 
-        isInBox: true, releaseTimer: 420, // Clyde leaves after 7 seconds
+        isInBox: true, releaseTimer: 900, // Clyde leaves after 15 seconds
         homeX: 1, homeY: 21, // Bottom-left corner for scatter
         mode: 'scatter', modeTimer: 420
       }
-    };
+    ];
     
     console.log("👻 Ghosts initialized with release timers:", this.ghosts.map(g => g.releaseTimer));
     
@@ -693,14 +693,12 @@ export class GameEngine {
             const chaseTarget = this.getGhostChaseTarget(ghost, index);
             targetX = chaseTarget.x;
             targetY = chaseTarget.y;
-            console.log(`👻 Ghost ${index} chasing target: (${targetX}, ${targetY})`);
             break;
             
           case 'scatter':
             // Go to home corner
             targetX = ghost.homeX || 19;
             targetY = ghost.homeY || 11;
-            console.log(`👻 Ghost ${index} scattering to: (${targetX}, ${targetY})`);
             break;
             
           case 'frightened':
@@ -708,7 +706,6 @@ export class GameEngine {
             const fleeTarget = this.getFleeTarget(ghost);
             targetX = fleeTarget.x;
             targetY = fleeTarget.y;
-            console.log(`👻 Ghost ${index} fleeing to: (${targetX}, ${targetY})`);
             break;
             
           case 'eaten':
@@ -1099,15 +1096,15 @@ export class GameEngine {
         this.renderer.restoreContext(this.hitEffectTime);
       } else {
         // Miss POOPEE-Man render
-      this.renderer.renderMissPoopeeManGame(
-        this.maze, 
-        this.pacman, 
-        this.ghosts, 
-        this.pellets, 
-        this.score, 
-        this.cellSize,
-        this.lives
-      );
+        this.renderer.renderMissPoopeeManGame(
+          this.maze, 
+          this.pacman, 
+          this.ghosts, 
+          this.pellets, 
+          this.score, 
+          this.cellSize,
+          this.lives
+        );
       }
     } catch (error) {
       console.error("❌ Error in render:", error);
