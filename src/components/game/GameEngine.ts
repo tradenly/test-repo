@@ -26,6 +26,7 @@ export interface Ghost {
   direction: 'up' | 'down' | 'left' | 'right';
   color: string;
   isVulnerable: boolean;
+  isBlinking: boolean;
   id: number;
 }
 
@@ -465,7 +466,8 @@ export class GameEngine {
       gridY: pos.y,
       direction: pos.direction,
       color: pos.color,
-      isVulnerable: false
+      isVulnerable: false,
+      isBlinking: false
     }));
     
     console.log("👻 SUPER SIMPLE: All 4 ghosts released immediately at corners");
@@ -505,10 +507,26 @@ export class GameEngine {
     // Update power pellet timer
     if (this.vulnerabilityTimer > 0) {
       this.vulnerabilityTimer--;
+      
+      // FIXED: Add blinking logic for vulnerable ghosts in last 2 seconds
+      const isLastTwoSeconds = this.vulnerabilityTimer <= 120; // 2 seconds at 60fps
+      
+      this.ghosts.forEach(ghost => {
+        if (ghost.isVulnerable) {
+          if (isLastTwoSeconds) {
+            // Blink every 30 frames (0.5 seconds)
+            ghost.isBlinking = Math.floor(this.vulnerabilityTimer / 15) % 2 === 0;
+          } else {
+            ghost.isBlinking = false;
+          }
+        }
+      });
+      
       if (this.vulnerabilityTimer <= 0) {
         console.log("⏰ SIMPLE: Vulnerability ended, ghosts back to normal");
         this.ghosts.forEach(ghost => {
           ghost.isVulnerable = false;
+          ghost.isBlinking = false;
         });
       }
     }
@@ -646,6 +664,7 @@ export class GameEngine {
           
           this.ghosts.forEach(ghost => {
             ghost.isVulnerable = true;
+            ghost.isBlinking = false; // Reset blinking when first becoming vulnerable
           });
         } else {
           this.score += 5;
@@ -676,6 +695,7 @@ export class GameEngine {
             ghost.x = 19 * this.cellSize;
             ghost.y = 11 * this.cellSize;
             ghost.isVulnerable = false;
+            ghost.isBlinking = false;
             // Pick random direction
             const directions: ('up' | 'down' | 'left' | 'right')[] = ['up', 'down', 'left', 'right'];
             ghost.direction = directions[Math.floor(Math.random() * directions.length)];
@@ -728,6 +748,7 @@ export class GameEngine {
       ghost.y = pos.y * this.cellSize;
       ghost.direction = pos.direction;
       ghost.isVulnerable = false;
+      ghost.isBlinking = false;
     });
     
     // Reset timers
