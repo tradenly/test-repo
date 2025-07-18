@@ -26,13 +26,6 @@ export interface Ghost {
   direction: 'up' | 'down' | 'left' | 'right';
   color: string;
   isVulnerable: boolean;
-  isBlinking: boolean;
-  mode: 'scatter' | 'chase' | 'frightened' | 'eaten' | 'leaving_house';
-  modeTimer: number;
-  homeX: number;
-  homeY: number;
-  releaseTimer: number;
-  isInBox: boolean;
   id: number;
 }
 
@@ -67,21 +60,14 @@ export class GameEngine {
   private pellets: Pellet[] = [];
   private maze: number[][] = [];
   private vulnerabilityTimer = 0;
-  private blinkTimer = 0;
   private cellSize = 20;
   private keys: { [key: string]: boolean } = {};
   
-  // SIMPLIFIED: Basic movement timing
+  // SIMPLIFIED: Fast movement timing
   private moveTimer = 0;
-  private framesBetweenMoves = 6; // Slightly faster movement
+  private framesBetweenMoves = 4; // Faster Pac-Man movement
   private ghostMoveTimer = 0;
-  private framesBetweenGhostMoves = 8; // Ghost movement timing
-  
-  // SIMPLIFIED: Global mode system
-  private globalModeTimer = 0;
-  private currentGlobalMode: 'scatter' | 'chase' = 'scatter';
-  private scatterTime = 420; // 7 seconds at 60fps
-  private chaseTime = 1200; // 20 seconds at 60fps
+  private framesBetweenGhostMoves = 3; // Very fast ghost movement
   
   // Miss POOPEE-Man specific game state
   private lives = 3;
@@ -133,9 +119,9 @@ export class GameEngine {
 
   private getSpeedMultiplier(): number {
     switch (this.gameSpeed) {
-      case 'beginner': return 0.75; // 3px per frame (slower than original)
-      case 'moderate': return 1.5; // 6px per frame (original fast pace)
-      case 'advanced': return 2.25; // 9px per frame (very fast)
+      case 'beginner': return 0.75;
+      case 'moderate': return 1.5;
+      case 'advanced': return 2.25;
       default: return 1.5;
     }
   }
@@ -167,7 +153,6 @@ export class GameEngine {
         this.canvas.removeEventListener('click', handleClick);
       });
     } else {
-      // Miss POOPEE-Man controls
       const handleKeyDown = (e: KeyboardEvent) => {
         this.keys[e.key] = true;
         
@@ -246,7 +231,6 @@ export class GameEngine {
       this.missiles = [];
       this.pipes.push(this.objectManager.createPipe());
       
-      // CRITICAL: Always reset to the provided starting shields
       this.pipeHitsRemaining = startingShields;
       this.maxShields = startingShields;
       console.log("🔄 Reset complete - shields set to:", this.pipeHitsRemaining, "/", this.maxShields);
@@ -256,7 +240,6 @@ export class GameEngine {
       this.lastMissileTime = 0;
       this.missileWarningTime = 0;
     } else {
-      // Miss POOPEE-Man reset
       this.initializeMissPoopeeMan();
     }
     
@@ -275,8 +258,6 @@ export class GameEngine {
     console.log("  - Shields:", this.pipeHitsRemaining, "/", this.maxShields);
     console.log("  - Speed:", this.gameSpeed, "multiplier:", this.getSpeedMultiplier());
     
-    // CRITICAL: Ensure shields are in sync at start
-    console.log("🛡️ Pre-start shield sync - pipeHitsRemaining:", this.pipeHitsRemaining, "maxShields:", this.maxShields);
     this.pipeHitsRemaining = this.maxShields;
     console.log("🛡️ Post-start shield sync - pipeHitsRemaining:", this.pipeHitsRemaining);
     
@@ -309,29 +290,23 @@ export class GameEngine {
     if (this.gameMode === 'flappy_hippos') {
       this.renderer.updateParallax();
 
-      // Update timers
       if (this.invincibilityTime > 0) this.invincibilityTime--;
       if (this.hitEffectTime > 0) this.hitEffectTime--;
       if (this.missileWarningTime > 0) this.missileWarningTime--;
 
-      // Missile system - 15 seconds
       this.handleMissileSystem(gameTimeElapsed);
 
-      // Update hippo physics
       this.hippo = this.physics.updateHippo(this.hippo, this.canvas.height);
       this.hippo = this.physics.handleCeilingBounce(this.hippo);
 
-      // Update game objects
       this.updateGameObjects();
       this.checkCollisions();
     } else {
-      // Miss POOPEE-Man update
       this.updateMissPoopeeMan();
     }
   }
 
   private handleMissileSystem(gameTimeElapsed: number) {
-    // Spawn missiles every 15 seconds
     if (gameTimeElapsed >= 15000 && this.lastMissileTime === 0) {
       this.missiles.push(this.objectManager.createMissile());
       this.lastMissileTime = gameTimeElapsed;
@@ -342,11 +317,10 @@ export class GameEngine {
       console.log("🚀 Missile spawned at", gameTimeElapsed / 1000, "seconds, total missiles:", this.missiles.length);
     }
 
-    // Missile warning - 2 seconds before missile
     const timeSinceLastMissile = gameTimeElapsed - this.lastMissileTime;
     const timeToNextMissile = 15000 - timeSinceLastMissile;
     if (timeToNextMissile <= 2000 && timeToNextMissile > 0 && this.missileWarningTime <= 0) {
-      this.missileWarningTime = 120; // 2 seconds at 60fps
+      this.missileWarningTime = 120;
       console.log("⚠️ Missile warning activated - next missile in", timeToNextMissile / 1000, "seconds");
     }
   }
@@ -355,7 +329,6 @@ export class GameEngine {
     const speedMultiplier = this.getSpeedMultiplier();
     console.log("🏃 Updating objects with speed multiplier:", speedMultiplier, "for speed:", this.gameSpeed);
     
-    // Update pipes with speed-adjusted movement (base speed 4px)
     this.pipes.forEach(pipe => {
       pipe.x -= 4 * speedMultiplier;
       
@@ -363,7 +336,7 @@ export class GameEngine {
         this.score += 1;
         this.pipesPassedCount += 1;
         this.onScoreUpdate(this.score);
-        pipe.hit = true; // Mark as scored to prevent double counting
+        pipe.hit = true;
         console.log("📈 Score increased:", this.score);
       }
     });
@@ -377,14 +350,12 @@ export class GameEngine {
   }
 
   checkCollisions() {
-    // Ground collision - instant death
     if (this.physics.isGroundCollision(this.hippo, this.canvas.height)) {
       console.log("💥 Ground collision detected");
       this.gameOver();
       return;
     }
 
-    // Missile collision - instant death regardless of shields
     for (let missile of this.missiles) {
       if (this.collisionDetector.checkMissileCollision(this.hippo, missile)) {
         console.log("💥 Missile collision - instant death!");
@@ -393,7 +364,6 @@ export class GameEngine {
       }
     }
 
-    // Pipe collision - only if not invincible
     if (this.invincibilityTime <= 0) {
       for (let pipe of this.pipes) {
         if (this.collisionDetector.checkPipeCollision(this.hippo, pipe) && !pipe.hit) {
@@ -431,16 +401,10 @@ export class GameEngine {
   }
 
   private initializeMissPoopeeMan() {
-    console.log("🎮 FIXED: Initializing Miss POOPEE-Man with working ghost AI");
+    console.log("🎮 SUPER SIMPLE: Initializing Miss POOPEE-Man with instant ghost release");
     this.cellSize = 20;
     this.vulnerabilityTimer = 0;
-    this.blinkTimer = 0;
     
-    // Reset global mode system
-    this.globalModeTimer = 0;
-    this.currentGlobalMode = 'scatter';
-    
-    // Reset movement timers
     this.moveTimer = 0;
     this.ghostMoveTimer = 0;
     
@@ -483,51 +447,28 @@ export class GameEngine {
       gridY: 21
     };
     
-    // FIXED: Initialize ghosts with proper release sequence and clear exit strategy
-    this.ghosts = [
-      {
-        id: 0,
-        x: 19 * this.cellSize, y: 9 * this.cellSize, // START OUTSIDE THE BOX!
-        width: this.cellSize, height: this.cellSize,
-        gridX: 19, gridY: 9, direction: 'left', color: '#FF0000', 
-        isVulnerable: false, isBlinking: false,
-        isInBox: false, releaseTimer: 0, // Blinky starts outside immediately
-        homeX: 38, homeY: 1, // Top-right corner for scatter
-        mode: 'scatter', modeTimer: this.scatterTime
-      },
-      {
-        id: 1,
-        x: 19 * this.cellSize, y: 11 * this.cellSize, // In the box center
-        width: this.cellSize, height: this.cellSize,
-        gridX: 19, gridY: 11, direction: 'up', color: '#FFB6C1', 
-        isVulnerable: false, isBlinking: false,
-        isInBox: true, releaseTimer: 180, // Pinky - 3 seconds
-        homeX: 1, homeY: 1, // Top-left corner for scatter
-        mode: 'leaving_house', modeTimer: 0
-      },
-      {
-        id: 2,
-        x: 18 * this.cellSize, y: 11 * this.cellSize, // Left side of box
-        width: this.cellSize, height: this.cellSize,
-        gridX: 18, gridY: 11, direction: 'up', color: '#00FFFF', 
-        isVulnerable: false, isBlinking: false,
-        isInBox: true, releaseTimer: 360, // Inky - 6 seconds
-        homeX: 38, homeY: 21, // Bottom-right corner for scatter
-        mode: 'leaving_house', modeTimer: 0
-      },
-      {
-        id: 3,
-        x: 20 * this.cellSize, y: 11 * this.cellSize, // Right side of box
-        width: this.cellSize, height: this.cellSize,
-        gridX: 20, gridY: 11, direction: 'up', color: '#FFA500', 
-        isVulnerable: false, isBlinking: false,
-        isInBox: true, releaseTimer: 540, // Clyde - 9 seconds
-        homeX: 1, homeY: 21, // Bottom-left corner for scatter
-        mode: 'leaving_house', modeTimer: 0
-      }
+    // SUPER SIMPLE: All ghosts start immediately at different corners, no timers, no boxes
+    const startPositions = [
+      { x: 1, y: 1, direction: 'right' as const, color: '#FF0000' }, // Red - top left, go right
+      { x: 38, y: 1, direction: 'down' as const, color: '#FFB6C1' }, // Pink - top right, go down
+      { x: 1, y: 21, direction: 'up' as const, color: '#00FFFF' }, // Cyan - bottom left, go up
+      { x: 38, y: 21, direction: 'left' as const, color: '#FFA500' } // Orange - bottom right, go left
     ];
     
-    console.log("👻 FIXED Ghosts initialized:", this.ghosts.map((g, i) => `Ghost ${i}: box=${g.isInBox}, timer=${g.releaseTimer}, pos=(${g.gridX},${g.gridY})`));
+    this.ghosts = startPositions.map((pos, index) => ({
+      id: index,
+      x: pos.x * this.cellSize,
+      y: pos.y * this.cellSize,
+      width: this.cellSize,
+      height: this.cellSize,
+      gridX: pos.x,
+      gridY: pos.y,
+      direction: pos.direction,
+      color: pos.color,
+      isVulnerable: false
+    }));
+    
+    console.log("👻 SUPER SIMPLE: All 4 ghosts released immediately at corners");
     
     // Initialize pellets
     this.pellets = [];
@@ -558,211 +499,92 @@ export class GameEngine {
 
   private updateMissPoopeeMan() {
     this.updatePacMan();
-    this.updateGhostsFixed();
+    this.updateGhostsSimple();
     this.checkMissPoopeeManCollisions();
     
-    // Global mode system
-    this.globalModeTimer++;
-    
-    if (this.currentGlobalMode === 'scatter' && this.globalModeTimer >= this.scatterTime) {
-      console.log("🔄 FIXED: Switching to CHASE mode");
-      this.currentGlobalMode = 'chase';
-      this.globalModeTimer = 0;
-      // Update all active ghosts
-      this.ghosts.forEach((ghost, index) => {
-        if (!ghost.isInBox && ghost.mode !== 'frightened' && ghost.mode !== 'eaten') {
-          ghost.mode = 'chase';
-          ghost.modeTimer = this.chaseTime;
-          console.log(`👻 Ghost ${index} switched to CHASE mode`);
-        }
-      });
-    } else if (this.currentGlobalMode === 'chase' && this.globalModeTimer >= this.chaseTime) {
-      console.log("🔄 FIXED: Switching to SCATTER mode");
-      this.currentGlobalMode = 'scatter';
-      this.globalModeTimer = 0;
-      // Update all active ghosts
-      this.ghosts.forEach((ghost, index) => {
-        if (!ghost.isInBox && ghost.mode !== 'frightened' && ghost.mode !== 'eaten') {
-          ghost.mode = 'scatter';
-          ghost.modeTimer = this.scatterTime;
-          console.log(`👻 Ghost ${index} switched to SCATTER mode`);
-        }
-      });
-    }
-    
-    // Update power pellet timers
+    // Update power pellet timer
     if (this.vulnerabilityTimer > 0) {
       this.vulnerabilityTimer--;
-      if (this.vulnerabilityTimer <= 180) { // Last 3 seconds
-        this.blinkTimer++;
-        if (this.blinkTimer > 30) { // Blink every 0.5 seconds
-          this.blinkTimer = 0;
-          this.ghosts.forEach(ghost => {
-            if (ghost.isVulnerable) {
-              ghost.isBlinking = !ghost.isBlinking;
-            }
-          });
-        }
-      }
-      
       if (this.vulnerabilityTimer <= 0) {
-        console.log("⏰ FIXED: Vulnerability timer expired");
-        this.ghosts.forEach((ghost, index) => {
-          if (ghost.mode === 'frightened') {
-            ghost.isVulnerable = false;
-            ghost.isBlinking = false;
-            ghost.mode = this.currentGlobalMode;
-            ghost.modeTimer = this.currentGlobalMode === 'scatter' ? this.scatterTime : this.chaseTime;
-            console.log(`👻 Ghost ${index} returned to ${this.currentGlobalMode} mode`);
-          }
+        console.log("⏰ SIMPLE: Vulnerability ended, ghosts back to normal");
+        this.ghosts.forEach(ghost => {
+          ghost.isVulnerable = false;
         });
       }
     }
   }
 
-  // COMPLETELY REWRITTEN: Working ghost update system
-  private updateGhostsFixed() {
+  // SUPER SIMPLE: Fast ghost movement with random direction changes
+  private updateGhostsSimple() {
     this.ghostMoveTimer++;
     
-    // Only move ghosts if enough time has passed
+    // Move ghosts every few frames (very fast)
     if (this.ghostMoveTimer >= this.framesBetweenGhostMoves) {
       this.ghostMoveTimer = 0;
       
       this.ghosts.forEach((ghost, index) => {
-        // FIXED: Handle release from box with clear exit path
-        if (ghost.isInBox) {
-          if (ghost.releaseTimer > 0) {
-            ghost.releaseTimer--;
-            console.log(`👻 Ghost ${index} release timer: ${ghost.releaseTimer}`);
-            return;
-          } else {
-            // FIXED: Release the ghost by moving them up to exit position
-            console.log(`👻 FIXED: Ghost ${index} being released from box`);
-            ghost.isInBox = false;
-            ghost.gridY = 9; // Move to the exit row above the box
-            ghost.y = ghost.gridY * this.cellSize;
-            ghost.mode = this.currentGlobalMode;
-            ghost.modeTimer = this.currentGlobalMode === 'scatter' ? this.scatterTime : this.chaseTime;
-            ghost.direction = 'left'; // Start moving left after exit
+        // Calculate next position
+        let newGridX = ghost.gridX;
+        let newGridY = ghost.gridY;
+        
+        switch (ghost.direction) {
+          case 'right': newGridX++; break;
+          case 'left': newGridX--; break;
+          case 'down': newGridY++; break;
+          case 'up': newGridY--; break;
+        }
+        
+        // Handle tunnel wraparound
+        if (newGridX < 0) newGridX = this.maze[0].length - 1;
+        if (newGridX >= this.maze[0].length) newGridX = 0;
+        
+        // Check if move is valid
+        if (this.isValidMove(newGridX, newGridY)) {
+          // Move the ghost
+          ghost.gridX = newGridX;
+          ghost.gridY = newGridY;
+          ghost.x = newGridX * this.cellSize;
+          ghost.y = newGridY * this.cellSize;
+        } else {
+          // Hit a wall, pick a random new direction
+          const directions: ('up' | 'down' | 'left' | 'right')[] = ['up', 'down', 'left', 'right'];
+          let attempts = 0;
+          
+          while (attempts < 10) { // Prevent infinite loop
+            const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+            let testX = ghost.gridX;
+            let testY = ghost.gridY;
+            
+            switch (randomDirection) {
+              case 'right': testX++; break;
+              case 'left': testX--; break;
+              case 'down': testY++; break;
+              case 'up': testY--; break;
+            }
+            
+            // Handle tunnel
+            if (testX < 0) testX = this.maze[0].length - 1;
+            if (testX >= this.maze[0].length) testX = 0;
+            
+            if (this.isValidMove(testX, testY)) {
+              ghost.direction = randomDirection;
+              console.log(`👻 Ghost ${index} hit wall, new direction: ${randomDirection}`);
+              break;
+            }
+            attempts++;
           }
         }
         
-        // FIXED: Move ghost with working logic
-        this.moveGhostFixed(ghost);
+        // If vulnerable, occasionally change direction randomly for chaos
+        if (ghost.isVulnerable && Math.random() < 0.1) { // 10% chance per frame
+          const directions: ('up' | 'down' | 'left' | 'right')[] = ['up', 'down', 'left', 'right'];
+          ghost.direction = directions[Math.floor(Math.random() * directions.length)];
+        }
       });
     }
   }
 
-  // COMPLETELY REWRITTEN: Working ghost movement
-  private moveGhostFixed(ghost: Ghost) {
-    // Determine target based on mode
-    let targetX: number, targetY: number;
-    
-    switch (ghost.mode) {
-      case 'leaving_house':
-        // Simple: just move up to exit the house
-        targetX = 19; // Center column
-        targetY = 9; // Exit row
-        if (ghost.gridX === 19 && ghost.gridY === 9) {
-          ghost.mode = this.currentGlobalMode;
-          console.log(`👻 FIXED: Ghost ${ghost.id} has left the house, switching to ${this.currentGlobalMode}`);
-        }
-        break;
-        
-      case 'scatter':
-        targetX = ghost.homeX;
-        targetY = ghost.homeY;
-        break;
-        
-      case 'chase':
-        targetX = this.pacman.gridX;
-        targetY = this.pacman.gridY;
-        break;
-        
-      case 'frightened':
-        // Move away from Pac-Man
-        const diffX = this.pacman.gridX - ghost.gridX;
-        const diffY = this.pacman.gridY - ghost.gridY;
-        targetX = ghost.gridX - Math.sign(diffX) * 10;
-        targetY = ghost.gridY - Math.sign(diffY) * 10;
-        // Keep in bounds
-        targetX = Math.max(1, Math.min(targetX, 38));
-        targetY = Math.max(1, Math.min(targetY, 21));
-        break;
-        
-      case 'eaten':
-        // Return to center
-        targetX = 19;
-        targetY = 11;
-        if (ghost.gridX === 19 && ghost.gridY === 11) {
-          ghost.mode = this.currentGlobalMode;
-          ghost.isVulnerable = false;
-          console.log(`👻 FIXED: Ghost ${ghost.id} returned to house`);
-        }
-        break;
-        
-      default:
-        targetX = ghost.homeX;
-        targetY = ghost.homeY;
-    }
-    
-    // FIXED: Simple but working pathfinding
-    const possibleMoves = [
-      { dx: 0, dy: -1, direction: 'up' as const },
-      { dx: 0, dy: 1, direction: 'down' as const },
-      { dx: -1, dy: 0, direction: 'left' as const },
-      { dx: 1, dy: 0, direction: 'right' as const }
-    ];
-    
-    let bestMove = null;
-    let bestDistance = Infinity;
-    
-    for (const move of possibleMoves) {
-      let newGridX = ghost.gridX + move.dx;
-      let newGridY = ghost.gridY + move.dy;
-      
-      // Handle tunnel wraparound
-      if (newGridX < 0) newGridX = this.maze[0].length - 1;
-      if (newGridX >= this.maze[0].length) newGridX = 0;
-      
-      // Check if move is valid
-      if (this.isValidMove(newGridX, newGridY)) {
-        // Calculate distance to target
-        const distance = Math.abs(newGridX - targetX) + Math.abs(newGridY - targetY);
-        
-        // Avoid reversing direction unless it's the only option
-        const isReverse = this.getOppositeDirection(ghost.direction) === move.direction;
-        const finalDistance = isReverse ? distance + 0.5 : distance;
-        
-        if (finalDistance < bestDistance) {
-          bestDistance = finalDistance;
-          bestMove = { ...move, newGridX, newGridY };
-        }
-      }
-    }
-    
-    // Execute the move
-    if (bestMove) {
-      ghost.gridX = bestMove.newGridX;
-      ghost.gridY = bestMove.newGridY;
-      ghost.x = bestMove.newGridX * this.cellSize;
-      ghost.y = bestMove.newGridY * this.cellSize;
-      ghost.direction = bestMove.direction;
-    }
-  }
-
-  private getOppositeDirection(direction: string): string {
-    switch (direction) {
-      case 'up': return 'down';
-      case 'down': return 'up';
-      case 'left': return 'right';
-      case 'right': return 'left';
-      default: return '';
-    }
-  }
-
   private updatePacMan() {
-    // Increment movement timer
     this.moveTimer++;
     
     // Check if we can change direction
@@ -778,7 +600,7 @@ export class GameEngine {
     
     // Only move if enough time has passed
     if (this.moveTimer >= this.framesBetweenMoves) {
-      this.moveTimer = 0; // Reset timer
+      this.moveTimer = 0;
       
       // Move in current direction
       let newGridX = this.pacman.gridX;
@@ -820,16 +642,10 @@ export class GameEngine {
         if (pellet.isPowerPellet) {
           this.score += 25;
           this.vulnerabilityTimer = 600; // 10 seconds at 60fps
-          console.log("💊 FIXED: Power pellet eaten! Ghosts frightened for 10 seconds");
+          console.log("💊 SIMPLE: Power pellet eaten! Ghosts vulnerable for 10 seconds");
           
-          this.ghosts.forEach((ghost, index) => {
-            if (!ghost.isInBox && ghost.mode !== 'eaten') {
-              ghost.isVulnerable = true;
-              ghost.isBlinking = false;
-              ghost.mode = 'frightened';
-              ghost.modeTimer = 600;
-              console.log(`👻 FIXED: Ghost ${index} is now frightened`);
-            }
+          this.ghosts.forEach(ghost => {
+            ghost.isVulnerable = true;
           });
         } else {
           this.score += 5;
@@ -847,27 +663,27 @@ export class GameEngine {
     // Check ghost collisions (only if not invulnerable)
     if (this.invulnerabilityTimer <= 0) {
       this.ghosts.forEach((ghost, index) => {
-        if (ghost.gridX === this.pacman.gridX && ghost.gridY === this.pacman.gridY && !ghost.isInBox) {
-          if (ghost.isVulnerable && ghost.mode === 'frightened') {
+        if (ghost.gridX === this.pacman.gridX && ghost.gridY === this.pacman.gridY) {
+          if (ghost.isVulnerable) {
             // Eat ghost
             this.score += 100;
             this.onScoreUpdate(this.score);
-            console.log(`👻 FIXED: Ghost ${index} eaten! Score +100`);
+            console.log(`👻 SIMPLE: Ghost ${index} eaten! Score +100`);
             
-            // Send ghost back to house
+            // Respawn ghost at center
             ghost.gridX = 19;
             ghost.gridY = 11;
             ghost.x = 19 * this.cellSize;
             ghost.y = 11 * this.cellSize;
             ghost.isVulnerable = false;
-            ghost.isBlinking = false;
-            ghost.mode = 'eaten';
-            ghost.modeTimer = 300;
-          } else if (ghost.mode !== 'eaten') {
+            // Pick random direction
+            const directions: ('up' | 'down' | 'left' | 'right')[] = ['up', 'down', 'left', 'right'];
+            ghost.direction = directions[Math.floor(Math.random() * directions.length)];
+          } else {
             // Lose a life
             this.lives--;
             this.invulnerabilityTimer = 120; // 2 seconds of invulnerability
-            console.log(`💀 FIXED: Pac-Man hit by ghost ${index}! Lives remaining: ${this.lives}`);
+            console.log(`💀 SIMPLE: Pac-Man hit by ghost ${index}! Lives remaining: ${this.lives}`);
             
             if (this.lives <= 0) {
               console.log("💀 Game Over - No more lives!");
@@ -896,37 +712,28 @@ export class GameEngine {
     this.pacman.direction = 'right';
     this.pacman.nextDirection = null;
     
-    // FIXED: Reset ghosts with proper positions
+    // Reset ghosts to corners
+    const startPositions = [
+      { x: 1, y: 1, direction: 'right' as const },
+      { x: 38, y: 1, direction: 'down' as const },
+      { x: 1, y: 21, direction: 'up' as const },
+      { x: 38, y: 21, direction: 'left' as const }
+    ];
+    
     this.ghosts.forEach((ghost, index) => {
-      if (index === 0) {
-        // Blinky starts outside
-        ghost.gridX = 19;
-        ghost.gridY = 9;
-        ghost.isInBox = false;
-        ghost.releaseTimer = 0;
-        ghost.mode = this.currentGlobalMode;
-      } else {
-        // Others start in box with staggered release
-        ghost.gridX = index === 2 ? 18 : (index === 3 ? 20 : 19);
-        ghost.gridY = 11;
-        ghost.isInBox = true;
-        ghost.releaseTimer = index * 180; // 3, 6, 9 seconds
-        ghost.mode = 'leaving_house';
-      }
-      
-      ghost.x = ghost.gridX * this.cellSize;
-      ghost.y = ghost.gridY * this.cellSize;
+      const pos = startPositions[index];
+      ghost.gridX = pos.x;
+      ghost.gridY = pos.y;
+      ghost.x = pos.x * this.cellSize;
+      ghost.y = pos.y * this.cellSize;
+      ghost.direction = pos.direction;
       ghost.isVulnerable = false;
-      ghost.isBlinking = false;
-      ghost.modeTimer = 0;
     });
     
     // Reset timers
     this.vulnerabilityTimer = 0;
-    this.globalModeTimer = 0;
-    this.currentGlobalMode = 'scatter';
     
-    console.log("🔄 FIXED: Positions reset, ghosts properly re-initialized");
+    console.log("🔄 SIMPLE: Positions reset");
   }
   
   private nextLevel() {
