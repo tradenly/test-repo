@@ -64,11 +64,11 @@ export class GameEngine {
   private cellSize = 20;
   private keys: { [key: string]: boolean } = {};
   
-  // SIMPLIFIED: Fast movement timing
+  // IMPROVED: Slower movement timing for better gameplay
   private moveTimer = 0;
   private framesBetweenMoves = 4; // Faster Pac-Man movement
   private ghostMoveTimer = 0;
-  private framesBetweenGhostMoves = 3; // Very fast ghost movement
+  private framesBetweenGhostMoves = 6; // SLOWED DOWN: Ghosts move every 6 frames instead of 3
   
   // Miss POOPEE-Man specific game state
   private lives = 3;
@@ -402,7 +402,7 @@ export class GameEngine {
   }
 
   private initializeMissPoopeeMan() {
-    console.log("🎮 SUPER SIMPLE: Initializing Miss POOPEE-Man with instant ghost release");
+    console.log("🎮 IMPROVED: Initializing Miss POOPEE-Man with center ghost spawn and slower movement");
     this.cellSize = 20;
     this.vulnerabilityTimer = 0;
     
@@ -448,15 +448,15 @@ export class GameEngine {
       gridY: 21
     };
     
-    // SUPER SIMPLE: All ghosts start immediately at different corners, no timers, no boxes
-    const startPositions = [
-      { x: 1, y: 1, direction: 'right' as const, color: '#FF0000' }, // Red - top left, go right
-      { x: 38, y: 1, direction: 'down' as const, color: '#FFB6C1' }, // Pink - top right, go down
-      { x: 1, y: 21, direction: 'up' as const, color: '#00FFFF' }, // Cyan - bottom left, go up
-      { x: 38, y: 21, direction: 'left' as const, color: '#FFA500' } // Orange - bottom right, go left
+    // IMPROVED: All ghosts start in the center area with different directions
+    const centerStartPositions = [
+      { x: 18, y: 11, direction: 'right' as const, color: '#FF0000' }, // Red - center left, go right
+      { x: 20, y: 11, direction: 'left' as const, color: '#FFB6C1' }, // Pink - center right, go left
+      { x: 19, y: 10, direction: 'down' as const, color: '#00FFFF' }, // Cyan - center top, go down
+      { x: 19, y: 12, direction: 'up' as const, color: '#FFA500' } // Orange - center bottom, go up
     ];
     
-    this.ghosts = startPositions.map((pos, index) => ({
+    this.ghosts = centerStartPositions.map((pos, index) => ({
       id: index,
       x: pos.x * this.cellSize,
       y: pos.y * this.cellSize,
@@ -470,7 +470,7 @@ export class GameEngine {
       isBlinking: false
     }));
     
-    console.log("👻 SUPER SIMPLE: All 4 ghosts released immediately at corners");
+    console.log("👻 IMPROVED: All 4 ghosts starting from center area with slower movement");
     
     // Initialize pellets
     this.pellets = [];
@@ -532,11 +532,11 @@ export class GameEngine {
     }
   }
 
-  // SUPER SIMPLE: Fast ghost movement with random direction changes
+  // IMPROVED: Slower ghost movement with random direction changes
   private updateGhostsSimple() {
     this.ghostMoveTimer++;
     
-    // Move ghosts every few frames (very fast)
+    // Move ghosts every 6 frames (slower than before)
     if (this.ghostMoveTimer >= this.framesBetweenGhostMoves) {
       this.ghostMoveTimer = 0;
       
@@ -732,16 +732,16 @@ export class GameEngine {
     this.pacman.direction = 'right';
     this.pacman.nextDirection = null;
     
-    // Reset ghosts to corners
-    const startPositions = [
-      { x: 1, y: 1, direction: 'right' as const },
-      { x: 38, y: 1, direction: 'down' as const },
-      { x: 1, y: 21, direction: 'up' as const },
-      { x: 38, y: 21, direction: 'left' as const }
+    // IMPROVED: Reset ghosts to center area instead of corners
+    const centerStartPositions = [
+      { x: 18, y: 11, direction: 'right' as const },
+      { x: 20, y: 11, direction: 'left' as const },
+      { x: 19, y: 10, direction: 'down' as const },
+      { x: 19, y: 12, direction: 'up' as const }
     ];
     
     this.ghosts.forEach((ghost, index) => {
-      const pos = startPositions[index];
+      const pos = centerStartPositions[index];
       ghost.gridX = pos.x;
       ghost.gridY = pos.y;
       ghost.x = pos.x * this.cellSize;
@@ -754,7 +754,7 @@ export class GameEngine {
     // Reset timers
     this.vulnerabilityTimer = 0;
     
-    console.log("🔄 SIMPLE: Positions reset");
+    console.log("🔄 IMPROVED: Positions reset with ghosts returning to center");
   }
   
   private nextLevel() {
