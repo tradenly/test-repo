@@ -405,7 +405,7 @@ export class GameEngine {
   }
 
   private initializeMissPoopeeMan() {
-    console.log("🎮 SIMPLIFIED: Initializing Miss POOPEE-Man with center-starting ghosts");
+    console.log("🎮 FIXED: Initializing Miss POOPEE-Man with working ghost positions");
     this.cellSize = 20;
     this.vulnerabilityTimer = 0;
     
@@ -449,11 +449,15 @@ export class GameEngine {
       gridY: 21
     };
     
-    // SIMPLIFIED: All ghosts start in the center and have corner patrol sequences
-    const centerX = 19;
-    const centerY = 11;
+    // FIXED: Position ghosts in valid open spaces around the center
+    const ghostStartPositions = [
+      { x: 18, y: 11, direction: 'up' as const, color: '#FF0000' },    // Red - left of center
+      { x: 20, y: 11, direction: 'down' as const, color: '#FFB6C1' },  // Pink - right of center  
+      { x: 19, y: 10, direction: 'left' as const, color: '#00FFFF' },  // Cyan - above center
+      { x: 19, y: 12, direction: 'right' as const, color: '#FFA500' }  // Orange - below center
+    ];
     
-    // Define the four corners of the maze
+    // Define the four corners of the maze for targeting
     const corners = {
       topLeft: { x: 1, y: 1 },
       topRight: { x: 38, y: 1 },
@@ -464,47 +468,44 @@ export class GameEngine {
     // Each ghost gets a different corner sequence
     const ghostConfigs = [
       {
-        color: '#FF0000', // Red
-        direction: 'up' as const,
         sequence: [corners.topLeft, corners.bottomRight, corners.topRight, corners.bottomLeft]
       },
       {
-        color: '#FFB6C1', // Pink
-        direction: 'right' as const,
         sequence: [corners.topRight, corners.bottomLeft, corners.topLeft, corners.bottomRight]
       },
       {
-        color: '#00FFFF', // Cyan
-        direction: 'down' as const,
         sequence: [corners.bottomLeft, corners.topRight, corners.bottomRight, corners.topLeft]
       },
       {
-        color: '#FFA500', // Orange
-        direction: 'left' as const,
         sequence: [corners.bottomRight, corners.topLeft, corners.bottomLeft, corners.topRight]
       }
     ];
     
-    this.ghosts = ghostConfigs.map((config, index) => ({
-      id: index,
-      x: centerX * this.cellSize,
-      y: centerY * this.cellSize,
-      width: this.cellSize,
-      height: this.cellSize,
-      gridX: centerX,
-      gridY: centerY,
-      direction: config.direction,
-      color: config.color,
-      isVulnerable: false,
-      isBlinking: false,
-      cornerSequence: config.sequence,
-      currentCornerIndex: 0,
-      targetCorner: config.sequence[0]
-    }));
+    this.ghosts = ghostStartPositions.map((pos, index) => {
+      console.log(`👻 FIXED: Ghost ${index} starting at (${pos.x}, ${pos.y}) - checking if valid...`);
+      console.log(`👻 FIXED: Maze value at (${pos.x}, ${pos.y}) = ${this.maze[pos.y][pos.x]}`);
+      
+      return {
+        id: index,
+        x: pos.x * this.cellSize,
+        y: pos.y * this.cellSize,
+        width: this.cellSize,
+        height: this.cellSize,
+        gridX: pos.x,
+        gridY: pos.y,
+        direction: pos.direction,
+        color: pos.color,
+        isVulnerable: false,
+        isBlinking: false,
+        cornerSequence: ghostConfigs[index].sequence,
+        currentCornerIndex: 0,
+        targetCorner: ghostConfigs[index].sequence[0]
+      };
+    });
     
-    console.log("👻 SIMPLIFIED: All 4 ghosts starting in center with corner patrol sequences:");
+    console.log("👻 FIXED: All 4 ghosts positioned at valid starting locations:");
     this.ghosts.forEach((ghost, i) => {
-      console.log(`Ghost ${i}: center(${ghost.gridX}, ${ghost.gridY}) color: ${ghost.color} first target: (${ghost.targetCorner.x}, ${ghost.targetCorner.y})`);
+      console.log(`Ghost ${i}: start(${ghost.gridX}, ${ghost.gridY}) color: ${ghost.color} target: (${ghost.targetCorner.x}, ${ghost.targetCorner.y})`);
     });
     
     this.pellets = [];
@@ -566,19 +567,20 @@ export class GameEngine {
   private updateGhostsSimplified() {
     this.ghostMoveTimer++;
     
-    // SIMPLIFIED: Slower movement - every 8 frames for reasonable speed
+    // FIXED: Slower movement - every 8 frames for reasonable speed
     if (this.ghostMoveTimer >= this.framesBetweenGhostMoves) {
       this.ghostMoveTimer = 0;
       
       this.ghosts.forEach((ghost, index) => {
-        console.log(`👻 Ghost ${index}: pos(${ghost.gridX}, ${ghost.gridY}) target(${ghost.targetCorner.x}, ${ghost.targetCorner.y})`);
+        console.log(`👻 FIXED: Ghost ${index}: pos(${ghost.gridX}, ${ghost.gridY}) target(${ghost.targetCorner.x}, ${ghost.targetCorner.y})`);
         
-        // Check if ghost reached its target corner
-        if (ghost.gridX === ghost.targetCorner.x && ghost.gridY === ghost.targetCorner.y) {
+        // Check if ghost reached its target corner (within 1 tile tolerance)
+        const distanceToTarget = Math.abs(ghost.gridX - ghost.targetCorner.x) + Math.abs(ghost.gridY - ghost.targetCorner.y);
+        if (distanceToTarget <= 1) {
           // Move to next corner in sequence
           ghost.currentCornerIndex = (ghost.currentCornerIndex + 1) % ghost.cornerSequence.length;
           ghost.targetCorner = ghost.cornerSequence[ghost.currentCornerIndex];
-          console.log(`🎯 Ghost ${index} reached corner! New target: (${ghost.targetCorner.x}, ${ghost.targetCorner.y})`);
+          console.log(`🎯 FIXED: Ghost ${index} reached corner! New target: (${ghost.targetCorner.x}, ${ghost.targetCorner.y})`);
         }
         
         // Simple pathfinding toward target corner
@@ -588,30 +590,33 @@ export class GameEngine {
         let newGridX = ghost.gridX;
         let newGridY = ghost.gridY;
         
-        // Choose direction that gets closer to target
-        if (Math.abs(dx) > Math.abs(dy)) {
-          // Move horizontally
+        // Choose direction that gets closer to target (prioritize larger difference)
+        if (Math.abs(dx) >= Math.abs(dy)) {
+          // Move horizontally first
           if (dx > 0) {
             newGridX++;
             ghost.direction = 'right';
-          } else {
+          } else if (dx < 0) {
             newGridX--;
             ghost.direction = 'left';
           }
         } else {
-          // Move vertically
+          // Move vertically first
           if (dy > 0) {
             newGridY++;
             ghost.direction = 'down';
-          } else {
+          } else if (dy < 0) {
             newGridY--;
             ghost.direction = 'up';
           }
         }
         
-        // Handle wrapping at maze edges
+        // Handle maze edge wrapping for horizontal movement
         if (newGridX < 0) newGridX = this.maze[0].length - 1;
         if (newGridX >= this.maze[0].length) newGridX = 0;
+        
+        console.log(`👻 FIXED: Ghost ${index} trying to move to (${newGridX}, ${newGridY})`);
+        console.log(`👻 FIXED: isValidMove check: ${this.isValidMove(newGridX, newGridY)}`);
         
         // Check if the move is valid
         if (this.isValidMove(newGridX, newGridY)) {
@@ -619,8 +624,9 @@ export class GameEngine {
           ghost.gridY = newGridY;
           ghost.x = newGridX * this.cellSize;
           ghost.y = newGridY * this.cellSize;
-          console.log(`👻 Ghost ${index} moved to (${ghost.gridX}, ${ghost.gridY})`);
+          console.log(`👻 FIXED: Ghost ${index} moved successfully to (${ghost.gridX}, ${ghost.gridY})`);
         } else {
+          console.log(`👻 FIXED: Ghost ${index} blocked, trying alternative directions`);
           // If direct path blocked, try alternative directions
           const alternativeDirections = [
             { dx: 0, dy: -1, dir: 'up' as const },
@@ -633,7 +639,7 @@ export class GameEngine {
             const altX = ghost.gridX + alt.dx;
             const altY = ghost.gridY + alt.dy;
             
-            // Handle wrapping
+            // Handle wrapping for horizontal movement
             let wrappedX = altX;
             if (wrappedX < 0) wrappedX = this.maze[0].length - 1;
             if (wrappedX >= this.maze[0].length) wrappedX = 0;
@@ -644,7 +650,7 @@ export class GameEngine {
               ghost.x = wrappedX * this.cellSize;
               ghost.y = altY * this.cellSize;
               ghost.direction = alt.dir;
-              console.log(`👻 Ghost ${index} took alternative path to (${ghost.gridX}, ${ghost.gridY})`);
+              console.log(`👻 FIXED: Ghost ${index} took alternative path to (${ghost.gridX}, ${ghost.gridY})`);
               break;
             }
           }
