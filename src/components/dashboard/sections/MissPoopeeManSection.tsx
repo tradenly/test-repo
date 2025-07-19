@@ -61,7 +61,6 @@ export const MissPoopeeManSection = ({ user }: MissPoopeeManSectionProps) => {
         onGameStart={handleGameStart}
         canPlay={canStartGame}
         credits={currentBalance}
-        gameSettings={gameSettings}
       />
 
       <MissPoopeeManRecentGames gameSessions={missPoopeeManSessions} />

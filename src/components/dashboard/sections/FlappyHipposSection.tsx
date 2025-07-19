@@ -58,7 +58,6 @@ export const FlappyHipposSection = ({ user }: FlappyHipposSectionProps) => {
         onGameStart={handleGameStart}
         canPlay={canStartGame}
         credits={currentBalance}
-        gameSettings={gameSettings}
       />
 
       <FlappyHipposRecentGames gameSessions={gameSessions} />

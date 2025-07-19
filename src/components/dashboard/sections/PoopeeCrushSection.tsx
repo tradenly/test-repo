@@ -63,7 +63,6 @@ export const PoopeeCrushSection = ({ user }: PoopeeCrushSectionProps) => {
         canPlay={canStartGame}
         credits={currentBalance}
         userId={user.id}
-        gameSettings={gameSettings}
       />
 
       <PoopeeCrushRecentGames gameSessions={poopeeCrushSessions} />
