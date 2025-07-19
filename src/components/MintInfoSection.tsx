@@ -13,7 +13,7 @@ export const MintInfoSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/94ca39da-e299-4a30-994c-b6540013f7c2.png" 
+                src="/lovable-uploads/5550bd81-24fd-4185-af5c-e08477374db2.png" 
                 alt="Poopee NFT mint logo with blue circular design" 
                 className="w-16 h-16 mx-auto"
               />
@@ -36,7 +36,7 @@ export const MintInfoSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/5550bd81-24fd-4185-af5c-e08477374db2.png" 
+                src="/lovable-uploads/94ca39da-e299-4a30-994c-b6540013f7c2.png" 
                 alt="Poopee hippo character with leather jacket" 
                 className="w-16 h-16 mx-auto"
               />
