@@ -121,7 +121,13 @@ export const WhatYouGetSection = () => {
         </div>
 
         <div className="bg-gray-800 rounded-xl p-8 mb-12 border border-gray-700">
-          <div className="text-6xl mb-4">🎮</div>
+          <div className="mb-4">
+            <img 
+              src="/lovable-uploads/e5edc803-5de9-4560-8ede-a8a1e21ff8a1.png" 
+              alt="Gaming controller" 
+              className="w-16 h-16 mx-auto"
+            />
+          </div>
           <h3 className="text-2xl font-bold text-white mb-6">
             Future Games: Maybe. Depends on How We Feel.
           </h3>
