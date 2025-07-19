@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
@@ -67,8 +66,8 @@ export const ManifestoSection = () => {
           <div className="bg-gray-800 rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/1685e826-20ea-4727-8b05-018c7d548dc4.png" 
-                alt="Gray hippo with cap" 
+                src="/lovable-uploads/81417325-ea93-4f15-9978-969b624b81b8.png" 
+                alt="Punk hippo with leather jacket and mohawk" 
                 className="w-20 h-20 mx-auto rounded-lg"
               />
             </div>
@@ -87,8 +86,8 @@ export const ManifestoSection = () => {
           <div className="bg-gray-800 rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/4c9f27b8-fa39-4c01-998a-eca0b6f095d3.png" 
-                alt="Blue hippo sitting" 
+                src="/lovable-uploads/f185c4a7-1dd0-4d96-bde4-03d4fd96f189.png" 
+                alt="Rastafarian hippo with dreads holding microphone" 
                 className="w-20 h-20 mx-auto rounded-lg"
               />
             </div>
