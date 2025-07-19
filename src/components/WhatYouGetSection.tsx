@@ -1,10 +1,13 @@
+
 import { Button } from "@/components/ui/button";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
+import { useGameSettings } from "@/hooks/useGameSettings";
 import { useNavigate } from "react-router-dom";
 
 export const WhatYouGetSection = () => {
   const { user } = useUnifiedAuth();
   const navigate = useNavigate();
+  const { data: gameSettings } = useGameSettings();
 
   const handleGameNavigation = (gameSection: string) => {
     if (user) {
@@ -14,6 +17,11 @@ export const WhatYouGetSection = () => {
       // Redirect to auth page if not logged in
       navigate('/auth');
     }
+  };
+
+  const getGameCost = (gameType: string) => {
+    const settings = gameSettings?.find(g => g.game_type === gameType);
+    return settings?.entry_cost_credits || 1;
   };
 
   return (
@@ -47,7 +55,7 @@ export const WhatYouGetSection = () => {
             </p>
             <div className="space-y-3 text-left text-gray-300 mb-6">
               <p>• Navigate your hippo through pipes</p>
-              <p>• Costs 1 credit per game</p>
+              <p>• Costs {getGameCost('flappy_hippos')} credit{getGameCost('flappy_hippos') !== 1 ? 's' : ''} per game</p>
               <p>• Built-in shield system (because you'll need it)</p>
               <p>• Adjustable speed for maximum suffering</p>
             </div>
@@ -99,7 +107,7 @@ export const WhatYouGetSection = () => {
             </p>
             <div className="space-y-3 text-left text-gray-300 mb-6">
               <p>• Match 3 or more POOPEE tiles</p>
-              <p>• Costs 1 credit per game</p>
+              <p>• Costs {getGameCost('poopee_crush')} credit{getGameCost('poopee_crush') !== 1 ? 's' : ''} per game</p>
               <p>• Special boosters for maximum chaos</p>
               <p>• Addictive puzzle madness</p>
             </div>

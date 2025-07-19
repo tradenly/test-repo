@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
@@ -15,7 +14,8 @@ export type AdminSection =
   | "activity" 
   | "payouts" 
   | "analytics"
-  | "requests";
+  | "requests"
+  | "games";
 
 const AdminPanel = () => {
   const { isAdmin, isLoading, user } = useAdminAuth();

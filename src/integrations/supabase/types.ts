@@ -269,6 +269,45 @@ export type Database = {
         }
         Relationships: []
       }
+      game_settings: {
+        Row: {
+          created_at: string
+          entry_cost_credits: number
+          game_type: string
+          id: string
+          is_enabled: boolean
+          max_shields_purchasable: number | null
+          payout_multipliers: Json | null
+          shield_cost: number | null
+          special_features: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entry_cost_credits?: number
+          game_type: string
+          id?: string
+          is_enabled?: boolean
+          max_shields_purchasable?: number | null
+          payout_multipliers?: Json | null
+          shield_cost?: number | null
+          special_features?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entry_cost_credits?: number
+          game_type?: string
+          id?: string
+          is_enabled?: boolean
+          max_shields_purchasable?: number | null
+          payout_multipliers?: Json | null
+          shield_cost?: number | null
+          special_features?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       nft_holdings: {
         Row: {
           acquired_at: string | null

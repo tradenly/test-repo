@@ -2,6 +2,8 @@
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { useCredits } from "@/hooks/useCredits";
 import { useGameSessions } from "@/hooks/useGameSessions";
+import { useGamePermissions } from "@/hooks/useGamePermissions";
+import { GameDisabledBanner } from "@/components/dashboard/GameDisabledBanner";
 import { PoopeeCrushStats } from "./poopee-crush/PoopeeCrushStats";
 import { PoopeeCrushGameArea } from "./poopee-crush/PoopeeCrushGameArea";
 import { PoopeeCrushRecentGames } from "./poopee-crush/PoopeeCrushRecentGames";
@@ -14,9 +16,12 @@ interface PoopeeCrushSectionProps {
 export const PoopeeCrushSection = ({ user }: PoopeeCrushSectionProps) => {
   const { data: credits, isLoading: creditsLoading } = useCredits(user.id);
   const { data: gameSessions } = useGameSessions(user.id);
+  const { gameSettings, canPlay, showBanner, isLoading: permissionsLoading } = useGamePermissions('poopee_crush');
 
   const currentBalance = credits?.balance || 0;
-  const canPlay = currentBalance >= 1;
+  const entryCost = gameSettings?.entry_cost_credits || 1;
+  const canAffordGame = currentBalance >= entryCost;
+  const canStartGame = canPlay && canAffordGame;
   
   // Filter for POOPEE Crush sessions and calculate stats
   const poopeeCrushSessions = gameSessions?.filter(session => 
@@ -29,14 +34,20 @@ export const PoopeeCrushSection = ({ user }: PoopeeCrushSectionProps) => {
 
   const { handleGameStart, handleGameEnd } = usePoopeeCrushGameHandlers({ user, highScore });
 
+  if (permissionsLoading) {
+    return <div className="text-white">Loading game settings...</div>;
+  }
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">💩 POOPEE Crush</h1>
         <p className="text-gray-400">
-          Match 3 or more POOPEE tiles to clear them and earn points! Each game costs 1 credit.
+          Match 3 or more POOPEE tiles to clear them and earn points! Each game costs {entryCost} credit{entryCost !== 1 ? 's' : ''}.
         </p>
       </div>
+
+      {showBanner && <GameDisabledBanner gameName="POOPEE Crush" />}
 
       <PoopeeCrushStats 
         currentBalance={currentBalance}
@@ -49,9 +60,10 @@ export const PoopeeCrushSection = ({ user }: PoopeeCrushSectionProps) => {
       <PoopeeCrushGameArea 
         onGameEnd={handleGameEnd}
         onGameStart={handleGameStart}
-        canPlay={canPlay}
+        canPlay={canStartGame}
         credits={currentBalance}
         userId={user.id}
+        gameSettings={gameSettings}
       />
 
       <PoopeeCrushRecentGames gameSessions={poopeeCrushSessions} />
