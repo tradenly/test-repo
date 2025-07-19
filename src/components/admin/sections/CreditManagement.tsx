@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Minus, Search } from "lucide-react";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 import { CreditReceiptsCard } from "./CreditReceiptsCard";
+import { WelcomeCreditSettings } from "./WelcomeCreditSettings";
 
 export const CreditManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -200,6 +201,8 @@ export const CreditManagement = () => {
         <h1 className="text-3xl font-bold text-white mb-2">Credit Management</h1>
         <p className="text-gray-400">Adjust user credits and monitor automated payments</p>
       </div>
+
+      <WelcomeCreditSettings />
 
       <Card className="bg-gray-800/40 border-gray-700">
         <CardHeader>
