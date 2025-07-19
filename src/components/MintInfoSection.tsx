@@ -17,7 +17,7 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto"
               />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">NFT Mint</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">Poopee NFT Mint</h3>
             <div className="space-y-3 text-left">
               <p className="text-lg text-gray-300"><span className="font-bold">Platform:</span> Who Knows?</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Supply:</span> 5k</p>
@@ -40,9 +40,9 @@ export const MintInfoSection = () => {
                 className="w-16 h-16 mx-auto"
               />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">Meme Token</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">Poopee Meme Token</h3>
             <div className="space-y-3 text-left">
-              <p className="text-lg text-gray-300"><span className="font-bold">Token:</span> POOPEE</p>
+              <p className="text-lg text-gray-300"><span className="font-bold">Ticker:</span> PPEE</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Supply:</span> 420,069,000</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Date:</span> TBD</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Blockchain:</span> Cardano </p>
