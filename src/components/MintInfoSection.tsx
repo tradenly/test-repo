@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 
 export const MintInfoSection = () => {
@@ -12,8 +13,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/50ea60fd-e73f-4d84-ba08-1d6992c285b1.png" 
-                alt="Gray hippo with open mouth" 
+                src="/lovable-uploads/94ca39da-e299-4a30-994c-b6540013f7c2.png" 
+                alt="Poopee NFT mint logo with blue circular design" 
                 className="w-16 h-16 mx-auto"
               />
             </div>
@@ -35,8 +36,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/5d48fcd1-825e-49ca-86d5-7701ab393070.png" 
-                alt="Cute sitting hippo with pink accents" 
+                src="/lovable-uploads/5550bd81-24fd-4185-af5c-e08477374db2.png" 
+                alt="Poopee hippo character with leather jacket" 
                 className="w-16 h-16 mx-auto"
               />
             </div>
