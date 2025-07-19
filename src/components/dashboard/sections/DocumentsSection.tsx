@@ -11,6 +11,7 @@ export type DocumentationSection =
   | "flappy-hippos-game"
   | "poopee-crush-game"
   | "falling-logs-game"
+  | "miss-poopee-man"
   | "wallets"
   | "staking"
   | "social"

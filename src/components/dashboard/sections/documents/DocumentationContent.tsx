@@ -7,6 +7,7 @@ import { MemeCoinDoc } from "./sections/MemeCoinDoc";
 import { FlappyHipposGameDoc } from "./sections/FlappyHipposGameDoc";
 import { PoopeeCrushDoc } from "./sections/PoopeeCrushDoc";
 import { FallingLogsDoc } from "./sections/FallingLogsDoc";
+import { MissPoopeeManDoc } from "./sections/MissPoopeeManDoc";
 import { WalletsDoc } from "./sections/WalletsDoc";
 import { StakingDoc } from "./sections/StakingDoc";
 import { SocialDoc } from "./sections/SocialDoc";
@@ -32,6 +33,8 @@ export const DocumentationContent = ({ activeSection, user }: DocumentationConte
         return <PoopeeCrushDoc />;
       case "falling-logs-game":
         return <FallingLogsDoc />;
+      case "miss-poopee-man":
+        return <MissPoopeeManDoc />;
       case "wallets":
         return <WalletsDoc />;
       case "staking":
