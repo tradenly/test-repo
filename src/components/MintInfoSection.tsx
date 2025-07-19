@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 
 export const MintInfoSection = () => {
@@ -12,8 +13,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/4e915684-75cb-44da-8466-58e7758c3d10.png" 
-                alt="Hippo character with white hair in leather jacket" 
+                src="/lovable-uploads/5550bd81-24fd-4185-af5c-e08477374db2.png" 
+                alt="Poopee NFT mint logo with blue circular design" 
                 className="w-16 h-16 mx-auto"
               />
             </div>
@@ -25,7 +26,7 @@ export const MintInfoSection = () => {
               <p className="text-lg text-gray-300"><span className="font-bold">Blockchain:</span> Community Vote</p>
             </div>
             <Button className="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold border border-gray-600">
-              Mint Coming Soon 
+              Tropical Fattys Mint Coming Soon 
             </Button>
             <p className="text-sm text-gray-400 mt-2 font-bold">
               MINTING MAY CAUSE REGRET.
@@ -35,8 +36,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/e30e94f0-926b-4f04-8fb4-99e1b71c1690.png" 
-                alt="Poopee token blue design" 
+                src="/lovable-uploads/94ca39da-e299-4a30-994c-b6540013f7c2.png" 
+                alt="Poopee hippo character with leather jacket" 
                 className="w-16 h-16 mx-auto"
               />
             </div>
@@ -63,8 +64,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
             <div className="mb-2">
               <img 
-                src="/lovable-uploads/0db4a572-2651-453b-aad7-009524574ac5.png" 
-                alt="Gray hippo with white hair in leather jacket" 
+                src="/lovable-uploads/c0b71020-c9b3-45d6-ab9e-6039d6dd8bb4.png" 
+                alt="Hippo with sunglasses" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
@@ -75,8 +76,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
             <div className="mb-2">
               <img 
-                src="/lovable-uploads/8346bb4c-b6a6-473a-bd55-22e521d0c64e.png" 
-                alt="Hippo with dark hair and halo in leather jacket" 
+                src="/lovable-uploads/623aca37-1cc9-4d34-9467-be60a163841a.png" 
+                alt="Cool hippo character" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
@@ -87,8 +88,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
             <div className="mb-2">
               <img 
-                src="/lovable-uploads/de5c3f49-e668-4835-a60e-8a561fe63937.png" 
-                alt="Hippo with blonde hair in beige leather jacket" 
+                src="/lovable-uploads/b896f4cd-250a-4f3c-b051-0128831d13f0.png" 
+                alt="Happy hippo with gold chain" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
@@ -99,8 +100,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
             <div className="mb-2">
               <img 
-                src="/lovable-uploads/b795a125-6dda-463c-b27e-800950d0f2a5.png" 
-                alt="Hippo with pink mohawk in leather jacket" 
+                src="/lovable-uploads/a17135f5-f44e-47e3-b35e-98de0b61ee4a.png" 
+                alt="Blue hippo with chain" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
@@ -111,8 +112,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
             <div className="mb-2">
               <img 
-                src="/lovable-uploads/94cd6eac-81ac-496d-aba5-58f0b332241e.png" 
-                alt="Hippo with black hair in white leather jacket" 
+                src="/lovable-uploads/83e7733d-c474-4f7a-b360-e8287b5e0bb5.png" 
+                alt="Purple hippo with sunglasses" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
@@ -123,8 +124,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
             <div className="mb-2">
               <img 
-                src="/lovable-uploads/120ff7e9-7ccb-469b-9f7e-b1a2bfb461a1.png" 
-                alt="Hippo with brown beard in dark leather jacket" 
+                src="/lovable-uploads/fa61c441-9bb0-472b-852c-909b43d82890.png" 
+                alt="Stylish hippo character" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
             </div>
