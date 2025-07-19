@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 
 export const MintInfoSection = () => {
@@ -13,8 +12,8 @@ export const MintInfoSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-4">
               <img 
-                src="/lovable-uploads/b3e13bd6-a631-4374-b2a1-84c6d32c6716.png" 
-                alt="Hippo character in leather jacket" 
+                src="/lovable-uploads/4e915684-75cb-44da-8466-58e7758c3d10.png" 
+                alt="Hippo character with white hair in leather jacket" 
                 className="w-16 h-16 mx-auto"
               />
             </div>
