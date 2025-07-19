@@ -402,7 +402,7 @@ export class GameEngine {
   }
 
   private initializeMissPoopeeMan() {
-    console.log("🎮 SIMPLIFIED: Initializing Miss POOPEE-Man with all 4 ghosts exiting center immediately");
+    console.log("🎮 FIXED: Initializing Miss POOPEE-Man with proper ghost positioning");
     this.cellSize = 20;
     this.vulnerabilityTimer = 0;
     
@@ -446,11 +446,12 @@ export class GameEngine {
       gridY: 21
     };
     
+    // FIXED: Position ghosts in OPEN areas with guaranteed movement options
     const ghostStartPositions = [
-      { x: 15, y: 11, direction: 'left' as const, color: '#FF0000' },   // Red - start left of center, go left
-      { x: 23, y: 11, direction: 'right' as const, color: '#FFB6C1' }, // Pink - start right of center, go right  
-      { x: 19, y: 7, direction: 'up' as const, color: '#00FFFF' },     // Cyan - start above center, go up
-      { x: 19, y: 15, direction: 'down' as const, color: '#FFA500' }   // Orange - start below center, go down
+      { x: 1, y: 1, direction: 'right' as const, color: '#FF0000' },   // Red - top-left corner
+      { x: 38, y: 1, direction: 'left' as const, color: '#FFB6C1' },  // Pink - top-right corner  
+      { x: 1, y: 21, direction: 'right' as const, color: '#00FFFF' }, // Cyan - bottom-left corner
+      { x: 38, y: 21, direction: 'left' as const, color: '#FFA500' }  // Orange - bottom-right corner
     ];
     
     this.ghosts = ghostStartPositions.map((pos, index) => ({
@@ -467,9 +468,9 @@ export class GameEngine {
       isBlinking: false
     }));
     
-    console.log("👻 SIMPLIFIED: All 4 ghosts starting OUTSIDE center area, moving immediately:");
+    console.log("👻 FIXED: All 4 ghosts starting in open corners:");
     this.ghosts.forEach((ghost, i) => {
-      console.log(`Ghost ${i}: pos(${ghost.gridX}, ${ghost.gridY}) direction: ${ghost.direction}`);
+      console.log(`Ghost ${i}: pos(${ghost.gridX}, ${ghost.gridY}) direction: ${ghost.direction} - maze value: ${this.maze[ghost.gridY][ghost.gridX]}`);
     });
     
     this.pellets = [];
@@ -531,7 +532,8 @@ export class GameEngine {
   private updateGhostsSimplified() {
     this.ghostMoveTimer++;
     
-    if (this.ghostMoveTimer >= this.framesBetweenGhostMoves) {
+    // FIXED: Faster movement - every 2 frames instead of 3
+    if (this.ghostMoveTimer >= 2) {
       this.ghostMoveTimer = 0;
       
       this.ghosts.forEach((ghost, index) => {
@@ -547,6 +549,7 @@ export class GameEngine {
           case 'up': newGridY--; break;
         }
         
+        // Handle wrapping at maze edges
         if (newGridX < 0) newGridX = this.maze[0].length - 1;
         if (newGridX >= this.maze[0].length) newGridX = 0;
         
@@ -557,10 +560,20 @@ export class GameEngine {
           ghost.y = newGridY * this.cellSize;
           console.log(`👻 Ghost ${index} moved to (${ghost.gridX}, ${ghost.gridY})`);
         } else {
+          // FIXED: Smarter direction finding - try all directions systematically
           const directions: ('right' | 'down' | 'left' | 'up')[] = ['right', 'down', 'left', 'up'];
           let foundDirection = false;
           
+          // Try each direction in order
           for (const direction of directions) {
+            // Skip opposite direction to avoid immediate reversals
+            if ((ghost.direction === 'right' && direction === 'left') ||
+                (ghost.direction === 'left' && direction === 'right') ||
+                (ghost.direction === 'up' && direction === 'down') ||
+                (ghost.direction === 'down' && direction === 'up')) {
+              continue;
+            }
+            
             let testX = ghost.gridX;
             let testY = ghost.gridY;
             
@@ -571,18 +584,47 @@ export class GameEngine {
               case 'up': testY--; break;
             }
             
+            // Handle wrapping
             if (testX < 0) testX = this.maze[0].length - 1;
             if (testX >= this.maze[0].length) testX = 0;
             
             if (this.isValidMove(testX, testY)) {
               ghost.direction = direction;
               foundDirection = true;
+              console.log(`👻 Ghost ${index} changed direction to: ${direction}`);
               break;
             }
           }
           
+          // If no direction found, try opposite direction as last resort
           if (!foundDirection) {
-            console.log(`❌ Ghost ${index} completely stuck at (${ghost.gridX}, ${ghost.gridY})`);
+            const oppositeDirections = {
+              'right': 'left' as const,
+              'left': 'right' as const,
+              'up': 'down' as const,
+              'down': 'up' as const
+            };
+            
+            const oppositeDir = oppositeDirections[ghost.direction];
+            let testX = ghost.gridX;
+            let testY = ghost.gridY;
+            
+            switch (oppositeDir) {
+              case 'right': testX++; break;
+              case 'left': testX--; break;
+              case 'down': testY++; break;
+              case 'up': testY--; break;
+            }
+            
+            if (testX < 0) testX = this.maze[0].length - 1;
+            if (testX >= this.maze[0].length) testX = 0;
+            
+            if (this.isValidMove(testX, testY)) {
+              ghost.direction = oppositeDir;
+              console.log(`👻 Ghost ${index} forced to reverse direction to: ${oppositeDir}`);
+            } else {
+              console.log(`❌ Ghost ${index} completely stuck at (${ghost.gridX}, ${ghost.gridY})`);
+            }
           }
         }
       });
@@ -706,11 +748,12 @@ export class GameEngine {
     this.pacman.direction = 'right';
     this.pacman.nextDirection = null;
     
+    // FIXED: Reset ghosts to corner positions, not center
     const ghostStartPositions = [
-      { x: 15, y: 11, direction: 'left' as const },   // Red
-      { x: 23, y: 11, direction: 'right' as const }, // Pink  
-      { x: 19, y: 7, direction: 'up' as const },     // Cyan
-      { x: 19, y: 15, direction: 'down' as const }   // Orange
+      { x: 1, y: 1, direction: 'right' as const },   // Red - top-left
+      { x: 38, y: 1, direction: 'left' as const },  // Pink - top-right
+      { x: 1, y: 21, direction: 'right' as const }, // Cyan - bottom-left
+      { x: 38, y: 21, direction: 'left' as const }  // Orange - bottom-right
     ];
     
     this.ghosts.forEach((ghost, index) => {
@@ -726,7 +769,7 @@ export class GameEngine {
     
     this.vulnerabilityTimer = 0;
     
-    console.log("🔄 SIMPLIFIED: Positions reset with ghosts spread out immediately");
+    console.log("🔄 FIXED: Positions reset with ghosts in open corners");
   }
   
   private nextLevel() {
