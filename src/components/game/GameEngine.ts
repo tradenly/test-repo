@@ -28,6 +28,9 @@ export interface Ghost {
   isVulnerable: boolean;
   isBlinking: boolean;
   id: number;
+  targetCorner: { x: number; y: number };
+  cornerSequence: { x: number; y: number }[];
+  currentCornerIndex: number;
 }
 
 export interface Pellet {
@@ -64,11 +67,11 @@ export class GameEngine {
   private cellSize = 20;
   private keys: { [key: string]: boolean } = {};
   
-  // SIMPLIFIED: Faster movement timing
+  // FIXED: Slower movement timing
   private moveTimer = 0;
   private framesBetweenMoves = 4; // Pac-Man movement
   private ghostMoveTimer = 0;
-  private framesBetweenGhostMoves = 3; // FASTER: Ghosts move every 3 frames (faster than Pac-Man)
+  private framesBetweenGhostMoves = 8; // SLOWER: Ghosts move every 8 frames (reasonable speed)
   
   // Miss POOPEE-Man specific game state
   private lives = 3;
@@ -402,7 +405,7 @@ export class GameEngine {
   }
 
   private initializeMissPoopeeMan() {
-    console.log("🎮 FIXED: Initializing Miss POOPEE-Man with proper ghost positioning");
+    console.log("🎮 SIMPLIFIED: Initializing Miss POOPEE-Man with center-starting ghosts");
     this.cellSize = 20;
     this.vulnerabilityTimer = 0;
     
@@ -446,31 +449,62 @@ export class GameEngine {
       gridY: 21
     };
     
-    // FIXED: Position ghosts in OPEN areas with guaranteed movement options
-    const ghostStartPositions = [
-      { x: 1, y: 1, direction: 'right' as const, color: '#FF0000' },   // Red - top-left corner
-      { x: 38, y: 1, direction: 'left' as const, color: '#FFB6C1' },  // Pink - top-right corner  
-      { x: 1, y: 21, direction: 'right' as const, color: '#00FFFF' }, // Cyan - bottom-left corner
-      { x: 38, y: 21, direction: 'left' as const, color: '#FFA500' }  // Orange - bottom-right corner
+    // SIMPLIFIED: All ghosts start in the center and have corner patrol sequences
+    const centerX = 19;
+    const centerY = 11;
+    
+    // Define the four corners of the maze
+    const corners = {
+      topLeft: { x: 1, y: 1 },
+      topRight: { x: 38, y: 1 },
+      bottomLeft: { x: 1, y: 21 },
+      bottomRight: { x: 38, y: 21 }
+    };
+    
+    // Each ghost gets a different corner sequence
+    const ghostConfigs = [
+      {
+        color: '#FF0000', // Red
+        direction: 'up' as const,
+        sequence: [corners.topLeft, corners.bottomRight, corners.topRight, corners.bottomLeft]
+      },
+      {
+        color: '#FFB6C1', // Pink
+        direction: 'right' as const,
+        sequence: [corners.topRight, corners.bottomLeft, corners.topLeft, corners.bottomRight]
+      },
+      {
+        color: '#00FFFF', // Cyan
+        direction: 'down' as const,
+        sequence: [corners.bottomLeft, corners.topRight, corners.bottomRight, corners.topLeft]
+      },
+      {
+        color: '#FFA500', // Orange
+        direction: 'left' as const,
+        sequence: [corners.bottomRight, corners.topLeft, corners.bottomLeft, corners.topRight]
+      }
     ];
     
-    this.ghosts = ghostStartPositions.map((pos, index) => ({
+    this.ghosts = ghostConfigs.map((config, index) => ({
       id: index,
-      x: pos.x * this.cellSize,
-      y: pos.y * this.cellSize,
+      x: centerX * this.cellSize,
+      y: centerY * this.cellSize,
       width: this.cellSize,
       height: this.cellSize,
-      gridX: pos.x,
-      gridY: pos.y,
-      direction: pos.direction,
-      color: pos.color,
+      gridX: centerX,
+      gridY: centerY,
+      direction: config.direction,
+      color: config.color,
       isVulnerable: false,
-      isBlinking: false
+      isBlinking: false,
+      cornerSequence: config.sequence,
+      currentCornerIndex: 0,
+      targetCorner: config.sequence[0]
     }));
     
-    console.log("👻 FIXED: All 4 ghosts starting in open corners:");
+    console.log("👻 SIMPLIFIED: All 4 ghosts starting in center with corner patrol sequences:");
     this.ghosts.forEach((ghost, i) => {
-      console.log(`Ghost ${i}: pos(${ghost.gridX}, ${ghost.gridY}) direction: ${ghost.direction} - maze value: ${this.maze[ghost.gridY][ghost.gridX]}`);
+      console.log(`Ghost ${i}: center(${ghost.gridX}, ${ghost.gridY}) color: ${ghost.color} first target: (${ghost.targetCorner.x}, ${ghost.targetCorner.y})`);
     });
     
     this.pellets = [];
@@ -532,27 +566,54 @@ export class GameEngine {
   private updateGhostsSimplified() {
     this.ghostMoveTimer++;
     
-    // FIXED: Faster movement - every 2 frames instead of 3
-    if (this.ghostMoveTimer >= 2) {
+    // SIMPLIFIED: Slower movement - every 8 frames for reasonable speed
+    if (this.ghostMoveTimer >= this.framesBetweenGhostMoves) {
       this.ghostMoveTimer = 0;
       
       this.ghosts.forEach((ghost, index) => {
-        console.log(`👻 Moving Ghost ${index}: pos(${ghost.gridX}, ${ghost.gridY}) direction: ${ghost.direction}`);
+        console.log(`👻 Ghost ${index}: pos(${ghost.gridX}, ${ghost.gridY}) target(${ghost.targetCorner.x}, ${ghost.targetCorner.y})`);
+        
+        // Check if ghost reached its target corner
+        if (ghost.gridX === ghost.targetCorner.x && ghost.gridY === ghost.targetCorner.y) {
+          // Move to next corner in sequence
+          ghost.currentCornerIndex = (ghost.currentCornerIndex + 1) % ghost.cornerSequence.length;
+          ghost.targetCorner = ghost.cornerSequence[ghost.currentCornerIndex];
+          console.log(`🎯 Ghost ${index} reached corner! New target: (${ghost.targetCorner.x}, ${ghost.targetCorner.y})`);
+        }
+        
+        // Simple pathfinding toward target corner
+        const dx = ghost.targetCorner.x - ghost.gridX;
+        const dy = ghost.targetCorner.y - ghost.gridY;
         
         let newGridX = ghost.gridX;
         let newGridY = ghost.gridY;
         
-        switch (ghost.direction) {
-          case 'right': newGridX++; break;
-          case 'left': newGridX--; break;
-          case 'down': newGridY++; break;
-          case 'up': newGridY--; break;
+        // Choose direction that gets closer to target
+        if (Math.abs(dx) > Math.abs(dy)) {
+          // Move horizontally
+          if (dx > 0) {
+            newGridX++;
+            ghost.direction = 'right';
+          } else {
+            newGridX--;
+            ghost.direction = 'left';
+          }
+        } else {
+          // Move vertically
+          if (dy > 0) {
+            newGridY++;
+            ghost.direction = 'down';
+          } else {
+            newGridY--;
+            ghost.direction = 'up';
+          }
         }
         
         // Handle wrapping at maze edges
         if (newGridX < 0) newGridX = this.maze[0].length - 1;
         if (newGridX >= this.maze[0].length) newGridX = 0;
         
+        // Check if the move is valid
         if (this.isValidMove(newGridX, newGridY)) {
           ghost.gridX = newGridX;
           ghost.gridY = newGridY;
@@ -560,70 +621,31 @@ export class GameEngine {
           ghost.y = newGridY * this.cellSize;
           console.log(`👻 Ghost ${index} moved to (${ghost.gridX}, ${ghost.gridY})`);
         } else {
-          // FIXED: Smarter direction finding - try all directions systematically
-          const directions: ('right' | 'down' | 'left' | 'up')[] = ['right', 'down', 'left', 'up'];
-          let foundDirection = false;
+          // If direct path blocked, try alternative directions
+          const alternativeDirections = [
+            { dx: 0, dy: -1, dir: 'up' as const },
+            { dx: 0, dy: 1, dir: 'down' as const },
+            { dx: -1, dy: 0, dir: 'left' as const },
+            { dx: 1, dy: 0, dir: 'right' as const }
+          ];
           
-          // Try each direction in order
-          for (const direction of directions) {
-            // Skip opposite direction to avoid immediate reversals
-            if ((ghost.direction === 'right' && direction === 'left') ||
-                (ghost.direction === 'left' && direction === 'right') ||
-                (ghost.direction === 'up' && direction === 'down') ||
-                (ghost.direction === 'down' && direction === 'up')) {
-              continue;
-            }
-            
-            let testX = ghost.gridX;
-            let testY = ghost.gridY;
-            
-            switch (direction) {
-              case 'right': testX++; break;
-              case 'left': testX--; break;
-              case 'down': testY++; break;
-              case 'up': testY--; break;
-            }
+          for (const alt of alternativeDirections) {
+            const altX = ghost.gridX + alt.dx;
+            const altY = ghost.gridY + alt.dy;
             
             // Handle wrapping
-            if (testX < 0) testX = this.maze[0].length - 1;
-            if (testX >= this.maze[0].length) testX = 0;
+            let wrappedX = altX;
+            if (wrappedX < 0) wrappedX = this.maze[0].length - 1;
+            if (wrappedX >= this.maze[0].length) wrappedX = 0;
             
-            if (this.isValidMove(testX, testY)) {
-              ghost.direction = direction;
-              foundDirection = true;
-              console.log(`👻 Ghost ${index} changed direction to: ${direction}`);
+            if (this.isValidMove(wrappedX, altY)) {
+              ghost.gridX = wrappedX;
+              ghost.gridY = altY;
+              ghost.x = wrappedX * this.cellSize;
+              ghost.y = altY * this.cellSize;
+              ghost.direction = alt.dir;
+              console.log(`👻 Ghost ${index} took alternative path to (${ghost.gridX}, ${ghost.gridY})`);
               break;
-            }
-          }
-          
-          // If no direction found, try opposite direction as last resort
-          if (!foundDirection) {
-            const oppositeDirections = {
-              'right': 'left' as const,
-              'left': 'right' as const,
-              'up': 'down' as const,
-              'down': 'up' as const
-            };
-            
-            const oppositeDir = oppositeDirections[ghost.direction];
-            let testX = ghost.gridX;
-            let testY = ghost.gridY;
-            
-            switch (oppositeDir) {
-              case 'right': testX++; break;
-              case 'left': testX--; break;
-              case 'down': testY++; break;
-              case 'up': testY--; break;
-            }
-            
-            if (testX < 0) testX = this.maze[0].length - 1;
-            if (testX >= this.maze[0].length) testX = 0;
-            
-            if (this.isValidMove(testX, testY)) {
-              ghost.direction = oppositeDir;
-              console.log(`👻 Ghost ${index} forced to reverse direction to: ${oppositeDir}`);
-            } else {
-              console.log(`❌ Ghost ${index} completely stuck at (${ghost.gridX}, ${ghost.gridY})`);
             }
           }
         }
@@ -710,14 +732,16 @@ export class GameEngine {
             this.onScoreUpdate(this.score);
             console.log(`👻 SIMPLE: Ghost ${index} eaten! Score +100`);
             
+            // Reset ghost to center
             ghost.gridX = 19;
             ghost.gridY = 11;
             ghost.x = 19 * this.cellSize;
             ghost.y = 11 * this.cellSize;
             ghost.isVulnerable = false;
             ghost.isBlinking = false;
-            const directions: ('up' | 'down' | 'left' | 'right')[] = ['up', 'down', 'left', 'right'];
-            ghost.direction = directions[Math.floor(Math.random() * directions.length)];
+            // Reset to first corner in sequence
+            ghost.currentCornerIndex = 0;
+            ghost.targetCorner = ghost.cornerSequence[0];
           } else {
             this.lives--;
             this.invulnerabilityTimer = 120;
@@ -748,28 +772,21 @@ export class GameEngine {
     this.pacman.direction = 'right';
     this.pacman.nextDirection = null;
     
-    // FIXED: Reset ghosts to corner positions, not center
-    const ghostStartPositions = [
-      { x: 1, y: 1, direction: 'right' as const },   // Red - top-left
-      { x: 38, y: 1, direction: 'left' as const },  // Pink - top-right
-      { x: 1, y: 21, direction: 'right' as const }, // Cyan - bottom-left
-      { x: 38, y: 21, direction: 'left' as const }  // Orange - bottom-right
-    ];
-    
+    // SIMPLIFIED: Reset all ghosts to center with their original corner sequences
     this.ghosts.forEach((ghost, index) => {
-      const pos = ghostStartPositions[index];
-      ghost.gridX = pos.x;
-      ghost.gridY = pos.y;
-      ghost.x = pos.x * this.cellSize;
-      ghost.y = pos.y * this.cellSize;
-      ghost.direction = pos.direction;
+      ghost.gridX = 19;
+      ghost.gridY = 11;
+      ghost.x = 19 * this.cellSize;
+      ghost.y = 11 * this.cellSize;
       ghost.isVulnerable = false;
       ghost.isBlinking = false;
+      ghost.currentCornerIndex = 0;
+      ghost.targetCorner = ghost.cornerSequence[0];
     });
     
     this.vulnerabilityTimer = 0;
     
-    console.log("🔄 FIXED: Positions reset with ghosts in open corners");
+    console.log("🔄 SIMPLIFIED: All positions reset - ghosts back to center with original targets");
   }
   
   private nextLevel() {
