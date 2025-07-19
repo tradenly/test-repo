@@ -45,10 +45,10 @@ export const MintInfoSection = () => {
               <p className="text-lg text-gray-300"><span className="font-bold">Token:</span> POOPEE</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Supply:</span> 420,069,000</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Date:</span> TBD</p>
-              <p className="text-lg text-gray-300"><span className="font-bold">Blockchain:</span> Cardano (maybe)</p>
+              <p className="text-lg text-gray-300"><span className="font-bold">Blockchain:</span> Cardano </p>
             </div>
             <Button className="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold border border-gray-600">
-              Coming Soon (Maybe)
+              Coming Soon To Minswap
             </Button>
             <p className="text-sm text-gray-400 mt-2 font-bold">
               THERE IS NO REFUND. THERE IS NO ESCAPE.
