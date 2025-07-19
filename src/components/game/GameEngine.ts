@@ -64,11 +64,11 @@ export class GameEngine {
   private cellSize = 20;
   private keys: { [key: string]: boolean } = {};
   
-  // IMPROVED: Slower movement timing for better gameplay
+  // SIMPLIFIED: Faster movement timing
   private moveTimer = 0;
-  private framesBetweenMoves = 4; // Faster Pac-Man movement
+  private framesBetweenMoves = 4; // Pac-Man movement
   private ghostMoveTimer = 0;
-  private framesBetweenGhostMoves = 6; // SLOWED DOWN: Ghosts move every 6 frames instead of 3
+  private framesBetweenGhostMoves = 3; // FASTER: Ghosts move every 3 frames (faster than Pac-Man)
   
   // Miss POOPEE-Man specific game state
   private lives = 3;
@@ -402,14 +402,13 @@ export class GameEngine {
   }
 
   private initializeMissPoopeeMan() {
-    console.log("🎮 IMPROVED: Initializing Miss POOPEE-Man with center ghost spawn and slower movement");
+    console.log("🎮 SIMPLIFIED: Initializing Miss POOPEE-Man with all 4 ghosts exiting center immediately");
     this.cellSize = 20;
     this.vulnerabilityTimer = 0;
     
     this.moveTimer = 0;
     this.ghostMoveTimer = 0;
     
-    // Create simple maze layout
     this.maze = [
       [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
       [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -436,7 +435,6 @@ export class GameEngine {
       [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     ];
     
-    // Initialize Pac-Man
     this.pacman = {
       x: 19 * this.cellSize,
       y: 21 * this.cellSize,
@@ -448,15 +446,14 @@ export class GameEngine {
       gridY: 21
     };
     
-    // IMPROVED: All ghosts start in the center area with different directions
-    const centerStartPositions = [
-      { x: 18, y: 11, direction: 'right' as const, color: '#FF0000' }, // Red - center left, go right
-      { x: 20, y: 11, direction: 'left' as const, color: '#FFB6C1' }, // Pink - center right, go left
-      { x: 19, y: 10, direction: 'down' as const, color: '#00FFFF' }, // Cyan - center top, go down
-      { x: 19, y: 12, direction: 'up' as const, color: '#FFA500' } // Orange - center bottom, go up
+    const ghostStartPositions = [
+      { x: 15, y: 11, direction: 'left' as const, color: '#FF0000' },   // Red - start left of center, go left
+      { x: 23, y: 11, direction: 'right' as const, color: '#FFB6C1' }, // Pink - start right of center, go right  
+      { x: 19, y: 7, direction: 'up' as const, color: '#00FFFF' },     // Cyan - start above center, go up
+      { x: 19, y: 15, direction: 'down' as const, color: '#FFA500' }   // Orange - start below center, go down
     ];
     
-    this.ghosts = centerStartPositions.map((pos, index) => ({
+    this.ghosts = ghostStartPositions.map((pos, index) => ({
       id: index,
       x: pos.x * this.cellSize,
       y: pos.y * this.cellSize,
@@ -470,9 +467,11 @@ export class GameEngine {
       isBlinking: false
     }));
     
-    console.log("👻 IMPROVED: All 4 ghosts starting from center area with slower movement");
+    console.log("👻 SIMPLIFIED: All 4 ghosts starting OUTSIDE center area, moving immediately:");
+    this.ghosts.forEach((ghost, i) => {
+      console.log(`Ghost ${i}: pos(${ghost.gridX}, ${ghost.gridY}) direction: ${ghost.direction}`);
+    });
     
-    // Initialize pellets
     this.pellets = [];
     for (let y = 0; y < this.maze.length; y++) {
       for (let x = 0; x < this.maze[y].length; x++) {
@@ -501,20 +500,17 @@ export class GameEngine {
 
   private updateMissPoopeeMan() {
     this.updatePacMan();
-    this.updateGhostsSimple();
+    this.updateGhostsSimplified();
     this.checkMissPoopeeManCollisions();
     
-    // Update power pellet timer
     if (this.vulnerabilityTimer > 0) {
       this.vulnerabilityTimer--;
       
-      // FIXED: Add blinking logic for vulnerable ghosts in last 2 seconds
-      const isLastTwoSeconds = this.vulnerabilityTimer <= 120; // 2 seconds at 60fps
+      const isLastTwoSeconds = this.vulnerabilityTimer <= 120;
       
       this.ghosts.forEach(ghost => {
         if (ghost.isVulnerable) {
           if (isLastTwoSeconds) {
-            // Blink every 30 frames (0.5 seconds)
             ghost.isBlinking = Math.floor(this.vulnerabilityTimer / 15) % 2 === 0;
           } else {
             ghost.isBlinking = false;
@@ -532,16 +528,15 @@ export class GameEngine {
     }
   }
 
-  // IMPROVED: Slower ghost movement with random direction changes
-  private updateGhostsSimple() {
+  private updateGhostsSimplified() {
     this.ghostMoveTimer++;
     
-    // Move ghosts every 6 frames (slower than before)
     if (this.ghostMoveTimer >= this.framesBetweenGhostMoves) {
       this.ghostMoveTimer = 0;
       
       this.ghosts.forEach((ghost, index) => {
-        // Calculate next position
+        console.log(`👻 Moving Ghost ${index}: pos(${ghost.gridX}, ${ghost.gridY}) direction: ${ghost.direction}`);
+        
         let newGridX = ghost.gridX;
         let newGridY = ghost.gridY;
         
@@ -552,51 +547,43 @@ export class GameEngine {
           case 'up': newGridY--; break;
         }
         
-        // Handle tunnel wraparound
         if (newGridX < 0) newGridX = this.maze[0].length - 1;
         if (newGridX >= this.maze[0].length) newGridX = 0;
         
-        // Check if move is valid
         if (this.isValidMove(newGridX, newGridY)) {
-          // Move the ghost
           ghost.gridX = newGridX;
           ghost.gridY = newGridY;
           ghost.x = newGridX * this.cellSize;
           ghost.y = newGridY * this.cellSize;
+          console.log(`👻 Ghost ${index} moved to (${ghost.gridX}, ${ghost.gridY})`);
         } else {
-          // Hit a wall, pick a random new direction
-          const directions: ('up' | 'down' | 'left' | 'right')[] = ['up', 'down', 'left', 'right'];
-          let attempts = 0;
+          const directions: ('right' | 'down' | 'left' | 'up')[] = ['right', 'down', 'left', 'up'];
+          let foundDirection = false;
           
-          while (attempts < 10) { // Prevent infinite loop
-            const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+          for (const direction of directions) {
             let testX = ghost.gridX;
             let testY = ghost.gridY;
             
-            switch (randomDirection) {
+            switch (direction) {
               case 'right': testX++; break;
               case 'left': testX--; break;
               case 'down': testY++; break;
               case 'up': testY--; break;
             }
             
-            // Handle tunnel
             if (testX < 0) testX = this.maze[0].length - 1;
             if (testX >= this.maze[0].length) testX = 0;
             
             if (this.isValidMove(testX, testY)) {
-              ghost.direction = randomDirection;
-              console.log(`👻 Ghost ${index} hit wall, new direction: ${randomDirection}`);
+              ghost.direction = direction;
+              foundDirection = true;
               break;
             }
-            attempts++;
           }
-        }
-        
-        // If vulnerable, occasionally change direction randomly for chaos
-        if (ghost.isVulnerable && Math.random() < 0.1) { // 10% chance per frame
-          const directions: ('up' | 'down' | 'left' | 'right')[] = ['up', 'down', 'left', 'right'];
-          ghost.direction = directions[Math.floor(Math.random() * directions.length)];
+          
+          if (!foundDirection) {
+            console.log(`❌ Ghost ${index} completely stuck at (${ghost.gridX}, ${ghost.gridY})`);
+          }
         }
       });
     }
@@ -605,7 +592,6 @@ export class GameEngine {
   private updatePacMan() {
     this.moveTimer++;
     
-    // Check if we can change direction
     if (this.pacman.nextDirection) {
       const newGridX = this.pacman.gridX + (this.pacman.nextDirection === 'right' ? 1 : this.pacman.nextDirection === 'left' ? -1 : 0);
       const newGridY = this.pacman.gridY + (this.pacman.nextDirection === 'down' ? 1 : this.pacman.nextDirection === 'up' ? -1 : 0);
@@ -616,11 +602,9 @@ export class GameEngine {
       }
     }
     
-    // Only move if enough time has passed
     if (this.moveTimer >= this.framesBetweenMoves) {
       this.moveTimer = 0;
       
-      // Move in current direction
       let newGridX = this.pacman.gridX;
       let newGridY = this.pacman.gridY;
       
@@ -631,7 +615,6 @@ export class GameEngine {
         case 'up': newGridY--; break;
       }
       
-      // Handle tunnel wraparound
       if (newGridX < 0) newGridX = this.maze[0].length - 1;
       if (newGridX >= this.maze[0].length) newGridX = 0;
       
@@ -652,19 +635,18 @@ export class GameEngine {
   }
 
   private checkMissPoopeeManCollisions() {
-    // Check pellet collection
     this.pellets.forEach(pellet => {
       if (!pellet.collected && pellet.gridX === this.pacman.gridX && pellet.gridY === this.pacman.gridY) {
         pellet.collected = true;
         
         if (pellet.isPowerPellet) {
           this.score += 25;
-          this.vulnerabilityTimer = 600; // 10 seconds at 60fps
+          this.vulnerabilityTimer = 600;
           console.log("💊 SIMPLE: Power pellet eaten! Ghosts vulnerable for 10 seconds");
           
           this.ghosts.forEach(ghost => {
             ghost.isVulnerable = true;
-            ghost.isBlinking = false; // Reset blinking when first becoming vulnerable
+            ghost.isBlinking = false;
           });
         } else {
           this.score += 5;
@@ -674,35 +656,29 @@ export class GameEngine {
       }
     });
     
-    // Update invulnerability timer
     if (this.invulnerabilityTimer > 0) {
       this.invulnerabilityTimer--;
     }
     
-    // Check ghost collisions (only if not invulnerable)
     if (this.invulnerabilityTimer <= 0) {
       this.ghosts.forEach((ghost, index) => {
         if (ghost.gridX === this.pacman.gridX && ghost.gridY === this.pacman.gridY) {
           if (ghost.isVulnerable) {
-            // Eat ghost
             this.score += 100;
             this.onScoreUpdate(this.score);
             console.log(`👻 SIMPLE: Ghost ${index} eaten! Score +100`);
             
-            // Respawn ghost at center
             ghost.gridX = 19;
             ghost.gridY = 11;
             ghost.x = 19 * this.cellSize;
             ghost.y = 11 * this.cellSize;
             ghost.isVulnerable = false;
             ghost.isBlinking = false;
-            // Pick random direction
             const directions: ('up' | 'down' | 'left' | 'right')[] = ['up', 'down', 'left', 'right'];
             ghost.direction = directions[Math.floor(Math.random() * directions.length)];
           } else {
-            // Lose a life
             this.lives--;
-            this.invulnerabilityTimer = 120; // 2 seconds of invulnerability
+            this.invulnerabilityTimer = 120;
             console.log(`💀 SIMPLE: Pac-Man hit by ghost ${index}! Lives remaining: ${this.lives}`);
             
             if (this.lives <= 0) {
@@ -716,7 +692,6 @@ export class GameEngine {
       });
     }
     
-    // Check if all pellets collected
     const remainingPellets = this.pellets.filter(p => !p.collected);
     if (remainingPellets.length === 0) {
       this.nextLevel();
@@ -724,7 +699,6 @@ export class GameEngine {
   }
   
   private resetPositions() {
-    // Reset Pac-Man position
     this.pacman.gridX = 19;
     this.pacman.gridY = 21;
     this.pacman.x = 19 * this.cellSize;
@@ -732,16 +706,15 @@ export class GameEngine {
     this.pacman.direction = 'right';
     this.pacman.nextDirection = null;
     
-    // IMPROVED: Reset ghosts to center area instead of corners
-    const centerStartPositions = [
-      { x: 18, y: 11, direction: 'right' as const },
-      { x: 20, y: 11, direction: 'left' as const },
-      { x: 19, y: 10, direction: 'down' as const },
-      { x: 19, y: 12, direction: 'up' as const }
+    const ghostStartPositions = [
+      { x: 15, y: 11, direction: 'left' as const },   // Red
+      { x: 23, y: 11, direction: 'right' as const }, // Pink  
+      { x: 19, y: 7, direction: 'up' as const },     // Cyan
+      { x: 19, y: 15, direction: 'down' as const }   // Orange
     ];
     
     this.ghosts.forEach((ghost, index) => {
-      const pos = centerStartPositions[index];
+      const pos = ghostStartPositions[index];
       ghost.gridX = pos.x;
       ghost.gridY = pos.y;
       ghost.x = pos.x * this.cellSize;
@@ -751,21 +724,18 @@ export class GameEngine {
       ghost.isBlinking = false;
     });
     
-    // Reset timers
     this.vulnerabilityTimer = 0;
     
-    console.log("🔄 IMPROVED: Positions reset with ghosts returning to center");
+    console.log("🔄 SIMPLIFIED: Positions reset with ghosts spread out immediately");
   }
   
   private nextLevel() {
     this.level++;
     console.log("🎉 Level complete! Moving to level", this.level);
     
-    // Add level complete bonus
     this.score += 1000;
     this.onScoreUpdate(this.score);
     
-    // Keep current state and re-initialize
     const currentScore = this.score;
     const currentLevel = this.level;
     const currentLives = this.lives;
@@ -776,7 +746,6 @@ export class GameEngine {
     this.lives = currentLives;
   }
   
-  // Override getCurrentShields for Miss POOPEE-Man to return lives
   getCurrentShields() {
     if (this.gameMode === 'miss_poopee_man') {
       return this.lives;
@@ -797,7 +766,6 @@ export class GameEngine {
         this.renderer.renderShieldCounter(this.pipeHitsRemaining, this.maxShields);
         this.renderer.restoreContext(this.hitEffectTime);
       } else {
-        // Miss POOPEE-Man render
         this.renderer.renderMissPoopeeManGame(
           this.maze, 
           this.pacman, 
