@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
-import { Newspaper } from "lucide-react";
 
 export const InfoCardsSection = () => {
   const navigate = useNavigate();
@@ -63,7 +62,11 @@ export const InfoCardsSection = () => {
           <Card className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-all duration-300 group">
             <CardHeader className="text-center pb-4">
               <div className="mx-auto mb-4 p-3 bg-blue-600/20 rounded-full w-16 h-16 flex items-center justify-center group-hover:bg-blue-600/30 transition-colors">
-                <Newspaper className="h-8 w-8 text-blue-400" />
+                <img 
+                  src="/lovable-uploads/b9ceab90-992d-4db1-a446-1c332aed9ee6.png" 
+                  alt="News icon" 
+                  className="h-8 w-8"
+                />
               </div>
               <CardTitle className="text-2xl font-bold text-white">
                 News & Updates
