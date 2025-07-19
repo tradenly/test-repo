@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
-import { Wrench, Newspaper } from "lucide-react";
+import { Newspaper } from "lucide-react";
 
 export const InfoCardsSection = () => {
   const navigate = useNavigate();
@@ -33,7 +33,11 @@ export const InfoCardsSection = () => {
           <Card className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-all duration-300 group">
             <CardHeader className="text-center pb-4">
               <div className="mx-auto mb-4 p-3 bg-purple-600/20 rounded-full w-16 h-16 flex items-center justify-center group-hover:bg-purple-600/30 transition-colors">
-                <Wrench className="h-8 w-8 text-purple-400" />
+                <img 
+                  src="/lovable-uploads/83ea26bc-3fb2-4c8a-8d8d-f4047385255d.png" 
+                  alt="Tools icon" 
+                  className="h-8 w-8"
+                />
               </div>
               <CardTitle className="text-2xl font-bold text-white">
                 Free Tools
