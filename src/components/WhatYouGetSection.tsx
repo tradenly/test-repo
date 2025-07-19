@@ -44,8 +44,8 @@ export const WhatYouGetSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-6">
               <img 
-                src="/lovable-uploads/c0b71020-c9b3-45d6-ab9e-6039d6dd8bb4.png" 
-                alt="Hippo with sunglasses" 
+                src="/lovable-uploads/43cb426f-322a-4c07-bdd7-73f27fa00f34.png" 
+                alt="Hippo with spiked hair in leather jacket and yellow pants" 
                 className="w-20 h-20 mx-auto rounded-lg"
               />
             </div>
@@ -70,8 +70,8 @@ export const WhatYouGetSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-6">
               <img 
-                src="/lovable-uploads/623aca37-1cc9-4d34-9467-be60a163841a.png" 
-                alt="Cool hippo character" 
+                src="/lovable-uploads/b0325990-35ce-441f-be10-6ce07fe18f0d.png" 
+                alt="Hippo with dark hair in leather jacket and red pants with tattoos" 
                 className="w-20 h-20 mx-auto rounded-lg"
               />
             </div>
@@ -96,8 +96,8 @@ export const WhatYouGetSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-6">
               <img 
-                src="/lovable-uploads/70b8ec5d-bdc5-497f-823d-a9526fdc2baa.png" 
-                alt="Cool blue hippo with gold chain and sunglasses" 
+                src="/lovable-uploads/201efece-ee9a-4e45-b03e-cb82231d457d.png" 
+                alt="Hippo with blue spiky hair in white jacket and jeans with tattoos" 
                 className="w-20 h-20 mx-auto rounded-lg"
               />
             </div>
