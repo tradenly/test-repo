@@ -28,9 +28,8 @@ export interface Ghost {
   isVulnerable: boolean;
   isBlinking: boolean;
   id: number;
-  targetCorner: { x: number; y: number };
-  cornerSequence: { x: number; y: number }[];
-  currentCornerIndex: number;
+  pathIndex: number;
+  predefinedPath: { x: number; y: number }[];
 }
 
 export interface Pellet {
@@ -67,11 +66,11 @@ export class GameEngine {
   private cellSize = 20;
   private keys: { [key: string]: boolean } = {};
   
-  // FIXED: Slower movement timing
+  // SIMPLIFIED: Fixed movement timing
   private moveTimer = 0;
   private framesBetweenMoves = 4; // Pac-Man movement
   private ghostMoveTimer = 0;
-  private framesBetweenGhostMoves = 8; // SLOWER: Ghosts move every 8 frames (reasonable speed)
+  private framesBetweenGhostMoves = 8; // Ghost movement speed
   
   // Miss POOPEE-Man specific game state
   private lives = 3;
@@ -405,7 +404,7 @@ export class GameEngine {
   }
 
   private initializeMissPoopeeMan() {
-    console.log("🎮 FIXED: Initializing Miss POOPEE-Man with working ghost positions");
+    console.log("🎮 SIMPLIFIED: Initializing Miss POOPEE-Man with hardcoded ghost paths");
     this.cellSize = 20;
     this.vulnerabilityTimer = 0;
     
@@ -449,63 +448,75 @@ export class GameEngine {
       gridY: 21
     };
     
-    // FIXED: Position ghosts in valid open spaces around the center
-    const ghostStartPositions = [
-      { x: 18, y: 11, direction: 'up' as const, color: '#FF0000' },    // Red - left of center
-      { x: 20, y: 11, direction: 'down' as const, color: '#FFB6C1' },  // Pink - right of center  
-      { x: 19, y: 10, direction: 'left' as const, color: '#00FFFF' },  // Cyan - above center
-      { x: 19, y: 12, direction: 'right' as const, color: '#FFA500' }  // Orange - below center
-    ];
+    // SIMPLIFIED: Create predefined paths for each ghost
+    const ghostPaths = this.createGhostPaths();
     
-    // Define the four corners of the maze for targeting
-    const corners = {
-      topLeft: { x: 1, y: 1 },
-      topRight: { x: 38, y: 1 },
-      bottomLeft: { x: 1, y: 21 },
-      bottomRight: { x: 38, y: 21 }
-    };
-    
-    // Each ghost gets a different corner sequence
-    const ghostConfigs = [
+    this.ghosts = [
       {
-        sequence: [corners.topLeft, corners.bottomRight, corners.topRight, corners.bottomLeft]
+        id: 0,
+        x: 19 * this.cellSize,
+        y: 11 * this.cellSize,
+        width: this.cellSize,
+        height: this.cellSize,
+        gridX: 19,
+        gridY: 11,
+        direction: 'up',
+        color: '#FF0000', // Red
+        isVulnerable: false,
+        isBlinking: false,
+        pathIndex: 0,
+        predefinedPath: ghostPaths.ghost1
       },
       {
-        sequence: [corners.topRight, corners.bottomLeft, corners.topLeft, corners.bottomRight]
+        id: 1,
+        x: 19 * this.cellSize,
+        y: 11 * this.cellSize,
+        width: this.cellSize,
+        height: this.cellSize,
+        gridX: 19,
+        gridY: 11,
+        direction: 'right',
+        color: '#FFB6C1', // Pink
+        isVulnerable: false,
+        isBlinking: false,
+        pathIndex: 0,
+        predefinedPath: ghostPaths.ghost2
       },
       {
-        sequence: [corners.bottomLeft, corners.topRight, corners.bottomRight, corners.topLeft]
+        id: 2,
+        x: 19 * this.cellSize,
+        y: 11 * this.cellSize,
+        width: this.cellSize,
+        height: this.cellSize,
+        gridX: 19,
+        gridY: 11,
+        direction: 'left',
+        color: '#00FFFF', // Cyan
+        isVulnerable: false,
+        isBlinking: false,
+        pathIndex: 0,
+        predefinedPath: ghostPaths.ghost3
       },
       {
-        sequence: [corners.bottomRight, corners.topLeft, corners.bottomLeft, corners.topRight]
+        id: 3,
+        x: 19 * this.cellSize,
+        y: 11 * this.cellSize,
+        width: this.cellSize,
+        height: this.cellSize,
+        gridX: 19,
+        gridY: 11,
+        direction: 'down',
+        color: '#FFA500', // Orange
+        isVulnerable: false,
+        isBlinking: false,
+        pathIndex: 0,
+        predefinedPath: ghostPaths.ghost4
       }
     ];
     
-    this.ghosts = ghostStartPositions.map((pos, index) => {
-      console.log(`👻 FIXED: Ghost ${index} starting at (${pos.x}, ${pos.y}) - checking if valid...`);
-      console.log(`👻 FIXED: Maze value at (${pos.x}, ${pos.y}) = ${this.maze[pos.y][pos.x]}`);
-      
-      return {
-        id: index,
-        x: pos.x * this.cellSize,
-        y: pos.y * this.cellSize,
-        width: this.cellSize,
-        height: this.cellSize,
-        gridX: pos.x,
-        gridY: pos.y,
-        direction: pos.direction,
-        color: pos.color,
-        isVulnerable: false,
-        isBlinking: false,
-        cornerSequence: ghostConfigs[index].sequence,
-        currentCornerIndex: 0,
-        targetCorner: ghostConfigs[index].sequence[0]
-      };
-    });
-    
-    console.log("👻 FIXED: All 4 ghosts positioned at valid starting locations:");
+    console.log("👻 SIMPLIFIED: All 4 ghosts initialized with predefined paths");
     this.ghosts.forEach((ghost, i) => {
-      console.log(`Ghost ${i}: start(${ghost.gridX}, ${ghost.gridY}) color: ${ghost.color} target: (${ghost.targetCorner.x}, ${ghost.targetCorner.y})`);
+      console.log(`Ghost ${i}: path has ${ghost.predefinedPath.length} waypoints`);
     });
     
     this.pellets = [];
@@ -532,6 +543,78 @@ export class GameEngine {
         }
       }
     }
+  }
+
+  // SIMPLIFIED: Create hardcoded paths for all 4 ghosts
+  private createGhostPaths() {
+    // Corner coordinates
+    const corners = {
+      topLeft: { x: 1, y: 1 },
+      topRight: { x: 38, y: 1 },
+      bottomLeft: { x: 1, y: 21 },
+      bottomRight: { x: 38, y: 21 },
+      center: { x: 19, y: 11 }
+    };
+
+    // Simple path creation: direct lines between corners
+    const createPath = (waypoints: { x: number; y: number }[]) => {
+      const fullPath: { x: number; y: number }[] = [];
+      
+      for (let i = 0; i < waypoints.length; i++) {
+        const start = waypoints[i];
+        const end = waypoints[(i + 1) % waypoints.length];
+        
+        // Create straight line between waypoints
+        const steps = Math.max(Math.abs(end.x - start.x), Math.abs(end.y - start.y));
+        
+        for (let step = 0; step <= steps; step++) {
+          const t = steps === 0 ? 0 : step / steps;
+          const x = Math.round(start.x + (end.x - start.x) * t);
+          const y = Math.round(start.y + (end.y - start.y) * t);
+          fullPath.push({ x, y });
+        }
+      }
+      
+      return fullPath;
+    };
+
+    return {
+      // Ghost 1: Center → Top-left → Bottom-right → Top-right → Bottom-left → repeat
+      ghost1: createPath([
+        corners.center,
+        corners.topLeft,
+        corners.bottomRight,
+        corners.topRight,
+        corners.bottomLeft
+      ]),
+      
+      // Ghost 2: Center → Top-right → Bottom-left → Top-left → Bottom-right → repeat  
+      ghost2: createPath([
+        corners.center,
+        corners.topRight,
+        corners.bottomLeft,
+        corners.topLeft,
+        corners.bottomRight
+      ]),
+      
+      // Ghost 3: Center → Bottom-left → Top-right → Bottom-right → Top-left → repeat
+      ghost3: createPath([
+        corners.center,
+        corners.bottomLeft,
+        corners.topRight,
+        corners.bottomRight,
+        corners.topLeft
+      ]),
+      
+      // Ghost 4: Center → Bottom-right → Top-left → Bottom-left → Top-right → repeat
+      ghost4: createPath([
+        corners.center,
+        corners.bottomRight,
+        corners.topLeft,
+        corners.bottomLeft,
+        corners.topRight
+      ])
+    };
   }
 
   private updateMissPoopeeMan() {
@@ -564,97 +647,31 @@ export class GameEngine {
     }
   }
 
+  // SIMPLIFIED: Ultra-simple ghost movement - just follow predefined paths
   private updateGhostsSimplified() {
     this.ghostMoveTimer++;
     
-    // FIXED: Slower movement - every 8 frames for reasonable speed
     if (this.ghostMoveTimer >= this.framesBetweenGhostMoves) {
       this.ghostMoveTimer = 0;
       
       this.ghosts.forEach((ghost, index) => {
-        console.log(`👻 FIXED: Ghost ${index}: pos(${ghost.gridX}, ${ghost.gridY}) target(${ghost.targetCorner.x}, ${ghost.targetCorner.y})`);
+        // Simply advance to next position in predefined path
+        ghost.pathIndex = (ghost.pathIndex + 1) % ghost.predefinedPath.length;
         
-        // Check if ghost reached its target corner (within 1 tile tolerance)
-        const distanceToTarget = Math.abs(ghost.gridX - ghost.targetCorner.x) + Math.abs(ghost.gridY - ghost.targetCorner.y);
-        if (distanceToTarget <= 1) {
-          // Move to next corner in sequence
-          ghost.currentCornerIndex = (ghost.currentCornerIndex + 1) % ghost.cornerSequence.length;
-          ghost.targetCorner = ghost.cornerSequence[ghost.currentCornerIndex];
-          console.log(`🎯 FIXED: Ghost ${index} reached corner! New target: (${ghost.targetCorner.x}, ${ghost.targetCorner.y})`);
-        }
+        const nextPos = ghost.predefinedPath[ghost.pathIndex];
+        ghost.gridX = nextPos.x;
+        ghost.gridY = nextPos.y;
+        ghost.x = nextPos.x * this.cellSize;
+        ghost.y = nextPos.y * this.cellSize;
         
-        // Simple pathfinding toward target corner
-        const dx = ghost.targetCorner.x - ghost.gridX;
-        const dy = ghost.targetCorner.y - ghost.gridY;
+        // Set direction based on movement
+        const prevPos = ghost.predefinedPath[(ghost.pathIndex - 1 + ghost.predefinedPath.length) % ghost.predefinedPath.length];
+        if (nextPos.x > prevPos.x) ghost.direction = 'right';
+        else if (nextPos.x < prevPos.x) ghost.direction = 'left';
+        else if (nextPos.y > prevPos.y) ghost.direction = 'down';
+        else if (nextPos.y < prevPos.y) ghost.direction = 'up';
         
-        let newGridX = ghost.gridX;
-        let newGridY = ghost.gridY;
-        
-        // Choose direction that gets closer to target (prioritize larger difference)
-        if (Math.abs(dx) >= Math.abs(dy)) {
-          // Move horizontally first
-          if (dx > 0) {
-            newGridX++;
-            ghost.direction = 'right';
-          } else if (dx < 0) {
-            newGridX--;
-            ghost.direction = 'left';
-          }
-        } else {
-          // Move vertically first
-          if (dy > 0) {
-            newGridY++;
-            ghost.direction = 'down';
-          } else if (dy < 0) {
-            newGridY--;
-            ghost.direction = 'up';
-          }
-        }
-        
-        // Handle maze edge wrapping for horizontal movement
-        if (newGridX < 0) newGridX = this.maze[0].length - 1;
-        if (newGridX >= this.maze[0].length) newGridX = 0;
-        
-        console.log(`👻 FIXED: Ghost ${index} trying to move to (${newGridX}, ${newGridY})`);
-        console.log(`👻 FIXED: isValidMove check: ${this.isValidMove(newGridX, newGridY)}`);
-        
-        // Check if the move is valid
-        if (this.isValidMove(newGridX, newGridY)) {
-          ghost.gridX = newGridX;
-          ghost.gridY = newGridY;
-          ghost.x = newGridX * this.cellSize;
-          ghost.y = newGridY * this.cellSize;
-          console.log(`👻 FIXED: Ghost ${index} moved successfully to (${ghost.gridX}, ${ghost.gridY})`);
-        } else {
-          console.log(`👻 FIXED: Ghost ${index} blocked, trying alternative directions`);
-          // If direct path blocked, try alternative directions
-          const alternativeDirections = [
-            { dx: 0, dy: -1, dir: 'up' as const },
-            { dx: 0, dy: 1, dir: 'down' as const },
-            { dx: -1, dy: 0, dir: 'left' as const },
-            { dx: 1, dy: 0, dir: 'right' as const }
-          ];
-          
-          for (const alt of alternativeDirections) {
-            const altX = ghost.gridX + alt.dx;
-            const altY = ghost.gridY + alt.dy;
-            
-            // Handle wrapping for horizontal movement
-            let wrappedX = altX;
-            if (wrappedX < 0) wrappedX = this.maze[0].length - 1;
-            if (wrappedX >= this.maze[0].length) wrappedX = 0;
-            
-            if (this.isValidMove(wrappedX, altY)) {
-              ghost.gridX = wrappedX;
-              ghost.gridY = altY;
-              ghost.x = wrappedX * this.cellSize;
-              ghost.y = altY * this.cellSize;
-              ghost.direction = alt.dir;
-              console.log(`👻 FIXED: Ghost ${index} took alternative path to (${ghost.gridX}, ${ghost.gridY})`);
-              break;
-            }
-          }
-        }
+        console.log(`👻 SIMPLIFIED: Ghost ${index} moved to (${ghost.gridX}, ${ghost.gridY}) pathIndex: ${ghost.pathIndex}`);
       });
     }
   }
@@ -738,16 +755,14 @@ export class GameEngine {
             this.onScoreUpdate(this.score);
             console.log(`👻 SIMPLE: Ghost ${index} eaten! Score +100`);
             
-            // Reset ghost to center
+            // Reset ghost to center and restart path
             ghost.gridX = 19;
             ghost.gridY = 11;
             ghost.x = 19 * this.cellSize;
             ghost.y = 11 * this.cellSize;
             ghost.isVulnerable = false;
             ghost.isBlinking = false;
-            // Reset to first corner in sequence
-            ghost.currentCornerIndex = 0;
-            ghost.targetCorner = ghost.cornerSequence[0];
+            ghost.pathIndex = 0; // Restart path from beginning
           } else {
             this.lives--;
             this.invulnerabilityTimer = 120;
@@ -778,7 +793,7 @@ export class GameEngine {
     this.pacman.direction = 'right';
     this.pacman.nextDirection = null;
     
-    // SIMPLIFIED: Reset all ghosts to center with their original corner sequences
+    // SIMPLIFIED: Reset all ghosts to center and restart their paths
     this.ghosts.forEach((ghost, index) => {
       ghost.gridX = 19;
       ghost.gridY = 11;
@@ -786,13 +801,12 @@ export class GameEngine {
       ghost.y = 11 * this.cellSize;
       ghost.isVulnerable = false;
       ghost.isBlinking = false;
-      ghost.currentCornerIndex = 0;
-      ghost.targetCorner = ghost.cornerSequence[0];
+      ghost.pathIndex = 0; // Restart path from beginning
     });
     
     this.vulnerabilityTimer = 0;
     
-    console.log("🔄 SIMPLIFIED: All positions reset - ghosts back to center with original targets");
+    console.log("🔄 SIMPLIFIED: All positions reset - ghosts restarted their paths");
   }
   
   private nextLevel() {
