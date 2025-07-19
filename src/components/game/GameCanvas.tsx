@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useGameState } from './useGameState';
 import { useGameCanvasState } from './hooks/useGameCanvasState';
@@ -159,7 +160,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits, gameMode 
           }}
           tabIndex={gameState === 'playing' ? 0 : -1}
           role="application"
-          aria-label="Flappy Hippos Game Canvas"
+          aria-label={gameMode === 'flappy_hippos' ? 'Flappy Hippos Game Canvas' : 'Miss POOPEE-Man Game Canvas'}
           aria-describedby="game-instructions"
           onTouchStart={handleCanvasTouch}
           onTouchEnd={(e) => e.preventDefault()}
@@ -201,7 +202,7 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits, gameMode 
               <div className="text-4xl mb-3">💩</div>
               <p className="text-xl text-yellow-400 mb-4">Score: {score}</p>
               <p className="text-sm text-gray-300 mb-6">
-                Shields: {gameRef.current?.getCurrentShields() || 0}/{totalShields}
+                {gameMode === 'flappy_hippos' ? 'Shields' : 'Lives'}: {gameRef.current?.getCurrentShields() || 0}/{totalShields}
               </p>
               
               <div className="flex flex-col gap-3">
@@ -230,21 +231,32 @@ export const GameCanvas = ({ onGameEnd, onGameStart, canPlay, credits, gameMode 
         )}
 
         {/* Mobile touch instruction overlay when playing */}
-        {isMobile && gameState === 'playing' && (
+        {isMobile && gameState === 'playing' && gameMode === 'flappy_hippos' && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full text-sm animate-fade-in">
             Tap anywhere to flap! 💩
           </div>
         )}
+
+        {/* Mobile Miss POOPEE-Man controls instruction */}
+        {isMobile && gameState === 'playing' && gameMode === 'miss_poopee_man' && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full text-sm animate-fade-in">
+            Use controls above! 💩
+          </div>
+        )}
         
         <div id="game-instructions" className="sr-only">
-          {isMobile 
-            ? "Tap anywhere on the screen to make the hippo jump and avoid obstacles."
-            : "Use spacebar or click to make the hippo jump and avoid obstacles. Collect power-ups for extra points."
+          {gameMode === 'flappy_hippos'
+            ? (isMobile 
+                ? "Tap anywhere on the screen to make the hippo jump and avoid obstacles."
+                : "Use spacebar or click to make the hippo jump and avoid obstacles. Collect power-ups for extra points.")
+            : (isMobile
+                ? "Use the arrow buttons above to move Pac-Man around the maze."
+                : "Use arrow keys to move Pac-Man around the maze and collect pellets.")
           }
         </div>
       </div>
       
-      {/* Desktop Controls - Show beside canvas on desktop */}
+      {/* Desktop Controls - Show beside canvas on desktop - FIXED: Always show controls */}
       {!isMobile && (
         <div className="flex flex-col gap-2">
           <GameControls

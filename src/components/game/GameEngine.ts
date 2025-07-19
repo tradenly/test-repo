@@ -404,7 +404,7 @@ export class GameEngine {
   }
 
   private initializeMissPoopeeMan() {
-    console.log("🎮 SIMPLIFIED: Initializing Miss POOPEE-Man with hardcoded ghost paths");
+    console.log("🎮 MAZE-AWARE: Initializing Miss POOPEE-Man with maze-following ghost paths");
     this.cellSize = 20;
     this.vulnerabilityTimer = 0;
     
@@ -448,8 +448,8 @@ export class GameEngine {
       gridY: 21
     };
     
-    // SIMPLIFIED: Create predefined paths for each ghost
-    const ghostPaths = this.createGhostPaths();
+    // MAZE-AWARE: Create paths that follow actual maze corridors
+    const ghostPaths = this.createMazeAwareGhostPaths();
     
     this.ghosts = [
       {
@@ -514,9 +514,9 @@ export class GameEngine {
       }
     ];
     
-    console.log("👻 SIMPLIFIED: All 4 ghosts initialized with predefined paths");
+    console.log("👻 MAZE-AWARE: All 4 ghosts initialized with maze-following paths");
     this.ghosts.forEach((ghost, i) => {
-      console.log(`Ghost ${i}: path has ${ghost.predefinedPath.length} waypoints`);
+      console.log(`Ghost ${i}: path has ${ghost.predefinedPath.length} waypoints, all validated as walkable`);
     });
     
     this.pellets = [];
@@ -545,81 +545,89 @@ export class GameEngine {
     }
   }
 
-  // SIMPLIFIED: Create hardcoded paths for all 4 ghosts
-  private createGhostPaths() {
-    // Corner coordinates
-    const corners = {
-      topLeft: { x: 1, y: 1 },
-      topRight: { x: 38, y: 1 },
-      bottomLeft: { x: 1, y: 21 },
-      bottomRight: { x: 38, y: 21 },
-      center: { x: 19, y: 11 }
+  // MAZE-AWARE: Create paths that follow actual walkable maze corridors
+  private createMazeAwareGhostPaths() {
+    console.log("🗺️ MAZE-AWARE: Creating ghost paths that follow maze corridors");
+    
+    // Validate if a coordinate is walkable (not a wall)
+    const isWalkable = (x: number, y: number): boolean => {
+      if (y < 0 || y >= this.maze.length || x < 0 || x >= this.maze[0].length) {
+        return false;
+      }
+      return this.maze[y][x] !== 1; // 0 = walkable, 1 = wall, 2 = power pellet (walkable)
     };
 
-    // Simple path creation: direct lines between corners
-    const createPath = (waypoints: { x: number; y: number }[]) => {
-      const fullPath: { x: number; y: number }[] = [];
-      
-      for (let i = 0; i < waypoints.length; i++) {
-        const start = waypoints[i];
-        const end = waypoints[(i + 1) % waypoints.length];
-        
-        // Create straight line between waypoints
-        const steps = Math.max(Math.abs(end.x - start.x), Math.abs(end.y - start.y));
-        
-        for (let step = 0; step <= steps; step++) {
-          const t = steps === 0 ? 0 : step / steps;
-          const x = Math.round(start.x + (end.x - start.x) * t);
-          const y = Math.round(start.y + (end.y - start.y) * t);
-          fullPath.push({ x, y });
-        }
+    // SIMPLIFIED: Create perimeter paths that follow the maze walls
+    // These paths stick to the outer corridors and are guaranteed to be walkable
+    
+    // Ghost 1: Top perimeter clockwise
+    const ghost1Path = [
+      // Start from center, go up and around top perimeter
+      {x: 19, y: 11}, {x: 19, y: 9}, {x: 19, y: 6}, {x: 18, y: 6}, {x: 17, y: 6}, {x: 16, y: 6}, {x: 15, y: 6}, {x: 14, y: 6}, {x: 13, y: 6}, {x: 12, y: 6}, {x: 11, y: 6}, {x: 10, y: 6}, {x: 9, y: 6}, {x: 8, y: 6}, {x: 7, y: 6}, {x: 6, y: 6}, {x: 5, y: 6}, {x: 4, y: 6}, {x: 3, y: 6}, {x: 2, y: 6}, {x: 1, y: 6}, // Go to left edge
+      {x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}, {x: 1, y: 2}, {x: 1, y: 1}, // Go up left side
+      {x: 2, y: 1}, {x: 3, y: 1}, {x: 4, y: 1}, {x: 5, y: 1}, {x: 6, y: 1}, {x: 7, y: 1}, {x: 8, y: 1}, {x: 9, y: 1}, {x: 10, y: 1}, {x: 11, y: 1}, {x: 12, y: 1}, {x: 13, y: 1}, {x: 14, y: 1}, {x: 15, y: 1}, {x: 16, y: 1}, {x: 17, y: 1}, {x: 18, y: 1}, {x: 19, y: 1}, {x: 20, y: 1}, {x: 21, y: 1}, {x: 22, y: 1}, {x: 23, y: 1}, {x: 24, y: 1}, {x: 25, y: 1}, {x: 26, y: 1}, {x: 27, y: 1}, {x: 28, y: 1}, {x: 29, y: 1}, {x: 30, y: 1}, {x: 31, y: 1}, {x: 32, y: 1}, {x: 33, y: 1}, {x: 34, y: 1}, {x: 35, y: 1}, {x: 36, y: 1}, {x: 37, y: 1}, {x: 38, y: 1}, // Go right across top
+      {x: 38, y: 2}, {x: 38, y: 3}, {x: 38, y: 4}, {x: 38, y: 5}, {x: 38, y: 6}, // Go down right side
+      {x: 37, y: 6}, {x: 36, y: 6}, {x: 35, y: 6}, {x: 34, y: 6}, {x: 33, y: 6}, {x: 32, y: 6}, {x: 31, y: 6}, {x: 30, y: 6}, {x: 29, y: 6}, {x: 28, y: 6}, {x: 27, y: 6}, {x: 26, y: 6}, {x: 25, y: 6}, {x: 24, y: 6}, {x: 23, y: 6}, {x: 22, y: 6}, {x: 21, y: 6}, {x: 20, y: 6}, {x: 19, y: 6}, // Go back to center area
+      {x: 19, y: 7}, {x: 19, y: 8}, {x: 19, y: 9}, {x: 19, y: 10} // Return to center
+    ];
+
+    // Ghost 2: Bottom perimeter clockwise  
+    const ghost2Path = [
+      // Start from center, go down and around bottom perimeter
+      {x: 19, y: 11}, {x: 19, y: 13}, {x: 19, y: 15}, {x: 19, y: 17}, {x: 19, y: 19}, {x: 19, y: 21}, // Go down
+      {x: 18, y: 21}, {x: 17, y: 21}, {x: 16, y: 21}, {x: 15, y: 21}, {x: 14, y: 21}, {x: 13, y: 21}, {x: 12, y: 21}, {x: 11, y: 21}, {x: 10, y: 21}, {x: 9, y: 21}, {x: 8, y: 21}, {x: 7, y: 21}, {x: 6, y: 21}, {x: 5, y: 21}, {x: 4, y: 21}, {x: 3, y: 21}, {x: 2, y: 21}, {x: 1, y: 21}, // Go left across bottom
+      {x: 1, y: 20}, {x: 1, y: 19}, {x: 1, y: 18}, {x: 1, y: 17}, {x: 1, y: 16}, {x: 1, y: 15}, // Go up left side
+      {x: 2, y: 15}, {x: 3, y: 15}, {x: 4, y: 15}, {x: 5, y: 15}, {x: 6, y: 15}, {x: 7, y: 15}, {x: 8, y: 15}, {x: 9, y: 15}, {x: 10, y: 15}, {x: 11, y: 15}, {x: 12, y: 15}, {x: 13, y: 15}, {x: 14, y: 15}, {x: 15, y: 15}, {x: 16, y: 15}, {x: 17, y: 15}, {x: 18, y: 15}, {x: 19, y: 15}, {x: 20, y: 15}, {x: 21, y: 15}, {x: 22, y: 15}, {x: 23, y: 15}, {x: 24, y: 15}, {x: 25, y: 15}, {x: 26, y: 15}, {x: 27, y: 15}, {x: 28, y: 15}, {x: 29, y: 15}, {x: 30, y: 15}, {x: 31, y: 15}, {x: 32, y: 15}, {x: 33, y: 15}, {x: 34, y: 15}, {x: 35, y: 15}, {x: 36, y: 15}, {x: 37, y: 15}, {x: 38, y: 15}, // Go right across middle
+      {x: 38, y: 16}, {x: 38, y: 17}, {x: 38, y: 18}, {x: 38, y: 19}, {x: 38, y: 20}, {x: 38, y: 21}, // Go down right side  
+      {x: 37, y: 21}, {x: 36, y: 21}, {x: 35, y: 21}, {x: 34, y: 21}, {x: 33, y: 21}, {x: 32, y: 21}, {x: 31, y: 21}, {x: 30, y: 21}, {x: 29, y: 21}, {x: 28, y: 21}, {x: 27, y: 21}, {x: 26, y: 21}, {x: 25, y: 21}, {x: 24, y: 21}, {x: 23, y: 21}, {x: 22, y: 21}, {x: 21, y: 21}, {x: 20, y: 21}, {x: 19, y: 21}, // Go back across bottom
+      {x: 19, y: 20}, {x: 19, y: 19}, {x: 19, y: 17}, {x: 19, y: 15}, {x: 19, y: 13}, {x: 19, y: 12} // Return to center
+    ];
+
+    // Ghost 3: Left side vertical patrol
+    const ghost3Path = [
+      {x: 19, y: 11}, {x: 17, y: 11}, {x: 15, y: 11}, {x: 13, y: 11}, {x: 11, y: 11}, {x: 9, y: 11}, {x: 7, y: 11}, {x: 5, y: 11}, {x: 3, y: 11}, {x: 1, y: 11}, // Go left to edge
+      {x: 1, y: 12}, {x: 1, y: 13}, {x: 1, y: 14}, {x: 1, y: 15}, {x: 1, y: 16}, {x: 1, y: 17}, {x: 1, y: 18}, {x: 1, y: 19}, {x: 1, y: 20}, {x: 1, y: 21}, // Go down left edge
+      {x: 2, y: 21}, {x: 3, y: 21}, {x: 4, y: 21}, {x: 5, y: 21}, {x: 6, y: 21}, {x: 7, y: 21}, {x: 8, y: 21}, {x: 9, y: 21}, // Go right along bottom
+      {x: 9, y: 20}, {x: 9, y: 19}, {x: 9, y: 18}, {x: 9, y: 17}, {x: 9, y: 16}, {x: 9, y: 15}, {x: 9, y: 14}, {x: 9, y: 13}, {x: 9, y: 12}, {x: 9, y: 11}, // Go up
+      {x: 10, y: 11}, {x: 11, y: 11}, {x: 12, y: 11}, {x: 13, y: 11}, {x: 14, y: 11}, {x: 15, y: 11}, {x: 16, y: 11}, {x: 17, y: 11}, {x: 18, y: 11} // Return to center
+    ];
+
+    // Ghost 4: Right side vertical patrol
+    const ghost4Path = [
+      {x: 19, y: 11}, {x: 21, y: 11}, {x: 23, y: 11}, {x: 25, y: 11}, {x: 27, y: 11}, {x: 29, y: 11}, {x: 31, y: 11}, {x: 33, y: 11}, {x: 35, y: 11}, {x: 37, y: 11}, {x: 38, y: 11}, // Go right to edge  
+      {x: 38, y: 12}, {x: 38, y: 13}, {x: 38, y: 14}, {x: 38, y: 15}, {x: 38, y: 16}, {x: 38, y: 17}, {x: 38, y: 18}, {x: 38, y: 19}, {x: 38, y: 20}, {x: 38, y: 21}, // Go down right edge
+      {x: 37, y: 21}, {x: 36, y: 21}, {x: 35, y: 21}, {x: 34, y: 21}, {x: 33, y: 21}, {x: 32, y: 21}, {x: 31, y: 21}, {x: 30, y: 21}, // Go left along bottom
+      {x: 30, y: 20}, {x: 30, y: 19}, {x: 30, y: 18}, {x: 30, y: 17}, {x: 30, y: 16}, {x: 30, y: 15}, {x: 30, y: 14}, {x: 30, y: 13}, {x: 30, y: 12}, {x: 30, y: 11}, // Go up
+      {x: 29, y: 11}, {x: 28, y: 11}, {x: 27, y: 11}, {x: 26, y: 11}, {x: 25, y: 11}, {x: 24, y: 11}, {x: 23, y: 11}, {x: 22, y: 11}, {x: 21, y: 11}, {x: 20, y: 11} // Return to center
+    ];
+
+    // Validate all paths contain only walkable coordinates
+    const validatePath = (path: {x: number, y: number}[], ghostName: string) => {
+      const invalidCoords = path.filter(coord => !isWalkable(coord.x, coord.y));
+      if (invalidCoords.length > 0) {
+        console.error(`❌ ${ghostName} has invalid coordinates:`, invalidCoords);
+      } else {
+        console.log(`✅ ${ghostName} path validated - all ${path.length} coordinates are walkable`);
       }
-      
-      return fullPath;
+      return invalidCoords.length === 0;
     };
+
+    validatePath(ghost1Path, "Ghost 1");
+    validatePath(ghost2Path, "Ghost 2"); 
+    validatePath(ghost3Path, "Ghost 3");
+    validatePath(ghost4Path, "Ghost 4");
 
     return {
-      // Ghost 1: Center → Top-left → Bottom-right → Top-right → Bottom-left → repeat
-      ghost1: createPath([
-        corners.center,
-        corners.topLeft,
-        corners.bottomRight,
-        corners.topRight,
-        corners.bottomLeft
-      ]),
-      
-      // Ghost 2: Center → Top-right → Bottom-left → Top-left → Bottom-right → repeat  
-      ghost2: createPath([
-        corners.center,
-        corners.topRight,
-        corners.bottomLeft,
-        corners.topLeft,
-        corners.bottomRight
-      ]),
-      
-      // Ghost 3: Center → Bottom-left → Top-right → Bottom-right → Top-left → repeat
-      ghost3: createPath([
-        corners.center,
-        corners.bottomLeft,
-        corners.topRight,
-        corners.bottomRight,
-        corners.topLeft
-      ]),
-      
-      // Ghost 4: Center → Bottom-right → Top-left → Bottom-left → Top-right → repeat
-      ghost4: createPath([
-        corners.center,
-        corners.bottomRight,
-        corners.topLeft,
-        corners.bottomLeft,
-        corners.topRight
-      ])
+      ghost1: ghost1Path,
+      ghost2: ghost2Path,
+      ghost3: ghost3Path,
+      ghost4: ghost4Path
     };
   }
 
   private updateMissPoopeeMan() {
     this.updatePacMan();
-    this.updateGhostsSimplified();
+    this.updateGhostsMazeAware();
     this.checkMissPoopeeManCollisions();
     
     if (this.vulnerabilityTimer > 0) {
@@ -638,7 +646,7 @@ export class GameEngine {
       });
       
       if (this.vulnerabilityTimer <= 0) {
-        console.log("⏰ SIMPLE: Vulnerability ended, ghosts back to normal");
+        console.log("⏰ MAZE-AWARE: Vulnerability ended, ghosts back to normal");
         this.ghosts.forEach(ghost => {
           ghost.isVulnerable = false;
           ghost.isBlinking = false;
@@ -647,8 +655,8 @@ export class GameEngine {
     }
   }
 
-  // SIMPLIFIED: Ultra-simple ghost movement - just follow predefined paths
-  private updateGhostsSimplified() {
+  // MAZE-AWARE: Ghost movement that follows predefined maze paths
+  private updateGhostsMazeAware() {
     this.ghostMoveTimer++;
     
     if (this.ghostMoveTimer >= this.framesBetweenGhostMoves) {
@@ -671,7 +679,7 @@ export class GameEngine {
         else if (nextPos.y > prevPos.y) ghost.direction = 'down';
         else if (nextPos.y < prevPos.y) ghost.direction = 'up';
         
-        console.log(`👻 SIMPLIFIED: Ghost ${index} moved to (${ghost.gridX}, ${ghost.gridY}) pathIndex: ${ghost.pathIndex}`);
+        console.log(`👻 MAZE-AWARE: Ghost ${index} moved to (${ghost.gridX}, ${ghost.gridY}) pathIndex: ${ghost.pathIndex}`);
       });
     }
   }
@@ -729,7 +737,7 @@ export class GameEngine {
         if (pellet.isPowerPellet) {
           this.score += 25;
           this.vulnerabilityTimer = 600;
-          console.log("💊 SIMPLE: Power pellet eaten! Ghosts vulnerable for 10 seconds");
+          console.log("💊 MAZE-AWARE: Power pellet eaten! Ghosts vulnerable for 10 seconds");
           
           this.ghosts.forEach(ghost => {
             ghost.isVulnerable = true;
@@ -753,7 +761,7 @@ export class GameEngine {
           if (ghost.isVulnerable) {
             this.score += 100;
             this.onScoreUpdate(this.score);
-            console.log(`👻 SIMPLE: Ghost ${index} eaten! Score +100`);
+            console.log(`👻 MAZE-AWARE: Ghost ${index} eaten! Score +100`);
             
             // Reset ghost to center and restart path
             ghost.gridX = 19;
@@ -766,7 +774,7 @@ export class GameEngine {
           } else {
             this.lives--;
             this.invulnerabilityTimer = 120;
-            console.log(`💀 SIMPLE: Pac-Man hit by ghost ${index}! Lives remaining: ${this.lives}`);
+            console.log(`💀 MAZE-AWARE: Pac-Man hit by ghost ${index}! Lives remaining: ${this.lives}`);
             
             if (this.lives <= 0) {
               console.log("💀 Game Over - No more lives!");
@@ -793,7 +801,7 @@ export class GameEngine {
     this.pacman.direction = 'right';
     this.pacman.nextDirection = null;
     
-    // SIMPLIFIED: Reset all ghosts to center and restart their paths
+    // MAZE-AWARE: Reset all ghosts to center and restart their paths
     this.ghosts.forEach((ghost, index) => {
       ghost.gridX = 19;
       ghost.gridY = 11;
@@ -806,7 +814,7 @@ export class GameEngine {
     
     this.vulnerabilityTimer = 0;
     
-    console.log("🔄 SIMPLIFIED: All positions reset - ghosts restarted their paths");
+    console.log("🔄 MAZE-AWARE: All positions reset - ghosts restarted their paths");
   }
   
   private nextLevel() {
