@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
-import { Coins, TrendingUp, Users, Zap, Coffee } from "lucide-react";
+import { Coins, TrendingUp, Users, Zap, Coffee, ExternalLink } from "lucide-react";
 
 interface TokenomicsProps {
   user: UnifiedUser;
@@ -129,6 +129,25 @@ export const TokenomicsSection = ({ user }: TokenomicsProps) => {
           <CardDescription className="text-gray-400">
             How we plan to use the funds raised - with brutal honesty
           </CardDescription>
+          
+          {/* Contract Address */}
+          <div className="px-6 pb-2">
+            <div className="flex items-center gap-2 text-sm text-gray-300">
+              <span>Contract Address:</span>
+              <code className="bg-gray-800 px-2 py-1 rounded text-blue-400 font-mono">
+                ADDRXXXXexampleXXXXX
+              </code>
+              <a 
+                href="https://poole.pm" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+                title="View on Poole.PM"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
