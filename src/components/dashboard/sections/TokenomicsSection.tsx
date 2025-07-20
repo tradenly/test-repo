@@ -20,8 +20,8 @@ const fundingAllocation = [
   {
     icon: PieChart,
     title: "Staking Pool Funding",
-    description: "A significant portion of raised funds will be allocated to stock the staking pools, ensuring sustainable rewards and smooth cash-out processes for our P2E games & DEX LP.",
-    percentage: "35%"
+    description: "A significant portion of raised funds will be allocated to stock the staking pools, ensuring sustainable rewards and smooth cash-out processes for our P2E games.",
+    percentage: "40%"
   },
   {
     icon: TrendingUp,
@@ -39,7 +39,7 @@ const fundingAllocation = [
     icon: Coffee,
     title: "Staying Functional",
     description: "We will always use a portion of the funds to stay as drunk and high as possible, while trying our best not to overdose. Transparency is key.",
-    percentage: "15%"
+    percentage: "10%"
   }
 ];
 
