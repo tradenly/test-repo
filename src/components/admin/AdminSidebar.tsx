@@ -30,6 +30,7 @@ const adminSections = [
   { id: "analytics" as AdminSection, label: "Analytics", icon: BarChart3 },
   { id: "requests" as AdminSection, label: "Requests", icon: MessageSquare },
   { id: "games" as AdminSection, label: "Games", icon: Gamepad2 },
+  { id: "contact" as AdminSection, label: "Contact Messages", icon: MessageSquare },
 ];
 
 export const AdminSidebar = ({ 

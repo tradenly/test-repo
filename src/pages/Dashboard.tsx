@@ -24,7 +24,8 @@ export type DashboardSection =
   | "rewards"
   | "free-tools"
   | "news-updates"
-  | "tokenomics";
+  | "tokenomics"
+  | "contact";
 
 const Dashboard = () => {
   const { user, loading } = useUnifiedAuth();
@@ -39,13 +40,22 @@ const Dashboard = () => {
     const validSections: DashboardSection[] = [
       "overview", "profile", "flappy-hippos", "falling-logs", "poopee-crush",
       "miss-poopee-man", "leaderboard", "documents", "wallets", "staking", "social", "portfolio",
-      "rewards", "free-tools", "news-updates", "tokenomics"
+      "rewards", "free-tools", "news-updates", "tokenomics", "contact"
     ];
     
     if (section && validSections.includes(section as DashboardSection)) {
       setActiveSection(section as DashboardSection);
     }
   }, [searchParams]);
+
+  const handleSectionChange = (section: DashboardSection) => {
+    if (section === "contact") {
+      // Redirect to the dedicated contact page
+      window.location.href = "/contact";
+      return;
+    }
+    setActiveSection(section);
+  };
 
   if (loading) {
     return (
@@ -77,13 +87,13 @@ const Dashboard = () => {
             </h1>
           </div>
           <div className="bg-black">
-            <DashboardContent activeSection={activeSection} user={user} onSectionChange={setActiveSection} />
+            <DashboardContent activeSection={activeSection} user={user} onSectionChange={handleSectionChange} />
           </div>
         </div>
         
         <DashboardSidebar 
           activeSection={activeSection} 
-          onSectionChange={setActiveSection}
+          onSectionChange={handleSectionChange}
           isOpen={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
         />
@@ -98,10 +108,10 @@ const Dashboard = () => {
       <div className="pt-20 flex">
         <DashboardSidebar 
           activeSection={activeSection} 
-          onSectionChange={setActiveSection} 
+          onSectionChange={handleSectionChange} 
         />
         <main className="flex-1 p-8">
-          <DashboardContent activeSection={activeSection} user={user} onSectionChange={setActiveSection} />
+          <DashboardContent activeSection={activeSection} user={user} onSectionChange={handleSectionChange} />
         </main>
       </div>
     </div>
