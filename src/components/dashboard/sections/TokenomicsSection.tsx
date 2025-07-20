@@ -18,9 +18,9 @@ const tokenDistributionData = [
 
 const fundingAllocation = [
   {
-    icon: Coins,
-    title: "Staking Pool & Cash Out Rewards Funding",
-    description: "A significant portion of raised funds will be allocated to stock the staking pools, ensuring sustainable rewards and smooth cash-out processes for our P2E games.",
+    icon: PieChart,
+    title: "Staking Pool Funding",
+    description: "A significant portion of raised funds will be allocated to stock the staking pools, ensuring sustainable rewards and smooth cash-out processes for our P2E games & DEX LP.",
     percentage: "35%"
   },
   {
