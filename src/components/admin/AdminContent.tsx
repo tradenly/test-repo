@@ -8,7 +8,6 @@ import { PayoutManagement } from "./sections/PayoutManagement";
 import { AdminAnalytics } from "./sections/AdminAnalytics";
 import { ToolRequestManagement } from "./sections/ToolRequestManagement";
 import { GameManagement } from "./sections/GameManagement";
-import { ContactManagement } from "./sections/ContactManagement";
 
 interface AdminContentProps {
   activeSection: AdminSection;
@@ -32,8 +31,6 @@ export const AdminContent = ({ activeSection }: AdminContentProps) => {
       return <ToolRequestManagement />;
     case "games":
       return <GameManagement />;
-    case "contact":
-      return <ContactManagement />;
     default:
       return <AdminOverview />;
   }

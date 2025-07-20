@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { 
   User, 
@@ -14,30 +15,10 @@ import {
   X,
   Wrench,
   Newspaper,
-  PieChart,
-  MessageCircle
+  PieChart
 } from "lucide-react";
 import { DashboardSection } from "@/pages/Dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-export type DashboardSection = 
-  | "overview" 
-  | "profile" 
-  | "flappy-hippos"
-  | "falling-logs"
-  | "poopee-crush"
-  | "miss-poopee-man"
-  | "leaderboard"
-  | "documents"
-  | "wallets" 
-  | "staking" 
-  | "social" 
-  | "portfolio" 
-  | "rewards"
-  | "free-tools"
-  | "news-updates"
-  | "tokenomics"
-  | "contact";
 
 interface DashboardSidebarProps {
   activeSection: DashboardSection;
@@ -71,7 +52,6 @@ export const DashboardSidebar = ({
     { id: "rewards" as DashboardSection, label: "Rewards", icon: Gift, isIconComponent: true },
     { id: "free-tools" as DashboardSection, label: "Free Tools", icon: Wrench, isIconComponent: true },
     { id: "news-updates" as DashboardSection, label: "News & Updates", icon: Newspaper, isIconComponent: true },
-    { id: "contact" as DashboardSection, label: "Contact Us", icon: MessageCircle, isIconComponent: true },
   ];
 
   const handleMenuClick = (sectionId: DashboardSection) => {

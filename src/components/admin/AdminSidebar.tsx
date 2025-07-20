@@ -1,17 +1,17 @@
-import { Button } from "@/components/ui/button";
-import { 
-  LayoutDashboard, 
-  Users, 
-  CreditCard, 
-  Activity, 
-  DollarSign, 
-  BarChart3, 
-  Wrench,
-  Gamepad2,
-  X,
-  MessageCircle
-} from "lucide-react";
+
+import { cn } from "@/lib/utils";
 import { AdminSection } from "@/pages/AdminPanel";
+import { 
+  Users, 
+  Coins, 
+  Activity, 
+  CreditCard, 
+  BarChart3, 
+  Settings,
+  X,
+  MessageSquare,
+  Gamepad2
+} from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AdminSidebarProps {
@@ -21,6 +21,17 @@ interface AdminSidebarProps {
   onClose?: () => void;
 }
 
+const adminSections = [
+  { id: "overview" as AdminSection, label: "Overview", icon: BarChart3 },
+  { id: "users" as AdminSection, label: "User Management", icon: Users },
+  { id: "credits" as AdminSection, label: "Credit Management", icon: Coins },
+  { id: "activity" as AdminSection, label: "Activity Monitor", icon: Activity },
+  { id: "payouts" as AdminSection, label: "Payout Management", icon: CreditCard },
+  { id: "analytics" as AdminSection, label: "Analytics", icon: BarChart3 },
+  { id: "requests" as AdminSection, label: "Requests", icon: MessageSquare },
+  { id: "games" as AdminSection, label: "Games", icon: Gamepad2 },
+];
+
 export const AdminSidebar = ({ 
   activeSection, 
   onSectionChange, 
@@ -28,24 +39,12 @@ export const AdminSidebar = ({
   onClose 
 }: AdminSidebarProps) => {
   const isMobile = useIsMobile();
-  
-  const menuItems = [
-    { id: "overview" as AdminSection, label: "Overview", icon: LayoutDashboard },
-    { id: "users" as AdminSection, label: "User Management", icon: Users },
-    { id: "credits" as AdminSection, label: "Credit Management", icon: CreditCard },
-    { id: "activity" as AdminSection, label: "Activity Monitor", icon: Activity },
-    { id: "payouts" as AdminSection, label: "Payout Management", icon: DollarSign },
-    { id: "analytics" as AdminSection, label: "Analytics", icon: BarChart3 },
-    { id: "requests" as AdminSection, label: "Tool Requests", icon: Wrench },
-    { id: "games" as AdminSection, label: "Game Management", icon: Gamepad2 },
-    { id: "contact" as AdminSection, label: "Contact Messages", icon: MessageCircle },
-  ];
 
   const handleMenuClick = (sectionId: AdminSection) => {
-    console.log('Menu item clicked:', sectionId);
+    console.log('Admin menu item clicked:', sectionId);
     onSectionChange(sectionId);
     if (isMobile && onClose) {
-      console.log('Closing mobile menu');
+      console.log('Closing admin mobile menu');
       onClose();
     }
   };
@@ -53,7 +52,7 @@ export const AdminSidebar = ({
   const handleBackdropClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Backdrop clicked, closing menu');
+    console.log('Admin backdrop clicked, closing menu');
     if (onClose) {
       onClose();
     }
@@ -83,7 +82,10 @@ export const AdminSidebar = ({
         >
           <div className="p-4">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-white">🏛️ Admin Panel</h2>
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-yellow-400" />
+                <h2 className="text-lg font-bold text-white">Admin Panel</h2>
+              </div>
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-white p-1"
@@ -93,19 +95,21 @@ export const AdminSidebar = ({
             </div>
             
             <nav className="space-y-1">
-              {menuItems.map((item) => {
+              {adminSections.map((section) => {
+                const Icon = section.icon;
                 return (
                   <button
-                    key={item.id}
-                    onClick={() => handleMenuClick(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors text-sm ${
-                      activeSection === item.id 
-                        ? "bg-gray-700 text-white font-medium" 
-                        : "text-gray-300 hover:text-white hover:bg-gray-800"
-                    }`}
+                    key={section.id}
+                    onClick={() => handleMenuClick(section.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors text-sm",
+                      activeSection === section.id
+                        ? "bg-yellow-600 text-black font-medium"
+                        : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                    )}
                   >
-                    <item.icon className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">{item.label}</span>
+                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{section.label}</span>
                   </button>
                 );
               })}
@@ -116,27 +120,34 @@ export const AdminSidebar = ({
     );
   }
 
-  // Desktop sidebar
+  // Desktop sidebar (unchanged)
   return (
-    <aside className="w-64 bg-gray-900/50 backdrop-blur-sm border-r border-gray-800 min-h-screen">
+    <aside className="w-64 bg-gray-900/50 border-r border-gray-800 min-h-screen">
       <div className="p-6">
-        <h2 className="text-xl font-bold text-white mb-6">🏛️ Admin Panel</h2>
+        <div className="flex items-center gap-2 mb-8">
+          <Settings className="h-6 w-6 text-yellow-400" />
+          <h2 className="text-xl font-bold text-white">Admin Panel</h2>
+        </div>
+        
         <nav className="space-y-2">
-          {menuItems.map((item) => (
-            <Button
-              key={item.id}
-              variant={activeSection === item.id ? "secondary" : "ghost"}
-              className={`w-full justify-start text-left ${
-                activeSection === item.id 
-                  ? "bg-gray-700 text-white" 
-                  : "text-gray-300 hover:text-white hover:bg-gray-800"
-              }`}
-              onClick={() => onSectionChange(item.id)}
-            >
-              <item.icon className="mr-3 h-4 w-4" />
-              {item.label}
-            </Button>
-          ))}
+          {adminSections.map((section) => {
+            const Icon = section.icon;
+            return (
+              <button
+                key={section.id}
+                onClick={() => onSectionChange(section.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors",
+                  activeSection === section.id
+                    ? "bg-yellow-600 text-black font-medium"
+                    : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                {section.label}
+              </button>
+            );
+          })}
         </nav>
       </div>
     </aside>

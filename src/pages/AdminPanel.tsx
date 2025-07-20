@@ -15,8 +15,7 @@ export type AdminSection =
   | "payouts" 
   | "analytics"
   | "requests"
-  | "games"
-  | "contact";
+  | "games";
 
 const AdminPanel = () => {
   const { isAdmin, isLoading, user } = useAdminAuth();

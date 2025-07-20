@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
@@ -23,8 +24,7 @@ export type DashboardSection =
   | "rewards"
   | "free-tools"
   | "news-updates"
-  | "tokenomics"
-  | "contact";
+  | "tokenomics";
 
 const Dashboard = () => {
   const { user, loading } = useUnifiedAuth();
@@ -39,20 +39,13 @@ const Dashboard = () => {
     const validSections: DashboardSection[] = [
       "overview", "profile", "flappy-hippos", "falling-logs", "poopee-crush",
       "miss-poopee-man", "leaderboard", "documents", "wallets", "staking", "social", "portfolio",
-      "rewards", "free-tools", "news-updates", "tokenomics", "contact"
+      "rewards", "free-tools", "news-updates", "tokenomics"
     ];
     
     if (section && validSections.includes(section as DashboardSection)) {
       setActiveSection(section as DashboardSection);
     }
   }, [searchParams]);
-
-  // Handle contact section redirect
-  useEffect(() => {
-    if (activeSection === "contact") {
-      window.location.href = "/contact";
-    }
-  }, [activeSection]);
 
   if (loading) {
     return (
