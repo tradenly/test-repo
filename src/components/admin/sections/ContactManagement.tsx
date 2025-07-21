@@ -259,18 +259,18 @@ export const ContactManagement = () => {
             <Card key={message.id} className="bg-gray-800/40 border-gray-700">
               <CardHeader>
                 <div className="flex items-start justify-between">
-                  <div className="space-y-2 flex-1 min-w-0">
+                  <div className="space-y-2 flex-1 min-w-0 pr-4">
                     <CardTitle className="text-white flex items-center gap-2">
                       <MessageSquare className="h-5 w-5 flex-shrink-0" />
-                      <span className="break-words">{message.subject}</span>
+                      <span className="break-all overflow-wrap-anywhere">{message.subject}</span>
                     </CardTitle>
                     <div className="flex items-center gap-4 text-sm text-gray-400">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 min-w-0">
                         <User className="h-4 w-4 flex-shrink-0" />
                         <span className="truncate">{message.user_profile?.full_name || message.user_profile?.username || 'Unknown User'}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4 flex-shrink-0" />
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Clock className="h-4 w-4" />
                         <span className="whitespace-nowrap">{new Date(message.created_at).toLocaleString()}</span>
                       </div>
                     </div>
@@ -308,7 +308,7 @@ export const ContactManagement = () => {
                 {/* Original Message */}
                 <div className="bg-gray-700/50 rounded-lg p-4">
                   <div className="text-sm text-gray-400 mb-2">Original message:</div>
-                  <p className="text-gray-300 whitespace-pre-wrap break-words">{message.message}</p>
+                  <p className="text-gray-300 break-all overflow-wrap-anywhere">{message.message}</p>
                 </div>
 
                 {/* Replies Thread */}
@@ -330,7 +330,7 @@ export const ContactManagement = () => {
                             {new Date(reply.created_at).toLocaleString()}
                           </span>
                         </div>
-                        <p className="text-gray-300 whitespace-pre-wrap break-words">{reply.message}</p>
+                        <p className="text-gray-300 break-all overflow-wrap-anywhere">{reply.message}</p>
                       </div>
                     ))}
                   </div>
@@ -347,7 +347,7 @@ export const ContactManagement = () => {
                       }
                       placeholder="Type your response to the user..."
                       rows={3}
-                      className="bg-gray-700 border-gray-600 text-white break-words"
+                      className="bg-gray-700 border-gray-600 text-white"
                     />
                     <Button
                       onClick={() => handleReply(message.id)}
