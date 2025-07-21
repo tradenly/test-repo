@@ -301,21 +301,23 @@ const ContactUs = () => {
             messages.map((msg) => (
               <Card key={msg.id} className="bg-gray-800/40 border-gray-700">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-white">{msg.subject}</CardTitle>
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-white break-words">{msg.subject}</CardTitle>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {msg.status === 'open' ? (
-                        <span className="flex items-center gap-1 text-yellow-400 text-sm">
+                        <span className="flex items-center gap-1 text-yellow-400 text-sm whitespace-nowrap">
                           <Clock className="h-4 w-4" />
                           Open
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-green-400 text-sm">
+                        <span className="flex items-center gap-1 text-green-400 text-sm whitespace-nowrap">
                           <CheckCircle className="h-4 w-4" />
                           Closed
                         </span>
                       )}
-                      <span className="text-gray-400 text-sm">
+                      <span className="text-gray-400 text-sm whitespace-nowrap">
                         {new Date(msg.created_at).toLocaleDateString()}
                       </span>
                     </div>
@@ -325,7 +327,7 @@ const ContactUs = () => {
                   {/* Original Message */}
                   <div className="bg-gray-700/50 rounded-lg p-4">
                     <div className="text-sm text-gray-400 mb-2">You wrote:</div>
-                    <p className="text-gray-300">{msg.message}</p>
+                    <p className="text-gray-300 whitespace-pre-wrap break-words">{msg.message}</p>
                   </div>
 
                   {/* Replies */}
@@ -340,11 +342,11 @@ const ContactUs = () => {
                     >
                       <div className="text-sm text-gray-400 mb-2">
                         {reply.is_admin_reply ? 'Admin replied:' : 'You replied:'}
-                        <span className="ml-2">
+                        <span className="ml-2 whitespace-nowrap">
                           {new Date(reply.created_at).toLocaleString()}
                         </span>
                       </div>
-                      <p className="text-gray-300">{reply.message}</p>
+                      <p className="text-gray-300 whitespace-pre-wrap break-words">{reply.message}</p>
                     </div>
                   ))}
 
@@ -356,7 +358,7 @@ const ContactUs = () => {
                         onChange={(e) => setReplyText(prev => ({ ...prev, [msg.id]: e.target.value }))}
                         placeholder="Type your reply..."
                         rows={3}
-                        className="bg-gray-700 border-gray-600 text-white"
+                        className="bg-gray-700 border-gray-600 text-white break-words"
                       />
                       <Button
                         onClick={() => handleReply(msg.id)}
