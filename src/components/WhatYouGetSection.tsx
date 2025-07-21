@@ -44,8 +44,8 @@ export const WhatYouGetSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-6">
               <img 
-                src="/lovable-uploads/43cb426f-322a-4c07-bdd7-73f27fa00f34.png" 
-                alt="Hippo with spiked hair in leather jacket and yellow pants" 
+                src="/lovable-uploads/c0b71020-c9b3-45d6-ab9e-6039d6dd8bb4.png" 
+                alt="Hippo with sunglasses" 
                 className="w-20 h-20 mx-auto rounded-lg"
               />
             </div>
@@ -70,8 +70,8 @@ export const WhatYouGetSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-6">
               <img 
-                src="/lovable-uploads/b0325990-35ce-441f-be10-6ce07fe18f0d.png" 
-                alt="Hippo with dark hair in leather jacket and red pants with tattoos" 
+                src="/lovable-uploads/623aca37-1cc9-4d34-9467-be60a163841a.png" 
+                alt="Cool hippo character" 
                 className="w-20 h-20 mx-auto rounded-lg"
               />
             </div>
@@ -96,8 +96,8 @@ export const WhatYouGetSection = () => {
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
             <div className="mb-6">
               <img 
-                src="/lovable-uploads/201efece-ee9a-4e45-b03e-cb82231d457d.png" 
-                alt="Hippo with blue spiky hair in white jacket and jeans with tattoos" 
+                src="/lovable-uploads/70b8ec5d-bdc5-497f-823d-a9526fdc2baa.png" 
+                alt="Cool blue hippo with gold chain and sunglasses" 
                 className="w-20 h-20 mx-auto rounded-lg"
               />
             </div>
@@ -121,13 +121,7 @@ export const WhatYouGetSection = () => {
         </div>
 
         <div className="bg-gray-800 rounded-xl p-8 mb-12 border border-gray-700">
-          <div className="mb-4">
-            <img 
-              src="/lovable-uploads/e5edc803-5de9-4560-8ede-a8a1e21ff8a1.png" 
-              alt="Gaming controller" 
-              className="w-16 h-16 mx-auto"
-            />
-          </div>
+          <div className="text-6xl mb-4">🎮</div>
           <h3 className="text-2xl font-bold text-white mb-6">
             Future Games: Maybe. Depends on How We Feel.
           </h3>
@@ -165,9 +159,8 @@ export const WhatYouGetSection = () => {
             
             <Button 
               className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-full text-lg border border-gray-600"
-              onClick={() => navigate('/contact')}
             >
-              Suffer Together 💬
+              Contact Us 💬
             </Button>
           </div>
           
