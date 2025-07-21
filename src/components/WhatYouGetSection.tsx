@@ -19,6 +19,14 @@ export const WhatYouGetSection = () => {
     }
   };
 
+  const handleContactUs = () => {
+    if (user) {
+      navigate('/contact');
+    } else {
+      navigate('/auth');
+    }
+  };
+
   const getGameCost = (gameType: string) => {
     const settings = gameSettings?.find(g => g.game_type === gameType);
     return settings?.entry_cost_credits || 1;
@@ -159,6 +167,7 @@ export const WhatYouGetSection = () => {
             
             <Button 
               className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-full text-lg border border-gray-600"
+              onClick={handleContactUs}
             >
               Contact Us 💬
             </Button>

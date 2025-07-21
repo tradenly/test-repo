@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
@@ -233,7 +232,7 @@ const ContactUs = () => {
       <div className="pt-20 px-4 max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Contact Us</h1>
-          <p className="text-gray-400">Send us a message and we'll get back to you</p>
+          <p className="text-gray-400">Send us a message and we'll get back to you whenever we feel like it, or maybe we won't who knows</p>
         </div>
 
         {/* New Message Form */}
