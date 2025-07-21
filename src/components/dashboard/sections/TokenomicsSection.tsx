@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
-import { Coins, TrendingUp, Users, Zap, Coffee } from "lucide-react";
+import { Coins, TrendingUp, Users, Zap, Coffee, ExternalLink } from "lucide-react";
 
 interface TokenomicsProps {
   user: UnifiedUser;
@@ -83,6 +83,26 @@ export const TokenomicsSection = ({ user }: TokenomicsProps) => {
           <CardDescription className="text-gray-400">
             How POOPEE tokens will be distributed across different categories
           </CardDescription>
+          
+          {/* Policy ID Section */}
+          <div className="mt-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 mb-1">Policy ID</p>
+                <p className="text-gray-200 font-mono text-sm break-all">
+                  7c2d122891f0d7025a3d0f2ab446707d1a040473a6f1817b22d23b88
+                </p>
+              </div>
+              <a 
+                href="https://pool.pm/policy/7c2d122891f0d7025a3d0f2ab446707d1a040473a6f1817b22d23b88"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 ml-3 p-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg transition-colors"
+              >
+                <ExternalLink className="h-4 w-4 text-blue-400" />
+              </a>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="h-96">
