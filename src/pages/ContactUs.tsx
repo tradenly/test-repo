@@ -58,7 +58,20 @@ const ContactUs = () => {
           schema: 'public',
           table: 'contact_message_replies'
         },
-        () => {
+        (payload) => {
+          console.log('New reply received:', payload);
+          fetchMessages();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'contact_messages'
+        },
+        (payload) => {
+          console.log('Message status updated:', payload);
           fetchMessages();
         }
       )
@@ -73,24 +86,34 @@ const ContactUs = () => {
     if (!user) return;
 
     try {
-      // Use type assertion to bypass TypeScript checking
-      const { data: messagesData, error: messagesError } = await (supabase as any)
+      console.log('Fetching user messages...');
+      
+      // Now we can use proper PostgREST syntax
+      const { data: messagesData, error: messagesError } = await supabase
         .from('contact_messages')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (messagesError) throw messagesError;
+      if (messagesError) {
+        console.error('Error fetching messages:', messagesError);
+        throw messagesError;
+      }
+
+      console.log('User messages fetched successfully:', messagesData);
 
       const messagesWithReplies = await Promise.all(
         (messagesData || []).map(async (msg: any) => {
-          const { data: repliesData, error: repliesError } = await (supabase as any)
+          const { data: repliesData, error: repliesError } = await supabase
             .from('contact_message_replies')
             .select('*')
             .eq('contact_message_id', msg.id)
             .order('created_at', { ascending: true });
 
-          if (repliesError) throw repliesError;
+          if (repliesError) {
+            console.error('Error fetching replies for message:', msg.id, repliesError);
+            throw repliesError;
+          }
 
           return {
             ...msg,
@@ -99,12 +122,13 @@ const ContactUs = () => {
         })
       );
 
+      console.log('User messages with replies:', messagesWithReplies);
       setMessages(messagesWithReplies);
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
         title: "Error",
-        description: "Failed to load messages",
+        description: "Failed to load messages. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -119,7 +143,9 @@ const ContactUs = () => {
     setSubmitting(true);
 
     try {
-      const { error } = await (supabase as any)
+      console.log('Submitting new contact message...');
+      
+      const { error } = await supabase
         .from('contact_messages')
         .insert({
           user_id: user.id,
@@ -127,21 +153,24 @@ const ContactUs = () => {
           message: message.trim()
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error sending message:', error);
+        throw error;
+      }
 
       toast({
         title: "Message Sent",
-        description: "Your message has been sent successfully"
+        description: "Your message has been sent successfully. An admin will respond soon."
       });
 
       setSubject("");
       setMessage("");
-      fetchMessages();
+      // fetchMessages will be called automatically via real-time subscription
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
         title: "Error",
-        description: "Failed to send message",
+        description: "Failed to send message. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -153,7 +182,9 @@ const ContactUs = () => {
     if (!user || !replyText[messageId]?.trim()) return;
 
     try {
-      const { error } = await (supabase as any)
+      console.log('Sending user reply...');
+      
+      const { error } = await supabase
         .from('contact_message_replies')
         .insert({
           contact_message_id: messageId,
@@ -162,7 +193,10 @@ const ContactUs = () => {
           is_admin_reply: false
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error sending reply:', error);
+        throw error;
+      }
 
       toast({
         title: "Reply Sent",
@@ -170,12 +204,12 @@ const ContactUs = () => {
       });
 
       setReplyText(prev => ({ ...prev, [messageId]: "" }));
-      fetchMessages();
+      // fetchMessages will be called automatically via real-time subscription
     } catch (error) {
       console.error('Error sending reply:', error);
       toast({
         title: "Error",
-        description: "Failed to send reply",
+        description: "Failed to send reply. Please try again.",
         variant: "destructive"
       });
     }

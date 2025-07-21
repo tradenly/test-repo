@@ -41,7 +41,7 @@ export const ContactManagement = () => {
     fetchMessages();
   }, []);
 
-  // Real-time subscription
+  // Real-time subscription for contact messages and replies
   useEffect(() => {
     const channel = supabase
       .channel('admin-contact-messages')
@@ -52,7 +52,8 @@ export const ContactManagement = () => {
           schema: 'public',
           table: 'contact_messages'
         },
-        () => {
+        (payload) => {
+          console.log('Contact message change:', payload);
           fetchMessages();
         }
       )
@@ -63,7 +64,8 @@ export const ContactManagement = () => {
           schema: 'public',
           table: 'contact_message_replies'
         },
-        () => {
+        (payload) => {
+          console.log('Contact reply change:', payload);
           fetchMessages();
         }
       )
@@ -76,8 +78,10 @@ export const ContactManagement = () => {
 
   const fetchMessages = async () => {
     try {
-      // Use type assertion to bypass TypeScript checking
-      const { data: messagesData, error: messagesError } = await (supabase as any)
+      console.log('Fetching contact messages...');
+      
+      // Now we can use proper PostgREST syntax with the foreign key relationship
+      const { data: messagesData, error: messagesError } = await supabase
         .from('contact_messages')
         .select(`
           *,
@@ -88,17 +92,26 @@ export const ContactManagement = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (messagesError) throw messagesError;
+      if (messagesError) {
+        console.error('Error fetching messages:', messagesError);
+        throw messagesError;
+      }
 
+      console.log('Messages fetched successfully:', messagesData);
+
+      // Fetch replies for each message
       const messagesWithReplies = await Promise.all(
         (messagesData || []).map(async (msg: any) => {
-          const { data: repliesData, error: repliesError } = await (supabase as any)
+          const { data: repliesData, error: repliesError } = await supabase
             .from('contact_message_replies')
             .select('*')
             .eq('contact_message_id', msg.id)
             .order('created_at', { ascending: true });
 
-          if (repliesError) throw repliesError;
+          if (repliesError) {
+            console.error('Error fetching replies for message:', msg.id, repliesError);
+            throw repliesError;
+          }
 
           return {
             ...msg,
@@ -107,12 +120,13 @@ export const ContactManagement = () => {
         })
       );
 
+      console.log('Messages with replies:', messagesWithReplies);
       setMessages(messagesWithReplies);
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
         title: "Error",
-        description: "Failed to load messages",
+        description: "Failed to load messages. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -127,16 +141,24 @@ export const ContactManagement = () => {
     setSubmittingReplies(prev => ({ ...prev, [messageId]: true }));
 
     try {
-      const { error } = await (supabase as any)
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { error } = await supabase
         .from('contact_message_replies')
         .insert({
           contact_message_id: messageId,
-          sender_id: (await supabase.auth.getUser()).data.user?.id,
+          sender_id: userData.user.id,
           message: replyText,
           is_admin_reply: true
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error sending reply:', error);
+        throw error;
+      }
 
       toast({
         title: "Reply Sent",
@@ -144,12 +166,12 @@ export const ContactManagement = () => {
       });
 
       setReplyTexts(prev => ({ ...prev, [messageId]: "" }));
-      fetchMessages();
+      // fetchMessages will be called automatically via real-time subscription
     } catch (error) {
       console.error('Error sending reply:', error);
       toast({
         title: "Error",
-        description: "Failed to send reply",
+        description: "Failed to send reply. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -159,24 +181,27 @@ export const ContactManagement = () => {
 
   const handleStatusChange = async (messageId: string, newStatus: string) => {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('contact_messages')
         .update({ status: newStatus })
         .eq('id', messageId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating status:', error);
+        throw error;
+      }
 
       toast({
         title: "Status Updated",
         description: `Message marked as ${newStatus}`
       });
 
-      fetchMessages();
+      // fetchMessages will be called automatically via real-time subscription
     } catch (error) {
       console.error('Error updating status:', error);
       toast({
         title: "Error",
-        description: "Failed to update status",
+        description: "Failed to update status. Please try again.",
         variant: "destructive"
       });
     }
