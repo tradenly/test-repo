@@ -15,7 +15,7 @@ interface ContactMessage {
   status: string;
   created_at: string;
   user_id: string;
-  profiles?: {
+  user_profile?: {
     username: string;
     full_name: string;
   };
@@ -80,16 +80,10 @@ export const ContactManagement = () => {
     try {
       console.log('Fetching contact messages...');
       
-      // Now we can use proper PostgREST syntax with the foreign key relationship
+      // First, fetch all contact messages
       const { data: messagesData, error: messagesError } = await supabase
         .from('contact_messages')
-        .select(`
-          *,
-          profiles (
-            username,
-            full_name
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (messagesError) {
@@ -97,7 +91,29 @@ export const ContactManagement = () => {
         throw messagesError;
       }
 
-      console.log('Messages fetched successfully:', messagesData);
+      console.log('Contact messages fetched:', messagesData);
+
+      // Get unique user IDs from messages
+      const userIds = [...new Set(messagesData?.map(msg => msg.user_id) || [])];
+      
+      // Fetch profile data for all unique users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, full_name')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      console.log('Profiles fetched:', profilesData);
+
+      // Create a map of user profiles for easy lookup
+      const profileMap = (profilesData || []).reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {} as Record<string, any>);
 
       // Fetch replies for each message
       const messagesWithReplies = await Promise.all(
@@ -115,12 +131,13 @@ export const ContactManagement = () => {
 
           return {
             ...msg,
+            user_profile: profileMap[msg.user_id] || null,
             replies: repliesData || []
           };
         })
       );
 
-      console.log('Messages with replies:', messagesWithReplies);
+      console.log('Messages with replies and profiles:', messagesWithReplies);
       setMessages(messagesWithReplies);
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -250,7 +267,7 @@ export const ContactManagement = () => {
                     <div className="flex items-center gap-4 text-sm text-gray-400">
                       <div className="flex items-center gap-1">
                         <User className="h-4 w-4" />
-                        {message.profiles?.full_name || message.profiles?.username || 'Unknown User'}
+                        {message.user_profile?.full_name || message.user_profile?.username || 'Unknown User'}
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
