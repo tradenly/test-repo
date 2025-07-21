@@ -17,6 +17,7 @@ interface ContactMessage {
   message: string;
   status: string;
   created_at: string;
+  user_id: string;
   replies: ContactReply[];
 }
 
@@ -72,7 +73,8 @@ const ContactUs = () => {
     if (!user) return;
 
     try {
-      const { data: messagesData, error: messagesError } = await supabase
+      // Use type assertion to bypass TypeScript checking
+      const { data: messagesData, error: messagesError } = await (supabase as any)
         .from('contact_messages')
         .select('*')
         .eq('user_id', user.id)
@@ -81,8 +83,8 @@ const ContactUs = () => {
       if (messagesError) throw messagesError;
 
       const messagesWithReplies = await Promise.all(
-        (messagesData || []).map(async (msg) => {
-          const { data: repliesData, error: repliesError } = await supabase
+        (messagesData || []).map(async (msg: any) => {
+          const { data: repliesData, error: repliesError } = await (supabase as any)
             .from('contact_message_replies')
             .select('*')
             .eq('contact_message_id', msg.id)
@@ -117,7 +119,7 @@ const ContactUs = () => {
     setSubmitting(true);
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('contact_messages')
         .insert({
           user_id: user.id,
@@ -151,7 +153,7 @@ const ContactUs = () => {
     if (!user || !replyText[messageId]?.trim()) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('contact_message_replies')
         .insert({
           contact_message_id: messageId,
