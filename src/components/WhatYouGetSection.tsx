@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
@@ -37,8 +36,8 @@ export const WhatYouGetSection = () => {
   const gameCards = [
     {
       id: 'flappy-hippos',
-      image: '/lovable-uploads/c0b71020-c9b3-45d6-ab9e-6039d6dd8bb4.png',
-      alt: 'Hippo with sunglasses',
+      image: '/lovable-uploads/33d54ff0-7a4e-4d66-b934-820e481d4969.png',
+      alt: 'Hippo with sunglasses in yellow jacket',
       title: 'Flappy Hippos',
       subtitle: 'Tap, Cry, Repeat',
       features: [
@@ -53,8 +52,8 @@ export const WhatYouGetSection = () => {
     },
     {
       id: 'falling-logs',
-      image: '/lovable-uploads/623aca37-1cc9-4d34-9467-be60a163841a.png',
-      alt: 'Cool hippo character',
+      image: '/lovable-uploads/ad926715-76b4-4182-aebc-10180448ef7e.png',
+      alt: 'Hippo lumberjack with axe in forest setting',
       title: 'Falling Logs',
       subtitle: 'Tetris, But Worse',
       features: [
@@ -69,8 +68,8 @@ export const WhatYouGetSection = () => {
     },
     {
       id: 'poopee-crush',
-      image: '/lovable-uploads/70b8ec5d-bdc5-497f-823d-a9526fdc2baa.png',
-      alt: 'Cool blue hippo with gold chain and sunglasses',
+      image: '/lovable-uploads/8d85cb45-80d6-4eb2-a0a8-45a2ae6184bf.png',
+      alt: 'Cool hippo with mohawk in leather jacket on city street',
       title: 'POOPEE Crush',
       subtitle: 'Match 3, Regret Forever',
       features: [
@@ -85,8 +84,8 @@ export const WhatYouGetSection = () => {
     },
     {
       id: 'miss-poopee-man',
-      image: '/lovable-uploads/b896f4cd-250a-4f3c-b051-0128831d13f0.png',
-      alt: 'Happy hippo with gold chain',
+      image: '/lovable-uploads/d83c348a-6414-47f1-9824-d7a332f2c68b.png',
+      alt: 'Hippo performer with microphone on stage',
       title: 'Miss POOPEE-Man',
       subtitle: 'Pac-Man, But Hippo',
       features: [
@@ -106,8 +105,8 @@ export const WhatYouGetSection = () => {
     },
     {
       id: 'space-invaders',
-      image: '/lovable-uploads/a17135f5-f44e-47e3-b35e-98de0b61ee4a.png',
-      alt: 'Blue hippo with chain',
+      image: '/lovable-uploads/7073f22a-130b-4987-8545-386bd2851696.png',
+      alt: 'Hippo in urban setting with fur-lined jacket',
       title: 'Space Invaders',
       subtitle: 'Defend Earth, Hippo Style',
       features: [
@@ -143,31 +142,31 @@ export const WhatYouGetSection = () => {
           </p>
         </div>
 
-        <div className="mb-16">
+        <div className="mb-16 relative">
           <Carousel className="w-full max-w-5xl mx-auto">
-            <CarouselContent>
+            <CarouselContent className="-ml-2 md:-ml-4">
               {gameCards.map((game) => (
-                <CarouselItem key={game.id} className="md:basis-1/2 lg:basis-1/3">
-                  <div className="p-4">
-                    <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-8 border border-gray-700 h-full flex flex-col">
+                <CarouselItem key={game.id} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
+                  <div className="h-full">
+                    <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-700 h-full flex flex-col min-h-[520px]">
                       <div className="mb-6">
                         <img 
                           src={game.image} 
                           alt={game.alt} 
-                          className="w-20 h-20 mx-auto rounded-lg"
+                          className="w-20 h-20 mx-auto rounded-lg object-cover"
                         />
                       </div>
-                      <h3 className="text-3xl font-bold text-white mb-4 text-center">{game.title}</h3>
-                      <p className="text-lg text-gray-300 mb-6">
+                      <h3 className="text-2xl font-bold text-white mb-3 text-center">{game.title}</h3>
+                      <p className="text-lg text-gray-300 mb-6 text-center">
                         <span className="font-bold">{game.subtitle}</span>
                       </p>
-                      <div className="space-y-3 text-left text-gray-300 mb-6 flex-grow">
+                      <div className="space-y-2 text-left text-gray-300 mb-6 flex-grow">
                         {game.features.map((feature, index) => (
-                          <p key={index}>• {feature}</p>
+                          <p key={index} className="text-sm leading-relaxed">• {feature}</p>
                         ))}
                       </div>
                       <Button 
-                        className={`w-full text-white font-bold py-3 border ${game.buttonClass}`}
+                        className={`w-full text-white font-bold py-3 border ${game.buttonClass} mt-auto`}
                         onClick={() => handleGameNavigation(game.section)}
                       >
                         {game.buttonText}
@@ -177,8 +176,8 @@ export const WhatYouGetSection = () => {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600" />
-            <CarouselNext className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600" />
+            <CarouselPrevious className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600 -left-6 sm:-left-12" />
+            <CarouselNext className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600 -right-6 sm:-right-12" />
           </Carousel>
         </div>
 
