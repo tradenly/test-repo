@@ -1,3 +1,4 @@
+
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { LazyImage } from "@/components/ui/lazy-image";
 
@@ -91,8 +92,8 @@ export const SneakPeekSection = () => {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600" />
-            <CarouselNext className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600" />
+            <CarouselPrevious className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600 -left-6 sm:-left-12" />
+            <CarouselNext className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600 -right-6 sm:-right-12" />
           </Carousel>
         </div>
 
