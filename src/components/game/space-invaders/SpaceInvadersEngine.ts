@@ -1,6 +1,5 @@
-import { GameEngine } from '../GameEngine';
 
-export interface SpaceInvadersState {
+export interface GameState {
   player: {
     x: number;
     y: number;
@@ -33,23 +32,35 @@ export interface SpaceInvadersState {
   }>;
   score: number;
   wave: number;
-  gameOver: boolean;
-  paused: boolean;
+  gameStatus: 'playing' | 'paused' | 'gameOver' | 'victory';
   alienDirection: number;
   alienMoveTimer: number;
   alienShootTimer: number;
 }
 
-export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
+export class SpaceInvadersEngine {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private gameState: GameState;
   private keys: { [key: string]: boolean } = {};
   private lastTime = 0;
+  private isRunning = false;
+  private animationFrame?: number;
   private rocketImage: HTMLImageElement | null = null;
 
-  constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
-    super(canvas, ctx);
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Could not get 2D context from canvas');
+    }
+    this.ctx = ctx;
     
     // Initialize game state
     this.gameState = this.createInitialState();
+    
+    // Set up event listeners
+    this.setupEventListeners();
     
     // Load rocket image
     this.loadRocketImage();
@@ -69,7 +80,7 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
     this.rocketImage.src = '/lovable-uploads/9ac5a433-4e51-400c-92a7-842594b088fe.png';
   }
 
-  private createInitialState(): SpaceInvadersState {
+  private createInitialState(): GameState {
     const aliens = [];
     const rows = 5;
     const cols = 10;
@@ -92,8 +103,6 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
       }
     }
 
-    console.log('👾 Created', aliens.length, 'aliens in formation');
-
     return {
       player: {
         x: this.canvas.width / 2 - 20,
@@ -108,8 +117,7 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
       alienBullets: [],
       score: 0,
       wave: 1,
-      gameOver: false,
-      paused: false,
+      gameStatus: 'playing',
       alienDirection: 1,
       alienMoveTimer: 0,
       alienShootTimer: 0
@@ -132,16 +140,42 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
 
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
-    
-    console.log('🎮 Event listeners attached to document');
   }
 
+  // Public interface methods expected by SpaceInvadersGameArea
+  startGame(): void {
+    this.start();
+  }
+
+  pauseGame(): void {
+    this.pause();
+  }
+
+  resumeGame(): void {
+    this.resume();
+  }
+
+  resetGame(): void {
+    this.reset();
+  }
+
+  getGameState(): GameState {
+    return { ...this.gameState };
+  }
+
+  destroy(): void {
+    this.stop();
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+    }
+  }
+
+  // Core game methods
   start(): void {
     if (this.isRunning) return;
     
     this.isRunning = true;
-    this.gameState.paused = false;
-    this.gameState.gameOver = false;
+    this.gameState.gameStatus = 'playing';
     this.lastTime = performance.now();
     
     console.log('🚀 Starting Space Invaders game...');
@@ -149,20 +183,25 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
   }
 
   pause(): void {
-    this.gameState.paused = true;
+    this.gameState.gameStatus = 'paused';
     console.log('⏸️ Game paused');
   }
 
   resume(): void {
-    this.gameState.paused = false;
+    this.gameState.gameStatus = 'playing';
     this.lastTime = performance.now();
     console.log('▶️ Game resumed');
   }
 
   stop(): void {
     this.isRunning = false;
-    this.gameState.gameOver = true;
+    this.gameState.gameStatus = 'gameOver';
     console.log('🛑 Game stopped');
+  }
+
+  reset(): void {
+    this.gameState = this.createInitialState();
+    console.log('🔄 Game reset');
   }
 
   private gameLoop = (): void => {
@@ -172,12 +211,12 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
     const deltaTime = currentTime - this.lastTime;
     this.lastTime = currentTime;
 
-    if (!this.gameState.paused && !this.gameState.gameOver) {
+    if (this.gameState.gameStatus === 'playing') {
       this.update(deltaTime);
     }
     
     this.render();
-    requestAnimationFrame(this.gameLoop);
+    this.animationFrame = requestAnimationFrame(this.gameLoop);
   };
 
   private update(deltaTime: number): void {
@@ -284,8 +323,6 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
       height: 8,
       speed: 200
     });
-
-    console.log('👾 Alien fired bullet');
   }
 
   private shoot(): void {
@@ -353,7 +390,7 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
     const { player, aliens } = this.gameState;
     
     if (!player.isAlive) {
-      this.gameState.gameOver = true;
+      this.gameState.gameStatus = 'gameOver';
       return;
     }
 
@@ -367,7 +404,7 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
     // Check if aliens reached the bottom
     for (const alien of aliveAliens) {
       if (alien.y + alien.height >= player.y) {
-        this.gameState.gameOver = true;
+        this.gameState.gameStatus = 'gameOver';
         player.isAlive = false;
         break;
       }
@@ -376,10 +413,10 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
 
   private render(): void {
     // Clear canvas
-    this.ctx.fillStyle = '#000';
+    this.ctx.fillStyle = '#000011';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    if (!this.gameState.gameOver) {
+    if (this.gameState.gameStatus !== 'gameOver') {
       this.renderPlayer();
       this.renderAliens();
       this.renderBullets();
@@ -393,7 +430,7 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
     if (!player.isAlive) return;
 
     // Use rocket image if loaded, otherwise fallback to rectangle
-    if (this.rocketImage && this.rocketImage.complete) {
+    if (this.rocketImage && this.rocketImage.complete && this.rocketImage.naturalWidth > 0) {
       this.ctx.drawImage(
         this.rocketImage,
         player.x,
@@ -410,7 +447,7 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
 
   private renderAliens(): void {
     const { aliens } = this.gameState;
-    const alienEmojis = ['👽', '🛸', '👾'];
+    const alienEmojis = ['👻', '💩', '👾'];
 
     this.ctx.font = '20px Arial';
     this.ctx.textAlign = 'center';
@@ -444,14 +481,14 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
 
   private renderUI(): void {
     this.ctx.fillStyle = '#fff';
-    this.ctx.font = '20px Arial';
+    this.ctx.font = '16px Arial';
     this.ctx.textAlign = 'left';
     
-    this.ctx.fillText(`Score: ${this.gameState.score}`, 10, 30);
-    this.ctx.fillText(`Lives: ${this.gameState.player.lives}`, 10, 60);
-    this.ctx.fillText(`Wave: ${this.gameState.wave}`, 10, 90);
+    this.ctx.fillText(`Score: ${this.gameState.score}`, 10, 25);
+    this.ctx.fillText(`Lives: ${this.gameState.player.lives}`, 10, 45);
+    this.ctx.fillText(`Wave: ${this.gameState.wave}`, 10, 65);
 
-    if (this.gameState.paused) {
+    if (this.gameState.gameStatus === 'paused') {
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       
@@ -461,7 +498,7 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
       this.ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height / 2);
     }
 
-    if (this.gameState.gameOver) {
+    if (this.gameState.gameStatus === 'gameOver') {
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       
@@ -471,18 +508,5 @@ export class SpaceInvadersEngine extends GameEngine<SpaceInvadersState> {
       this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 20);
       this.ctx.fillText(`Final Score: ${this.gameState.score}`, this.canvas.width / 2, this.canvas.height / 2 + 20);
     }
-  }
-
-  getState(): SpaceInvadersState {
-    return { ...this.gameState };
-  }
-
-  setState(newState: Partial<SpaceInvadersState>): void {
-    this.gameState = { ...this.gameState, ...newState };
-  }
-
-  reset(): void {
-    this.gameState = this.createInitialState();
-    console.log('🔄 Game reset');
   }
 }
