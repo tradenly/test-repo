@@ -1,12 +1,13 @@
 
 import { DashboardSection } from "@/pages/Dashboard";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { DashboardOverview } from "./sections/DashboardOverview";
 import { ProfileSection } from "./sections/ProfileSection";
 import { FlappyHipposSection } from "./sections/FlappyHipposSection";
 import { FallingLogsSection } from "./sections/FallingLogsSection";
 import { PoopeeCrushSection } from "./sections/PoopeeCrushSection";
 import { MissPoopeeManSection } from "./sections/MissPoopeeManSection";
+import { SpaceInvadersSection } from "./sections/SpaceInvadersSection";
 import { LeaderboardSection } from "./sections/LeaderboardSection";
 import { DocumentsSection } from "./sections/DocumentsSection";
 import { WalletsSection } from "./sections/WalletsSection";
@@ -14,10 +15,9 @@ import { StakingSection } from "./sections/StakingSection";
 import { SocialSection } from "./sections/SocialSection";
 import { PortfolioSection } from "./sections/PortfolioSection";
 import { RewardsSection } from "./sections/RewardsSection";
-import { TokenomicsSection } from "./sections/TokenomicsSection";
-import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { FreeToolsSection } from "./sections/FreeToolsSection";
 import { NewsUpdatesSection } from "./sections/NewsUpdatesSection";
+import { TokenomicsSection } from "./sections/TokenomicsSection";
 
 interface DashboardSectionRendererProps {
   activeSection: DashboardSection;
@@ -29,45 +29,43 @@ export const DashboardSectionRenderer = ({ activeSection, user, onSectionChange 
   const renderSection = () => {
     switch (activeSection) {
       case "overview":
-        return <DashboardOverview user={user} onSectionChange={onSectionChange} />;
+        return <DashboardOverview />;
       case "profile":
-        return <ProfileSection user={user} />;
+        return <ProfileSection />;
       case "flappy-hippos":
-        return <FlappyHipposSection user={user} />;
+        return <FlappyHipposSection />;
       case "falling-logs":
-        return <FallingLogsSection user={user} />;
+        return <FallingLogsSection />;
       case "poopee-crush":
-        return <PoopeeCrushSection user={user} />;
+        return <PoopeeCrushSection />;
       case "miss-poopee-man":
-        return <MissPoopeeManSection user={user} />;
+        return <MissPoopeeManSection />;
+      case "space-invaders":
+        return <SpaceInvadersSection />;
       case "leaderboard":
-        return <LeaderboardSection user={user} />;
+        return <LeaderboardSection />;
       case "documents":
-        return <DocumentsSection user={user} />;
+        return <DocumentsSection />;
       case "wallets":
-        return <WalletsSection user={user} />;
+        return <WalletsSection />;
       case "staking":
-        return <StakingSection user={user} />;
-      case "tokenomics":
-        return <TokenomicsSection user={user} />;
+        return <StakingSection />;
       case "social":
-        return <SocialSection user={user} />;
+        return <SocialSection />;
       case "portfolio":
-        return <PortfolioSection user={user} />;
+        return <PortfolioSection />;
       case "rewards":
-        return <RewardsSection user={user} />;
+        return <RewardsSection />;
       case "free-tools":
-        return <FreeToolsSection user={user} />;
+        return <FreeToolsSection />;
       case "news-updates":
-        return <NewsUpdatesSection user={user} />;
+        return <NewsUpdatesSection />;
+      case "tokenomics":
+        return <TokenomicsSection />;
       default:
-        return <DashboardOverview user={user} onSectionChange={onSectionChange} />;
+        return <DashboardOverview />;
     }
   };
 
-  return (
-    <ErrorBoundary>
-      {renderSection()}
-    </ErrorBoundary>
-  );
+  return <>{renderSection()}</>;
 };

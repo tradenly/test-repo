@@ -1,0 +1,104 @@
+
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Clock, Trophy, Zap } from "lucide-react";
+import { useGameSessions } from "@/hooks/useGameSessions";
+import { format } from "date-fns";
+
+export const SpaceInvadersRecentGames = () => {
+  const { data: sessions, isLoading } = useGameSessions('space_invaders');
+
+  if (isLoading) {
+    return (
+      <Card className="bg-gray-800/50 border-gray-700">
+        <CardContent className="p-6">
+          <div className="text-center text-gray-400">Loading recent games...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const recentSessions = sessions
+    ?.filter(s => s.completed_at)
+    ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    ?.slice(0, 10) || [];
+
+  if (recentSessions.length === 0) {
+    return (
+      <Card className="bg-gray-800/50 border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Clock className="h-5 w-5 text-blue-400" />
+            Recent Games
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-gray-400 py-8">
+            No games played yet. Start your first Space Invaders mission!
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-gray-800/50 border-gray-700">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center gap-2">
+          <Clock className="h-5 w-5 text-blue-400" />
+          Recent Games
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {recentSessions.map((session) => {
+            const gameStatus = session.metadata?.gameStatus || 'completed';
+            const wave = session.metadata?.finalWave || session.metadata?.wave || 1;
+            const aliensDestroyed = session.metadata?.aliensDestroyed || 0;
+            const netCredits = (session.credits_earned || 0) - (session.credits_spent || 0);
+
+            return (
+              <div
+                key={session.id}
+                className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-yellow-400" />
+                      <span className="text-white font-medium">
+                        {session.score.toLocaleString()} pts
+                      </span>
+                      <Badge 
+                        variant={gameStatus === 'victory' ? 'default' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {gameStatus === 'victory' ? 'Victory' : 'Game Over'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
+                      <span className="flex items-center gap-1">
+                        <Zap className="h-3 w-3" />
+                        Wave {wave}
+                      </span>
+                      <span>{aliensDestroyed} aliens destroyed</span>
+                      <span>{format(new Date(session.created_at), 'MMM d, HH:mm')}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-right">
+                  <div className={`font-medium ${netCredits >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {netCredits >= 0 ? '+' : ''}{netCredits.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-gray-400">credits</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};

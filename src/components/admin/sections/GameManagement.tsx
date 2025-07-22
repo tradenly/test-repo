@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -20,7 +19,8 @@ export const GameManagement = () => {
     flappy_hippos: "🦛 Flappy Hippos",
     falling_logs: "🪵 Falling Logs", 
     poopee_crush: "💩 POOPEE Crush",
-    miss_poopee_man: "👻 Miss POOPEE-Man"
+    miss_poopee_man: "👻 Miss POOPEE-Man",
+    space_invaders: "🛸 Space Invaders"
   };
 
   const handleSettingChange = (gameType: string, field: string, value: any) => {
@@ -244,6 +244,25 @@ export const GameManagement = () => {
                           handleSettingChange(game.game_type, 'payout_multipliers', {
                             ...currentMultipliers,
                             shield_bonus: parseFloat(e.target.value) || 0
+                          });
+                        }}
+                        className="bg-gray-700 border-gray-600 text-white text-sm mt-1"
+                      />
+                    </div>
+                  )}
+                  {game.game_type === 'space_invaders' && (
+                    <div>
+                      <Label className="text-sm text-gray-300">Wave Bonus</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={getCurrentValue(game.game_type, 'payout_multipliers', {})?.wave_bonus || 0.05}
+                        onChange={(e) => {
+                          const currentMultipliers = getCurrentValue(game.game_type, 'payout_multipliers', {});
+                          handleSettingChange(game.game_type, 'payout_multipliers', {
+                            ...currentMultipliers,
+                            wave_bonus: parseFloat(e.target.value) || 0
                           });
                         }}
                         className="bg-gray-700 border-gray-600 text-white text-sm mt-1"
