@@ -66,7 +66,7 @@ export const useSpaceInvadersGameHandlers = () => {
         metadata: {
           gameStartTime: Date.now(),
           wave: 1,
-          initialAliens: 50
+          initialAliens: 65
         }
       });
       
@@ -97,41 +97,45 @@ export const useSpaceInvadersGameHandlers = () => {
     try {
       const entryCost = gameSettings?.entry_cost_credits || 1;
       
-      // Safe type checking for payout multipliers
+      // Safe type checking for payout multipliers with EMERGENCY reduced values
       const payoutMultipliers = gameSettings?.payout_multipliers;
-      let baseMultiplier = 1.0;
-      let bonusMultiplier = 0.1;
-      let waveBonus = 0.05;
+      let baseMultiplier = 0.001; // EMERGENCY: Reduced from 1.0 to 0.001
+      let bonusMultiplier = 0.01; // EMERGENCY: Reduced from 0.1 to 0.01
+      let waveBonus = 0.01; // EMERGENCY: Reduced from 0.05 to 0.01
 
       if (payoutMultipliers && typeof payoutMultipliers === 'object') {
         const multipliers = payoutMultipliers as any;
-        baseMultiplier = multipliers.base || 1.0;
-        bonusMultiplier = multipliers.bonus || 0.1;
-        waveBonus = multipliers.wave_bonus || 0.05;
+        baseMultiplier = Math.min(multipliers.base || 0.001, 0.01); // Cap at 0.01
+        bonusMultiplier = Math.min(multipliers.bonus || 0.01, 0.05); // Cap at 0.05
+        waveBonus = Math.min(multipliers.wave_bonus || 0.01, 0.05); // Cap at 0.05
       }
       
-      // Calculate credits earned based on score and performance
+      // EMERGENCY: Implement safer payout calculation with caps
       let creditsEarned = 0;
       
       if (finalScore > 0) {
-        // Base credits from score
-        creditsEarned = finalScore * 0.01 * baseMultiplier;
+        // Base credits from score - much reduced calculation
+        creditsEarned = (finalScore / 100) * baseMultiplier; // Score divided by 100, then multiplied by tiny multiplier
         
-        // Bonus for completing waves
-        const waveCredits = (gameStats.wave - 1) * waveBonus * entryCost;
+        // Wave completion bonus - small fixed amount per wave
+        const waveCredits = Math.max(0, (gameStats.wave - 1)) * waveBonus * entryCost;
         creditsEarned += waveCredits;
         
-        // Accuracy bonus
-        if (gameStats.accuracy > 70) {
-          creditsEarned += finalScore * bonusMultiplier;
+        // Accuracy bonus - only if very high accuracy
+        if (gameStats.accuracy > 80) { // Increased threshold from 70 to 80
+          creditsEarned += (finalScore / 100) * bonusMultiplier;
         }
         
-        // Victory bonus
+        // Victory bonus - small reward
         if (gameStats.gameStatus === 'victory') {
-          creditsEarned += entryCost * 2; // Double entry cost as victory bonus
+          creditsEarned += entryCost * 0.5; // Reduced from 2x to 0.5x entry cost
         }
         
-        creditsEarned = Math.round(creditsEarned * 100) / 100; // Round to 2 decimal places
+        // EMERGENCY: Hard cap maximum credits earned to prevent exploitation
+        const maxEarnable = entryCost * 2; // Maximum 2x entry cost
+        creditsEarned = Math.min(creditsEarned, maxEarnable);
+        
+        creditsEarned = Math.max(0, Math.round(creditsEarned * 100) / 100); // Round to 2 decimal places, ensure non-negative
       }
 
       // Update game session
@@ -146,7 +150,14 @@ export const useSpaceInvadersGameHandlers = () => {
           aliensDestroyed: gameStats.aliensDestroyed,
           totalAliens: gameStats.totalAliens,
           accuracy: gameStats.accuracy,
-          gameEndTime: Date.now()
+          gameEndTime: Date.now(),
+          payoutCalculation: {
+            baseCredits: (finalScore / 100) * baseMultiplier,
+            waveBonus: Math.max(0, (gameStats.wave - 1)) * waveBonus * entryCost,
+            accuracyBonus: gameStats.accuracy > 80 ? (finalScore / 100) * bonusMultiplier : 0,
+            victoryBonus: gameStats.gameStatus === 'victory' ? entryCost * 0.5 : 0,
+            cappedAt: entryCost * 2
+          }
         }
       });
 
@@ -161,7 +172,7 @@ export const useSpaceInvadersGameHandlers = () => {
         
         toast({
           title: "Game Complete! 🎉",
-          description: `Score: ${finalScore} | Earned ${creditsEarned} credits!`,
+          description: `Score: ${finalScore} | Earned ${creditsEarned.toFixed(2)} credits!`,
         });
       } else {
         toast({
