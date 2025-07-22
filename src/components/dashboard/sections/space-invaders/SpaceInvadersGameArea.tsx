@@ -3,7 +3,8 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, RotateCcw, Gamepad2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Play, Pause, RotateCcw, Gamepad2, Info } from "lucide-react";
 import { SpaceInvadersEngine, GameState } from "@/components/game/space-invaders/SpaceInvadersEngine";
 import { useGamePermissions } from "@/hooks/useGamePermissions";
 import { GameDisabledBanner } from "@/components/dashboard/GameDisabledBanner";
@@ -134,9 +135,9 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        // Set canvas size
+        // Set canvas size - reduced height
         canvas.width = 800;
-        canvas.height = 600;
+        canvas.height = 500;
         
         // Draw initial background
         ctx.fillStyle = '#000011';
@@ -153,7 +154,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
         
         ctx.font = '16px Arial';
         ctx.fillText('Use arrow keys to move, Space to shoot', canvas.width / 2, canvas.height / 2 + 40);
-        ctx.fillText('Defend Earth from the 💩 alien invasion!', canvas.width / 2, canvas.height / 2 + 65);
+        ctx.fillText('Defend Earth from the 👻💩👾 alien invasion!', canvas.width / 2, canvas.height / 2 + 65);
       }
     }
   }, []);
@@ -185,51 +186,72 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
     <div className="space-y-4">
       <Card className="bg-gray-800/50 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Gamepad2 className="h-5 w-5 text-purple-400" />
-            🛸 Space Invaders
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Gamepad2 className="h-5 w-5 text-purple-400" />
+                🛸 Space Invaders
+                {gameState && (
+                  <Badge variant={isGameRunning ? "default" : "secondary"}>
+                    {isGameRunning ? "Playing" : gameState.gameStatus}
+                  </Badge>
+                )}
+              </CardTitle>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="bg-gray-800 border-gray-700 text-white max-w-xs">
+                    <div className="space-y-2 text-sm">
+                      <div><strong>Controls:</strong> ← → Arrow keys to move, Space to shoot</div>
+                      <div><strong>Goal:</strong> Destroy all aliens before they reach Earth!</div>
+                      <div><strong>Scoring:</strong> Basic 👻 = 10pts, Medium 💩 = 20pts, Boss 👾 = 30pts</div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
+            {/* Game Stats moved to header */}
             {gameState && (
-              <Badge variant={isGameRunning ? "default" : "secondary"}>
-                {isGameRunning ? "Playing" : gameState.gameStatus}
-              </Badge>
+              <div className="flex gap-6 text-sm">
+                <div className="text-center">
+                  <div className="text-gray-400">Score</div>
+                  <div className="text-white font-bold">{gameState.score}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-gray-400">Lives</div>
+                  <div className="text-white font-bold">{gameState.player.lives}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-gray-400">Wave</div>
+                  <div className="text-white font-bold">{gameState.wave}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-gray-400">Aliens Left</div>
+                  <div className="text-white font-bold">
+                    {gameState.aliens.filter(a => a.isAlive).length}
+                  </div>
+                </div>
+              </div>
             )}
-          </CardTitle>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Game Canvas */}
+          {/* Game Canvas - reduced height */}
           <div className="flex justify-center">
             <canvas
               ref={canvasRef}
               width={800}
-              height={600}
+              height={500}
               className="border border-gray-600 bg-black rounded-lg cursor-crosshair"
               style={{ maxWidth: '100%', height: 'auto' }}
             />
           </div>
-
-          {/* Game Stats */}
-          {gameState && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="text-center">
-                <div className="text-gray-400">Score</div>
-                <div className="text-white font-bold">{gameState.score}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-gray-400">Lives</div>
-                <div className="text-white font-bold">{gameState.player.lives}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-gray-400">Wave</div>
-                <div className="text-white font-bold">{gameState.wave}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-gray-400">Aliens Left</div>
-                <div className="text-white font-bold">
-                  {gameState.aliens.filter(a => a.isAlive).length}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Game Controls */}
           <div className="flex flex-wrap gap-2 justify-center">
@@ -262,13 +284,6 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
                 </Button>
               </>
             )}
-          </div>
-
-          {/* Game Instructions */}
-          <div className="text-sm text-gray-400 text-center space-y-1">
-            <div><strong>Controls:</strong> ← → Arrow keys to move, Space to shoot</div>
-            <div><strong>Goal:</strong> Destroy all 💩 aliens before they reach Earth! 🚀</div>
-            <div><strong>Scoring:</strong> Basic = 10pts, Medium = 20pts, Boss 👾 = 30pts</div>
           </div>
 
           {gameError && (

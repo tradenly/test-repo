@@ -1,4 +1,3 @@
-
 export interface Position {
   x: number;
   y: number;
@@ -68,9 +67,9 @@ export class SpaceInvadersEngine {
     }
     this.ctx = context;
     
-    // Ensure canvas has proper dimensions
+    // Ensure canvas has proper dimensions - reduced height to eliminate scrolling
     this.canvas.width = 800;
-    this.canvas.height = 600;
+    this.canvas.height = 500; // Reduced from 600 to 500
     
     this.gameState = this.initializeGame();
     this.setupEventListeners();
@@ -114,7 +113,7 @@ export class SpaceInvadersEngine {
     const alienHeight = 25;
     const spacing = 45;
     const startX = (this.canvas.width - (cols * spacing)) / 2;
-    const startY = 80;
+    const startY = 60; // Adjusted for smaller canvas
 
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
@@ -375,7 +374,7 @@ export class SpaceInvadersEngine {
     this.renderPlayer();
     this.renderAliens();
     this.renderBullets();
-    this.renderUI();
+    this.renderGameOverlay();
   }
 
   private renderStars(): void {
@@ -384,7 +383,9 @@ export class SpaceInvadersEngine {
     for (let i = 0; i < 100; i++) {
       const x = (i * 37) % this.canvas.width;
       const y = (i * 73) % this.canvas.height;
-      this.ctx.fillRect(x, y, 1, 1);
+      if (Math.random() > 0.7) { // Make stars twinkle
+        this.ctx.fillRect(x, y, 1, 1);
+      }
     }
   }
 
@@ -392,7 +393,7 @@ export class SpaceInvadersEngine {
     const { player } = this.gameState;
     if (!player.isAlive) return;
 
-    // Use emoji for player spaceship
+    // Use rocket emoji facing up
     this.ctx.font = '30px Arial';
     this.ctx.textAlign = 'center';
     this.ctx.fillText('🚀', player.x + player.width / 2, player.y + player.height);
@@ -405,13 +406,13 @@ export class SpaceInvadersEngine {
     for (const alien of this.gameState.aliens.filter(a => a.isAlive)) {
       let emoji = '💩';
       
-      // Different poop colors for different types
+      // Different emojis for different types
       if (alien.type === 'boss') {
         emoji = '👾'; // Boss aliens get special treatment
       } else if (alien.type === 'medium') {
-        emoji = '💩'; // Medium aliens
+        emoji = '💩'; // Medium aliens stay as poop
       } else {
-        emoji = '🟤'; // Basic aliens (brown circle)
+        emoji = '👻'; // Basic aliens are now ghosts instead of brown circles
       }
       
       this.ctx.fillText(emoji, alien.x + alien.width / 2, alien.y + alien.height);
@@ -430,28 +431,26 @@ export class SpaceInvadersEngine {
     }
   }
 
-  private renderUI(): void {
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.font = '18px Arial';
-    this.ctx.textAlign = 'left';
-    this.ctx.fillText(`Score: ${this.gameState.score}`, 20, 30);
-    this.ctx.fillText(`Lives: ${this.gameState.player.lives}`, 20, 55);
-    this.ctx.fillText(`Wave: ${this.gameState.wave}`, 20, 80);
-    
-    const aliveAliens = this.gameState.aliens.filter(a => a.isAlive).length;
-    this.ctx.fillText(`Aliens: ${aliveAliens}`, 20, 105);
-
+  private renderGameOverlay(): void {
     // Show game over or victory message
     if (this.gameState.gameStatus === 'gameOver') {
       this.ctx.font = '48px Arial';
       this.ctx.textAlign = 'center';
       this.ctx.fillStyle = '#ff0000';
       this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
+      
+      this.ctx.font = '24px Arial';
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.fillText('Press Reset to try again', this.canvas.width / 2, this.canvas.height / 2 + 40);
     } else if (this.gameState.gameStatus === 'victory') {
       this.ctx.font = '48px Arial';
       this.ctx.textAlign = 'center';
       this.ctx.fillStyle = '#00ff00';
       this.ctx.fillText('VICTORY!', this.canvas.width / 2, this.canvas.height / 2);
+      
+      this.ctx.font = '24px Arial';
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.fillText('All aliens defeated!', this.canvas.width / 2, this.canvas.height / 2 + 40);
     }
   }
 
