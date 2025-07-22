@@ -1,3 +1,11 @@
+export type SpeedLevel = 'novice' | 'intermediate' | 'advanced';
+
+const SPEED_SETTINGS = {
+  novice: { alienMoveInterval: 800, alienShootInterval: 1500, alienMoveSpeed: 15 },
+  intermediate: { alienMoveInterval: 500, alienShootInterval: 1000, alienMoveSpeed: 20 },
+  advanced: { alienMoveInterval: 300, alienShootInterval: 700, alienMoveSpeed: 25 }
+};
+
 export interface GameState {
   player: {
     x: number;
@@ -35,6 +43,7 @@ export interface GameState {
   alienDirection: number;
   alienMoveTimer: number;
   alienShootTimer: number;
+  currentSpeed: SpeedLevel;
 }
 
 export class SpaceInvadersEngine {
@@ -45,6 +54,7 @@ export class SpaceInvadersEngine {
   private lastTime = 0;
   private isRunning = false;
   private animationFrame?: number;
+  private speedSettings = SPEED_SETTINGS.intermediate;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -66,9 +76,9 @@ export class SpaceInvadersEngine {
   private createInitialState(): GameState {
     const aliens = [];
     const rows = 5;
-    const cols = 10;
-    const alienWidth = 30;
-    const alienHeight = 20;
+    const cols = 13; // Increased from 10 to 13 columns
+    const alienWidth = 32; // Slightly increased width
+    const alienHeight = 24; // Slightly increased height
     const spacing = 10;
     const startX = 50;
     const startY = 50;
@@ -103,7 +113,8 @@ export class SpaceInvadersEngine {
       gameStatus: 'playing',
       alienDirection: 1,
       alienMoveTimer: 0,
-      alienShootTimer: 0
+      alienShootTimer: 0,
+      currentSpeed: 'intermediate'
     };
   }
 
@@ -153,14 +164,16 @@ export class SpaceInvadersEngine {
     }
   }
 
-  start(): void {
+  start(speed: SpeedLevel = 'intermediate'): void {
     if (this.isRunning) return;
     
     this.isRunning = true;
     this.gameState.gameStatus = 'playing';
+    this.gameState.currentSpeed = speed;
+    this.speedSettings = SPEED_SETTINGS[speed];
     this.lastTime = performance.now();
     
-    console.log('🚀 Starting Space Invaders game...');
+    console.log('🚀 Starting Space Invaders game with speed:', speed);
     this.gameLoop();
   }
 
@@ -243,12 +256,12 @@ export class SpaceInvadersEngine {
     this.gameState.alienMoveTimer += deltaTime;
     this.gameState.alienShootTimer += deltaTime;
 
-    if (this.gameState.alienMoveTimer > 500) {
+    if (this.gameState.alienMoveTimer > this.speedSettings.alienMoveInterval) {
       this.moveAliens();
       this.gameState.alienMoveTimer = 0;
     }
 
-    if (this.gameState.alienShootTimer > 1000) {
+    if (this.gameState.alienShootTimer > this.speedSettings.alienShootInterval) {
       this.alienShoot();
       this.gameState.alienShootTimer = 0;
     }
@@ -256,7 +269,7 @@ export class SpaceInvadersEngine {
 
   private moveAliens(): void {
     const { aliens, alienDirection } = this.gameState;
-    const speed = 20;
+    const speed = this.speedSettings.alienMoveSpeed;
     let shouldMoveDown = false;
 
     for (const alien of aliens) {
@@ -401,18 +414,32 @@ export class SpaceInvadersEngine {
     const { player } = this.gameState;
     if (!player.isAlive) return;
 
-    // Use upward-facing triangle for proper rocket alignment
-    this.ctx.font = '30px Arial';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillStyle = '#00ff00';
-    this.ctx.fillText('▲', player.x + player.width / 2, player.y + player.height);
+    // Draw white outlined rocket ship
+    this.ctx.strokeStyle = '#ffffff';
+    this.ctx.fillStyle = 'transparent';
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    
+    const centerX = player.x + player.width / 2;
+    const topY = player.y;
+    const bottomY = player.y + player.height;
+    
+    // Draw rocket ship outline
+    this.ctx.moveTo(centerX, topY); // Top point
+    this.ctx.lineTo(centerX - 15, bottomY); // Bottom left
+    this.ctx.lineTo(centerX - 5, bottomY - 8); // Inner left
+    this.ctx.lineTo(centerX + 5, bottomY - 8); // Inner right  
+    this.ctx.lineTo(centerX + 15, bottomY); // Bottom right
+    this.ctx.closePath();
+    
+    this.ctx.stroke();
   }
 
   private renderAliens(): void {
     const { aliens } = this.gameState;
     const alienEmojis = ['👻', '💩', '👾'];
 
-    this.ctx.font = '20px Arial';
+    this.ctx.font = '24px Arial'; // Increased from 20px to 24px
     this.ctx.textAlign = 'center';
 
     for (const alien of aliens) {

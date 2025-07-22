@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Play, Pause, RotateCcw, Gamepad2, Info } from "lucide-react";
-import { SpaceInvadersEngine, GameState } from "@/components/game/space-invaders/SpaceInvadersEngine";
+import { SpaceInvadersEngine, GameState, SpeedLevel } from "@/components/game/space-invaders/SpaceInvadersEngine";
+import { SpaceInvadersSpeedSelector } from './SpaceInvadersSpeedSelector';
 import { useGamePermissions } from "@/hooks/useGamePermissions";
 import { GameDisabledBanner } from "@/components/dashboard/GameDisabledBanner";
 import { useSpaceInvadersGameHandlers } from "./useSpaceInvadersGameHandlers";
@@ -20,6 +21,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
   
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isGameRunning, setIsGameRunning] = useState(false);
+  const [selectedSpeed, setSelectedSpeed] = useState<SpeedLevel>('intermediate');
   
   const { gameSettings, canPlay, showBanner, isLoading } = useGamePermissions('space_invaders');
   
@@ -90,7 +92,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
       gameEngineRef.current = new SpaceInvadersEngine(canvasRef.current);
       
       // Start the game
-      gameEngineRef.current.startGame();
+      gameEngineRef.current.start(selectedSpeed);
       
       // Get initial game state
       const initialState = gameEngineRef.current.getGameState();
@@ -252,6 +254,17 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
               style={{ maxWidth: '100%', height: 'auto' }}
             />
           </div>
+
+          {/* Speed Selector - only show when not playing */}
+          {!isGameRunning && (!gameState || gameState.gameStatus === 'gameOver' || gameState.gameStatus === 'victory') && (
+            <div className="flex justify-center mb-4">
+              <SpaceInvadersSpeedSelector
+                speed={selectedSpeed}
+                onSpeedChange={setSelectedSpeed}
+                disabled={isStarting || !canPlay}
+              />
+            </div>
+          )}
 
           {/* Game Controls */}
           <div className="flex flex-wrap gap-2 justify-center">
