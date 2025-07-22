@@ -12,6 +12,7 @@ export type DocumentationSection =
   | "poopee-crush-game"
   | "falling-logs-game"
   | "miss-poopee-man"
+  | "space-invaders"
   | "wallets"
   | "staking"
   | "social"

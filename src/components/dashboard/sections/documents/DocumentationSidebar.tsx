@@ -11,7 +11,8 @@ import {
   Image,
   Puzzle,
   Grid3X3,
-  Ghost
+  Ghost,
+  Rocket
 } from "lucide-react";
 import { DocumentationSection } from "../DocumentsSection";
 
@@ -29,6 +30,7 @@ export const DocumentationSidebar = ({ activeSection, onSectionChange }: Documen
     { id: "poopee-crush-game" as DocumentationSection, label: "POOPEE Crush Game", icon: Grid3X3 },
     { id: "falling-logs-game" as DocumentationSection, label: "Falling Logs Game", icon: Puzzle },
     { id: "miss-poopee-man" as DocumentationSection, label: "Miss POOPEE-Man", icon: Ghost },
+    { id: "space-invaders" as DocumentationSection, label: "Space Invaders", icon: Rocket },
     { id: "wallets" as DocumentationSection, label: "Wallets & Credits", icon: Wallet },
     { id: "staking" as DocumentationSection, label: "Staking", icon: PiggyBank },
     { id: "social" as DocumentationSection, label: "Social Features", icon: Users },

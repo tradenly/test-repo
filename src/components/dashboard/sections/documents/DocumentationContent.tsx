@@ -8,6 +8,7 @@ import { FlappyHipposGameDoc } from "./sections/FlappyHipposGameDoc";
 import { PoopeeCrushDoc } from "./sections/PoopeeCrushDoc";
 import { FallingLogsDoc } from "./sections/FallingLogsDoc";
 import { MissPoopeeManDoc } from "./sections/MissPoopeeManDoc";
+import { SpaceInvadersDoc } from "./sections/SpaceInvadersDoc";
 import { WalletsDoc } from "./sections/WalletsDoc";
 import { StakingDoc } from "./sections/StakingDoc";
 import { SocialDoc } from "./sections/SocialDoc";
@@ -35,6 +36,8 @@ export const DocumentationContent = ({ activeSection, user }: DocumentationConte
         return <FallingLogsDoc />;
       case "miss-poopee-man":
         return <MissPoopeeManDoc />;
+      case "space-invaders":
+        return <SpaceInvadersDoc />;
       case "wallets":
         return <WalletsDoc />;
       case "staking":
