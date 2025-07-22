@@ -401,10 +401,11 @@ export class SpaceInvadersEngine {
     const { player } = this.gameState;
     if (!player.isAlive) return;
 
-    // Use upward-facing rocket emoji
+    // Use upward-facing triangle for proper rocket alignment
     this.ctx.font = '30px Arial';
     this.ctx.textAlign = 'center';
-    this.ctx.fillText('🚀', player.x + player.width / 2, player.y + player.height);
+    this.ctx.fillStyle = '#00ff00';
+    this.ctx.fillText('▲', player.x + player.width / 2, player.y + player.height);
   }
 
   private renderAliens(): void {
