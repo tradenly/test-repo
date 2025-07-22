@@ -1,9 +1,10 @@
+
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 import { useGameSettings } from "@/hooks/useGameSettings";
 import { useNavigate } from "react-router-dom";
-import { Gamepad2, Rocket } from "lucide-react";
+import { Gamepad2, Rocket, Github } from "lucide-react";
 
 export const WhatYouGetSection = () => {
   const { user } = useUnifiedAuth();
@@ -205,21 +206,29 @@ export const WhatYouGetSection = () => {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
-              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-full text-lg border border-gray-600"
+              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-full text-lg border border-gray-600"
               onClick={() => window.open('https://x.com/tropicalfattys', '_blank')}
             >
               Complain With Us 🐦
             </Button>
             
             <Button 
-              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-full text-lg border border-gray-600"
+              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-full text-lg border border-gray-600"
               onClick={() => window.open('https://medium.com/@poopee', '_blank')}
             >
               Read Our Lies 📖
             </Button>
             
             <Button 
-              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-full text-lg border border-gray-600"
+              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-full text-lg border border-gray-600 flex items-center gap-2"
+              onClick={() => window.open('https://github.com/Tropicalfattys', '_blank')}
+            >
+              Maliciously Infected Code
+              <Github className="h-4 w-4" />
+            </Button>
+            
+            <Button 
+              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-full text-lg border border-gray-600"
               onClick={handleContactUs}
             >
               Contact Us 💬
