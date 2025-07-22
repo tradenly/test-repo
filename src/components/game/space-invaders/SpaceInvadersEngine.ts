@@ -393,7 +393,7 @@ export class SpaceInvadersEngine {
     const { player } = this.gameState;
     if (!player.isAlive) return;
 
-    // Use rocket emoji facing up
+    // Use rocket emoji facing straight up
     this.ctx.font = '30px Arial';
     this.ctx.textAlign = 'center';
     this.ctx.fillText('🚀', player.x + player.width / 2, player.y + player.height);
