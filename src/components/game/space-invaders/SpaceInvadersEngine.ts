@@ -53,9 +53,12 @@ export class SpaceInvadersEngine {
   private keys: Set<string> = new Set();
   private lastPlayerFireTime = 0;
   private readonly PLAYER_FIRE_COOLDOWN = 200;
-  private readonly ALIEN_FIRE_COOLDOWN = 1000;
+  private readonly ALIEN_FIRE_COOLDOWN = 1500;
   private keyDownHandler: (e: KeyboardEvent) => void;
   private keyUpHandler: (e: KeyboardEvent) => void;
+  private isRunning = false;
+  private animationId: number | null = null;
+  private lastTime = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -74,12 +77,14 @@ export class SpaceInvadersEngine {
     
     // Initial render to show the game immediately
     this.render();
+    
+    console.log("🛸 Space Invaders Engine initialized successfully");
   }
 
   private initializeGame(): GameState {
     const player: Player = {
       x: this.canvas.width / 2 - 20,
-      y: this.canvas.height - 50,
+      y: this.canvas.height - 60,
       width: 40,
       height: 30,
       lives: 3,
@@ -96,7 +101,7 @@ export class SpaceInvadersEngine {
       wave: 1,
       gameStatus: 'playing',
       alienDirection: 1,
-      alienSpeed: 0.5,
+      alienSpeed: 1,
       lastAlienFireTime: 0
     };
   }
@@ -105,11 +110,11 @@ export class SpaceInvadersEngine {
     const aliens: Alien[] = [];
     const rows = 5;
     const cols = 10;
-    const alienWidth = 30;
-    const alienHeight = 20;
-    const spacing = 40;
+    const alienWidth = 35;
+    const alienHeight = 25;
+    const spacing = 45;
     const startX = (this.canvas.width - (cols * spacing)) / 2;
-    const startY = 50;
+    const startY = 80;
 
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
@@ -129,24 +134,58 @@ export class SpaceInvadersEngine {
       }
     }
 
+    console.log(`👾 Created ${aliens.length} aliens in formation`);
     return aliens;
   }
 
   private setupEventListeners(): void {
     this.keyDownHandler = (e: KeyboardEvent) => {
       this.keys.add(e.code);
-      e.preventDefault(); // Prevent default browser behavior
+      this.keys.add(e.key);
+      console.log("🎮 Key pressed:", e.code, e.key);
+      e.preventDefault();
     };
 
     this.keyUpHandler = (e: KeyboardEvent) => {
       this.keys.delete(e.code);
+      this.keys.delete(e.key);
       e.preventDefault();
     };
 
-    // Attach event listeners to window to ensure they work
-    window.addEventListener('keydown', this.keyDownHandler);
-    window.addEventListener('keyup', this.keyUpHandler);
+    // Use document for global key events
+    document.addEventListener('keydown', this.keyDownHandler);
+    document.addEventListener('keyup', this.keyUpHandler);
+    
+    console.log("🎮 Event listeners attached to document");
   }
+
+  public startGame(): void {
+    console.log("🚀 Starting Space Invaders game...");
+    this.isRunning = true;
+    this.gameState.gameStatus = 'playing';
+    this.lastTime = performance.now();
+    this.gameLoop();
+  }
+
+  private gameLoop = (): void => {
+    if (!this.isRunning || this.gameState.gameStatus !== 'playing') {
+      console.log("⏸️ Game loop stopped - isRunning:", this.isRunning, "status:", this.gameState.gameStatus);
+      return;
+    }
+
+    const currentTime = performance.now();
+    const deltaTime = currentTime - this.lastTime;
+    this.lastTime = currentTime;
+
+    try {
+      this.update(deltaTime);
+      this.render();
+      this.animationId = requestAnimationFrame(this.gameLoop);
+    } catch (error) {
+      console.error("❌ Game loop error:", error);
+      this.isRunning = false;
+    }
+  };
 
   public update(deltaTime: number): void {
     if (this.gameState.gameStatus !== 'playing') return;
@@ -160,15 +199,19 @@ export class SpaceInvadersEngine {
 
   private updatePlayer(deltaTime: number): void {
     const player = this.gameState.player;
-    const speed = 300;
+    const speed = 300; // pixels per second
 
-    if (this.keys.has('ArrowLeft') || this.keys.has('KeyA')) {
+    // Handle movement
+    if (this.keys.has('ArrowLeft') || this.keys.has('KeyA') || this.keys.has('a')) {
       player.x = Math.max(0, player.x - speed * deltaTime / 1000);
     }
-    if (this.keys.has('ArrowRight') || this.keys.has('KeyD')) {
+    if (this.keys.has('ArrowRight') || this.keys.has('KeyD') || this.keys.has('d')) {
       player.x = Math.min(this.canvas.width - player.width, player.x + speed * deltaTime / 1000);
     }
-    if ((this.keys.has('Space') || this.keys.has('KeyW')) && Date.now() - this.lastPlayerFireTime > this.PLAYER_FIRE_COOLDOWN) {
+    
+    // Handle shooting
+    if ((this.keys.has('Space') || this.keys.has('KeyW') || this.keys.has('w') || this.keys.has(' ')) && 
+        Date.now() - this.lastPlayerFireTime > this.PLAYER_FIRE_COOLDOWN) {
       this.firePlayerBullet();
       this.lastPlayerFireTime = Date.now();
     }
@@ -176,11 +219,14 @@ export class SpaceInvadersEngine {
 
   private updateAliens(deltaTime: number): void {
     const { aliens, alienDirection, alienSpeed } = this.gameState;
-    const speed = alienSpeed * 60;
+    const speed = alienSpeed * 50; // pixels per second
     let shouldDropDown = false;
 
     // Move aliens horizontally
     const aliveAliens = aliens.filter(a => a.isAlive);
+    
+    if (aliveAliens.length === 0) return;
+
     for (const alien of aliveAliens) {
       alien.x += alienDirection * speed * deltaTime / 1000;
       
@@ -194,8 +240,9 @@ export class SpaceInvadersEngine {
     if (shouldDropDown) {
       this.gameState.alienDirection *= -1;
       for (const alien of aliveAliens) {
-        alien.y += 20;
+        alien.y += 25;
       }
+      console.log("👾 Aliens dropped down and changed direction");
     }
 
     // Random alien firing
@@ -227,6 +274,7 @@ export class SpaceInvadersEngine {
       speed: -400,
       isPlayerBullet: true
     });
+    console.log("🔫 Player fired bullet");
   }
 
   private fireAlienBullet(): void {
@@ -243,6 +291,7 @@ export class SpaceInvadersEngine {
       speed: 200,
       isPlayerBullet: false
     });
+    console.log("👾 Alien fired bullet");
   }
 
   private handleCollisions(): void {
@@ -255,6 +304,7 @@ export class SpaceInvadersEngine {
           alien.isAlive = false;
           bullet.width = 0; // Mark bullet for removal
           this.gameState.score += alien.points;
+          console.log(`💥 Alien destroyed! Score: ${this.gameState.score}`);
           break;
         }
       }
@@ -265,6 +315,7 @@ export class SpaceInvadersEngine {
       if (this.checkCollision(bullet, player)) {
         bullet.width = 0; // Mark bullet for removal
         player.lives--;
+        console.log(`💔 Player hit! Lives remaining: ${player.lives}`);
         if (player.lives <= 0) {
           player.isAlive = false;
         }
@@ -289,12 +340,16 @@ export class SpaceInvadersEngine {
 
     if (!player.isAlive) {
       this.gameState.gameStatus = 'gameOver';
+      this.isRunning = false;
+      console.log("💀 Game Over - Player defeated");
       return;
     }
 
     const aliveAliens = aliens.filter(a => a.isAlive);
     if (aliveAliens.length === 0) {
       this.gameState.gameStatus = 'victory';
+      this.isRunning = false;
+      console.log("🎉 Victory - All aliens defeated!");
       return;
     }
 
@@ -302,6 +357,8 @@ export class SpaceInvadersEngine {
     for (const alien of aliveAliens) {
       if (alien.y + alien.height >= player.y) {
         this.gameState.gameStatus = 'gameOver';
+        this.isRunning = false;
+        console.log("💀 Game Over - Aliens reached Earth!");
         return;
       }
     }
@@ -309,7 +366,7 @@ export class SpaceInvadersEngine {
 
   public render(): void {
     // Clear canvas with dark space background
-    this.ctx.fillStyle = '#000022';
+    this.ctx.fillStyle = '#000011';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Add stars background
@@ -324,7 +381,7 @@ export class SpaceInvadersEngine {
   private renderStars(): void {
     // Simple star field background
     this.ctx.fillStyle = '#ffffff';
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 100; i++) {
       const x = (i * 37) % this.canvas.width;
       const y = (i * 73) % this.canvas.height;
       this.ctx.fillRect(x, y, 1, 1);
@@ -335,59 +392,67 @@ export class SpaceInvadersEngine {
     const { player } = this.gameState;
     if (!player.isAlive) return;
 
-    // Player ship body
-    this.ctx.fillStyle = '#00ff00';
-    this.ctx.fillRect(player.x, player.y, player.width, player.height);
-    
-    // Player ship details
-    this.ctx.fillStyle = '#ffff00';
-    this.ctx.fillRect(player.x + player.width / 2 - 3, player.y - 5, 6, 8);
-    
-    // Ship wings
-    this.ctx.fillStyle = '#00aa00';
-    this.ctx.fillRect(player.x - 5, player.y + 10, 10, 5);
-    this.ctx.fillRect(player.x + player.width - 5, player.y + 10, 10, 5);
+    // Use emoji for player spaceship
+    this.ctx.font = '30px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText('🚀', player.x + player.width / 2, player.y + player.height);
   }
 
   private renderAliens(): void {
+    this.ctx.font = '25px Arial';
+    this.ctx.textAlign = 'center';
+    
     for (const alien of this.gameState.aliens.filter(a => a.isAlive)) {
-      const colors = { 
-        basic: '#ff0000', 
-        medium: '#ff8800', 
-        boss: '#ff00ff' 
-      };
+      let emoji = '💩';
       
-      // Alien body
-      this.ctx.fillStyle = colors[alien.type];
-      this.ctx.fillRect(alien.x, alien.y, alien.width, alien.height);
+      // Different poop colors for different types
+      if (alien.type === 'boss') {
+        emoji = '👾'; // Boss aliens get special treatment
+      } else if (alien.type === 'medium') {
+        emoji = '💩'; // Medium aliens
+      } else {
+        emoji = '🟤'; // Basic aliens (brown circle)
+      }
       
-      // Alien details
-      this.ctx.fillStyle = '#ffffff';
-      this.ctx.fillRect(alien.x + 5, alien.y + 3, 4, 4);
-      this.ctx.fillRect(alien.x + alien.width - 9, alien.y + 3, 4, 4);
-      
-      // Alien antennae
-      this.ctx.fillRect(alien.x + 8, alien.y - 2, 2, 3);
-      this.ctx.fillRect(alien.x + alien.width - 10, alien.y - 2, 2, 3);
+      this.ctx.fillText(emoji, alien.x + alien.width / 2, alien.y + alien.height);
     }
   }
 
   private renderBullets(): void {
     for (const bullet of this.gameState.bullets) {
-      this.ctx.fillStyle = bullet.isPlayerBullet ? '#ffff00' : '#ff0000';
-      this.ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+      if (bullet.isPlayerBullet) {
+        this.ctx.fillStyle = '#00ff00';
+        this.ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+      } else {
+        this.ctx.fillStyle = '#ff0000';
+        this.ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+      }
     }
   }
 
   private renderUI(): void {
     this.ctx.fillStyle = '#ffffff';
-    this.ctx.font = '16px Arial';
-    this.ctx.fillText(`Score: ${this.gameState.score}`, 10, 25);
-    this.ctx.fillText(`Lives: ${this.gameState.player.lives}`, 10, 45);
-    this.ctx.fillText(`Wave: ${this.gameState.wave}`, 10, 65);
+    this.ctx.font = '18px Arial';
+    this.ctx.textAlign = 'left';
+    this.ctx.fillText(`Score: ${this.gameState.score}`, 20, 30);
+    this.ctx.fillText(`Lives: ${this.gameState.player.lives}`, 20, 55);
+    this.ctx.fillText(`Wave: ${this.gameState.wave}`, 20, 80);
     
     const aliveAliens = this.gameState.aliens.filter(a => a.isAlive).length;
-    this.ctx.fillText(`Aliens: ${aliveAliens}`, 10, 85);
+    this.ctx.fillText(`Aliens: ${aliveAliens}`, 20, 105);
+
+    // Show game over or victory message
+    if (this.gameState.gameStatus === 'gameOver') {
+      this.ctx.font = '48px Arial';
+      this.ctx.textAlign = 'center';
+      this.ctx.fillStyle = '#ff0000';
+      this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
+    } else if (this.gameState.gameStatus === 'victory') {
+      this.ctx.font = '48px Arial';
+      this.ctx.textAlign = 'center';
+      this.ctx.fillStyle = '#00ff00';
+      this.ctx.fillText('VICTORY!', this.canvas.width / 2, this.canvas.height / 2);
+    }
   }
 
   public getGameState(): GameState {
@@ -395,25 +460,50 @@ export class SpaceInvadersEngine {
   }
 
   public resetGame(): void {
+    this.isRunning = false;
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
     this.gameState = this.initializeGame();
-    this.render(); // Render immediately after reset
+    this.render();
+    console.log("🔄 Game reset");
   }
 
   public pauseGame(): void {
+    this.isRunning = false;
     this.gameState.gameStatus = 'paused';
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+    console.log("⏸️ Game paused");
   }
 
   public resumeGame(): void {
-    this.gameState.gameStatus = 'playing';
+    if (this.gameState.gameStatus === 'paused') {
+      this.gameState.gameStatus = 'playing';
+      this.isRunning = true;
+      this.lastTime = performance.now();
+      this.gameLoop();
+      console.log("▶️ Game resumed");
+    }
   }
 
   public destroy(): void {
-    // Remove event listeners properly
+    console.log("🧹 Destroying Space Invaders engine...");
+    this.isRunning = false;
+    
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+    
     if (this.keyDownHandler) {
-      window.removeEventListener('keydown', this.keyDownHandler);
+      document.removeEventListener('keydown', this.keyDownHandler);
     }
     if (this.keyUpHandler) {
-      window.removeEventListener('keyup', this.keyUpHandler);
+      document.removeEventListener('keyup', this.keyUpHandler);
     }
   }
 }

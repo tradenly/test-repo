@@ -16,8 +16,6 @@ interface SpaceInvadersGameAreaProps {
 export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameEngineRef = useRef<SpaceInvadersEngine | null>(null);
-  const animationFrameRef = useRef<number>();
-  const lastTimeRef = useRef<number>(0);
   
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isGameRunning, setIsGameRunning] = useState(false);
@@ -31,33 +29,27 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
     error: gameError
   } = useSpaceInvadersGameHandlers();
 
-  const gameLoop = useCallback((currentTime: number) => {
+  // Game state polling to update UI
+  useEffect(() => {
     if (!gameEngineRef.current || !isGameRunning) return;
 
-    const deltaTime = currentTime - lastTimeRef.current;
-    lastTimeRef.current = currentTime;
+    const interval = setInterval(() => {
+      if (gameEngineRef.current) {
+        const currentState = gameEngineRef.current.getGameState();
+        setGameState(currentState);
 
-    try {
-      gameEngineRef.current.update(deltaTime);
-      gameEngineRef.current.render();
-      
-      const currentGameState = gameEngineRef.current.getGameState();
-      setGameState(currentGameState);
-
-      // Check for game end conditions
-      if (currentGameState.gameStatus === 'gameOver' || currentGameState.gameStatus === 'victory') {
-        handleGameEnd(currentGameState);
-        return;
+        // Check for game end conditions
+        if (currentState.gameStatus === 'gameOver' || currentState.gameStatus === 'victory') {
+          handleGameEnd(currentState);
+        }
       }
+    }, 100); // Poll every 100ms
 
-      animationFrameRef.current = requestAnimationFrame(gameLoop);
-    } catch (error) {
-      console.error('Game loop error:', error);
-      setIsGameRunning(false);
-    }
+    return () => clearInterval(interval);
   }, [isGameRunning]);
 
   const handleGameEnd = useCallback(async (finalGameState: GameState) => {
+    console.log("🏁 Game ended with status:", finalGameState.gameStatus);
     setIsGameRunning(false);
     
     const gameStats = {
@@ -84,7 +76,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
     }
 
     try {
-      console.log('Starting Space Invaders game...');
+      console.log('🚀 Starting Space Invaders game...');
       await startGame();
       
       // Clean up previous game engine
@@ -93,30 +85,29 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
       }
       
       // Initialize new game engine
-      console.log('Initializing game engine...');
+      console.log('🎮 Initializing game engine...');
       gameEngineRef.current = new SpaceInvadersEngine(canvasRef.current);
+      
+      // Start the game
+      gameEngineRef.current.startGame();
       
       // Get initial game state
       const initialState = gameEngineRef.current.getGameState();
       setGameState(initialState);
       
-      console.log('Game engine initialized, starting game loop...');
+      console.log('✅ Game started successfully');
       setIsGameRunning(true);
-      lastTimeRef.current = performance.now();
-      animationFrameRef.current = requestAnimationFrame(gameLoop);
       
     } catch (error) {
-      console.error('Error starting game:', error);
+      console.error('❌ Error starting game:', error);
     }
-  }, [canPlay, startGame, gameLoop]);
+  }, [canPlay, startGame]);
 
   const handlePauseGame = useCallback(() => {
     if (gameEngineRef.current && isGameRunning) {
       gameEngineRef.current.pauseGame();
       setIsGameRunning(false);
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      console.log("⏸️ Game paused");
     }
   }, [isGameRunning]);
 
@@ -124,10 +115,9 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
     if (gameEngineRef.current && !isGameRunning) {
       gameEngineRef.current.resumeGame();
       setIsGameRunning(true);
-      lastTimeRef.current = performance.now();
-      animationFrameRef.current = requestAnimationFrame(gameLoop);
+      console.log("▶️ Game resumed");
     }
-  }, [isGameRunning, gameLoop]);
+  }, [isGameRunning]);
 
   const handleResetGame = useCallback(() => {
     if (gameEngineRef.current) {
@@ -135,9 +125,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
       setGameState(gameEngineRef.current.getGameState());
     }
     setIsGameRunning(false);
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
+    console.log("🔄 Game reset");
   }, []);
 
   // Initialize canvas on mount
@@ -151,25 +139,28 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
         canvas.height = 600;
         
         // Draw initial background
-        ctx.fillStyle = '#000022';
+        ctx.fillStyle = '#000011';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Draw "Click Start to Play" message
+        // Draw welcome message
         ctx.fillStyle = '#ffffff';
-        ctx.font = '24px Arial';
+        ctx.font = '28px Arial';
         ctx.textAlign = 'center';
+        ctx.fillText('🛸 Space Invaders 🛸', canvas.width / 2, canvas.height / 2 - 60);
+        
+        ctx.font = '24px Arial';
         ctx.fillText('Click Start Game to Begin!', canvas.width / 2, canvas.height / 2);
+        
         ctx.font = '16px Arial';
-        ctx.fillText('Use arrow keys to move, Space/W to shoot', canvas.width / 2, canvas.height / 2 + 40);
+        ctx.fillText('Use arrow keys to move, Space to shoot', canvas.width / 2, canvas.height / 2 + 40);
+        ctx.fillText('Defend Earth from the 💩 alien invasion!', canvas.width / 2, canvas.height / 2 + 65);
       }
     }
   }, []);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
       if (gameEngineRef.current) {
         gameEngineRef.current.destroy();
       }
@@ -211,7 +202,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
               ref={canvasRef}
               width={800}
               height={600}
-              className="border border-gray-600 bg-black rounded-lg"
+              className="border border-gray-600 bg-black rounded-lg cursor-crosshair"
               style={{ maxWidth: '100%', height: 'auto' }}
             />
           </div>
@@ -242,7 +233,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
 
           {/* Game Controls */}
           <div className="flex flex-wrap gap-2 justify-center">
-            {!isGameRunning && !gameState ? (
+            {!isGameRunning && (!gameState || gameState.gameStatus === 'gameOver' || gameState.gameStatus === 'victory') ? (
               <Button
                 onClick={handleStartGame}
                 disabled={isStarting || !canPlay}
@@ -275,9 +266,9 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
 
           {/* Game Instructions */}
           <div className="text-sm text-gray-400 text-center space-y-1">
-            <div><strong>Controls:</strong> ← → Arrow keys to move, Space/W to shoot</div>
-            <div><strong>Goal:</strong> Destroy all aliens before they reach the bottom</div>
-            <div><strong>Scoring:</strong> Basic aliens = 10pts, Medium = 20pts, Boss = 30pts</div>
+            <div><strong>Controls:</strong> ← → Arrow keys to move, Space to shoot</div>
+            <div><strong>Goal:</strong> Destroy all 💩 aliens before they reach Earth! 🚀</div>
+            <div><strong>Scoring:</strong> Basic = 10pts, Medium = 20pts, Boss 👾 = 30pts</div>
           </div>
 
           {gameError && (
