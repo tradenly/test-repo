@@ -45,14 +45,14 @@ export const MintInfoSection = () => {
             <div className="space-y-3 text-left">
               <p className="text-lg text-gray-300"><span className="font-bold">Ticker:</span> PPEE</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Supply:</span> 420,069,000</p>
-              <p className="text-lg text-gray-300"><span className="font-bold">Date:</span> TBD</p>
+              <p className="text-lg text-gray-300"><span className="font-bold">Date:</span> July 28th 2025</p>
               <p className="text-lg text-gray-300"><span className="font-bold">Blockchain:</span> Cardano </p>
             </div>
             <Button 
               className="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold border border-gray-600"
               onClick={() => window.open('https://minswap.org/launch-bowl?t=live-launch', '_blank')}
             >
-              Coming Soon To Minswap
+              Buy On Minswap
             </Button>
             <p className="text-sm text-gray-400 mt-2 font-bold">
               THERE IS NO REFUND. THERE IS NO ESCAPE.
