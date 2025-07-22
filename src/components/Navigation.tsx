@@ -82,7 +82,7 @@ export const Navigation = () => {
           }`}
           onClick={() => navigate('/')}
         >
-          Tropical fattys
+          💩 Tropical fattys
         </div>
         
         <div className="flex items-center space-x-2 md:space-x-4">
