@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { 
   User, 
@@ -102,7 +101,7 @@ export const DashboardSidebar = ({
         >
           <div className="p-4">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-white">💩 POOPEE Dashboard</h2>
+              <h2 className="text-lg font-bold text-white">Dashboard</h2>
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-white p-1"
@@ -143,7 +142,7 @@ export const DashboardSidebar = ({
   return (
     <aside className="w-64 bg-gray-900/50 backdrop-blur-sm border-r border-gray-800 min-h-screen">
       <div className="p-6">
-        <h2 className="text-xl font-bold text-white mb-6">💩 POOPEE Dashboard</h2>
+        <h2 className="text-xl font-bold text-white mb-6">Dashboard</h2>
         <nav className="space-y-2">
           {menuItems.map((item) => {
             const IconComponent = item.icon;
