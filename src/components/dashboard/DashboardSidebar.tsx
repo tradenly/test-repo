@@ -1,4 +1,7 @@
+
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useState } from "react";
 import { 
   User, 
   Wallet, 
@@ -18,7 +21,10 @@ import {
   MessageSquare,
   Rocket,
   Zap,
-  Ghost
+  Ghost,
+  ChevronUp,
+  ChevronDown,
+  Bird
 } from "lucide-react";
 import { DashboardSection } from "@/pages/Dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -37,15 +43,19 @@ export const DashboardSidebar = ({
   onClose 
 }: DashboardSidebarProps) => {
   const isMobile = useIsMobile();
+  const [gamesExpanded, setGamesExpanded] = useState(false);
   
-  const menuItems = [
-    { id: "overview" as DashboardSection, label: "Overview", icon: LayoutDashboard },
-    { id: "profile" as DashboardSection, label: "Profile", icon: User },
-    { id: "flappy-hippos" as DashboardSection, label: "Flappy Hippos", icon: Gamepad2 },
+  const gameItems = [
+    { id: "flappy-hippos" as DashboardSection, label: "Flappy Hippos", icon: Bird },
     { id: "falling-logs" as DashboardSection, label: "Falling Logs", icon: TreePine },
     { id: "poopee-crush" as DashboardSection, label: "POOPEE Crush", icon: Zap },
     { id: "miss-poopee-man" as DashboardSection, label: "Miss POOPEE-Man", icon: Ghost },
     { id: "space-invaders" as DashboardSection, label: "Space Invaders", icon: Rocket },
+  ];
+
+  const mainMenuItems = [
+    { id: "overview" as DashboardSection, label: "Overview", icon: LayoutDashboard },
+    { id: "profile" as DashboardSection, label: "Profile", icon: User },
     { id: "leaderboard" as DashboardSection, label: "Leaderboard", icon: Trophy },
     { id: "documents" as DashboardSection, label: "Documents", icon: FileText },
     { id: "wallets" as DashboardSection, label: "Wallets", icon: Wallet },
@@ -81,6 +91,8 @@ export const DashboardSidebar = ({
     e.stopPropagation();
   };
 
+  const isGameActive = gameItems.some(item => item.id === activeSection);
+
   if (isMobile) {
     return (
       <>
@@ -111,7 +123,7 @@ export const DashboardSidebar = ({
             </div>
             
             <nav className="space-y-1">
-              {menuItems.map((item) => {
+              {mainMenuItems.map((item) => {
                 const IconComponent = item.icon;
                 
                 return (
@@ -131,6 +143,53 @@ export const DashboardSidebar = ({
                   </button>
                 );
               })}
+              
+              {/* Games Collapsible Section */}
+              <Collapsible open={gamesExpanded} onOpenChange={setGamesExpanded}>
+                <CollapsibleTrigger asChild>
+                  <button
+                    className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-left transition-colors text-sm ${
+                      isGameActive
+                        ? "bg-gray-700 text-white font-medium" 
+                        : "text-gray-300 hover:text-white hover:bg-gray-800"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                        <Gamepad2 className="h-4 w-4" />
+                      </div>
+                      <span className="truncate">Games</span>
+                    </div>
+                    {gamesExpanded ? (
+                      <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                    ) : (
+                      <ChevronUp className="h-4 w-4 flex-shrink-0" />
+                    )}
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-1 mt-1">
+                  {gameItems.map((item) => {
+                    const IconComponent = item.icon;
+                    
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleMenuClick(item.id)}
+                        className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg text-left transition-colors text-sm ${
+                          activeSection === item.id 
+                            ? "bg-gray-700 text-white font-medium" 
+                            : "text-gray-300 hover:text-white hover:bg-gray-800"
+                        }`}
+                      >
+                        <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                          <IconComponent className="h-4 w-4" />
+                        </div>
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
             </nav>
           </div>
         </div>
@@ -144,7 +203,7 @@ export const DashboardSidebar = ({
       <div className="p-6">
         <h2 className="text-xl font-bold text-white mb-6">Dashboard</h2>
         <nav className="space-y-2">
-          {menuItems.map((item) => {
+          {mainMenuItems.map((item) => {
             const IconComponent = item.icon;
             
             return (
@@ -165,6 +224,55 @@ export const DashboardSidebar = ({
               </Button>
             );
           })}
+          
+          {/* Games Collapsible Section */}
+          <Collapsible open={gamesExpanded} onOpenChange={setGamesExpanded}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant={isGameActive ? "secondary" : "ghost"}
+                className={`w-full justify-between text-left ${
+                  isGameActive
+                    ? "bg-gray-700 text-white" 
+                    : "text-gray-300 hover:text-white hover:bg-gray-800"
+                }`}
+              >
+                <div className="flex items-center">
+                  <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mr-3">
+                    <Gamepad2 className="h-5 w-5" />
+                  </div>
+                  Games
+                </div>
+                {gamesExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronUp className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 mt-2">
+              {gameItems.map((item) => {
+                const IconComponent = item.icon;
+                
+                return (
+                  <Button
+                    key={item.id}
+                    variant={activeSection === item.id ? "secondary" : "ghost"}
+                    className={`w-full justify-start text-left ml-4 ${
+                      activeSection === item.id 
+                        ? "bg-gray-700 text-white" 
+                        : "text-gray-300 hover:text-white hover:bg-gray-800"
+                    }`}
+                    onClick={() => onSectionChange(item.id)}
+                  >
+                    <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mr-3">
+                      <IconComponent className="h-5 w-5" />
+                    </div>
+                    {item.label}
+                  </Button>
+                );
+              })}
+            </CollapsibleContent>
+          </Collapsible>
         </nav>
       </div>
     </aside>
