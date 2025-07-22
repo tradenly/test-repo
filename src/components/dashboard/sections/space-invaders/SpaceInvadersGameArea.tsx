@@ -37,19 +37,24 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
     const deltaTime = currentTime - lastTimeRef.current;
     lastTimeRef.current = currentTime;
 
-    gameEngineRef.current.update(deltaTime);
-    gameEngineRef.current.render();
-    
-    const currentGameState = gameEngineRef.current.getGameState();
-    setGameState(currentGameState);
+    try {
+      gameEngineRef.current.update(deltaTime);
+      gameEngineRef.current.render();
+      
+      const currentGameState = gameEngineRef.current.getGameState();
+      setGameState(currentGameState);
 
-    // Check for game end conditions
-    if (currentGameState.gameStatus === 'gameOver' || currentGameState.gameStatus === 'victory') {
-      handleGameEnd(currentGameState);
-      return;
+      // Check for game end conditions
+      if (currentGameState.gameStatus === 'gameOver' || currentGameState.gameStatus === 'victory') {
+        handleGameEnd(currentGameState);
+        return;
+      }
+
+      animationFrameRef.current = requestAnimationFrame(gameLoop);
+    } catch (error) {
+      console.error('Game loop error:', error);
+      setIsGameRunning(false);
     }
-
-    animationFrameRef.current = requestAnimationFrame(gameLoop);
   }, [isGameRunning]);
 
   const handleGameEnd = useCallback(async (finalGameState: GameState) => {
@@ -73,17 +78,29 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
   }, [endGame, onGameComplete]);
 
   const handleStartGame = useCallback(async () => {
-    if (!canvasRef.current || !canPlay) return;
+    if (!canvasRef.current || !canPlay) {
+      console.error('Cannot start game: canvas or permissions not available');
+      return;
+    }
 
     try {
+      console.log('Starting Space Invaders game...');
       await startGame();
       
-      // Initialize game engine
+      // Clean up previous game engine
       if (gameEngineRef.current) {
         gameEngineRef.current.destroy();
       }
       
+      // Initialize new game engine
+      console.log('Initializing game engine...');
       gameEngineRef.current = new SpaceInvadersEngine(canvasRef.current);
+      
+      // Get initial game state
+      const initialState = gameEngineRef.current.getGameState();
+      setGameState(initialState);
+      
+      console.log('Game engine initialized, starting game loop...');
       setIsGameRunning(true);
       lastTimeRef.current = performance.now();
       animationFrameRef.current = requestAnimationFrame(gameLoop);
@@ -120,6 +137,31 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
     setIsGameRunning(false);
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
+    }
+  }, []);
+
+  // Initialize canvas on mount
+  useEffect(() => {
+    if (canvasRef.current) {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Set canvas size
+        canvas.width = 800;
+        canvas.height = 600;
+        
+        // Draw initial background
+        ctx.fillStyle = '#000022';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw "Click Start to Play" message
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Click Start Game to Begin!', canvas.width / 2, canvas.height / 2);
+        ctx.font = '16px Arial';
+        ctx.fillText('Use arrow keys to move, Space/W to shoot', canvas.width / 2, canvas.height / 2 + 40);
+      }
     }
   }, []);
 

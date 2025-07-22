@@ -54,12 +54,26 @@ export class SpaceInvadersEngine {
   private lastPlayerFireTime = 0;
   private readonly PLAYER_FIRE_COOLDOWN = 200;
   private readonly ALIEN_FIRE_COOLDOWN = 1000;
+  private keyDownHandler: (e: KeyboardEvent) => void;
+  private keyUpHandler: (e: KeyboardEvent) => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d')!;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Could not get canvas context');
+    }
+    this.ctx = context;
+    
+    // Ensure canvas has proper dimensions
+    this.canvas.width = 800;
+    this.canvas.height = 600;
+    
     this.gameState = this.initializeGame();
     this.setupEventListeners();
+    
+    // Initial render to show the game immediately
+    this.render();
   }
 
   private initializeGame(): GameState {
@@ -119,13 +133,19 @@ export class SpaceInvadersEngine {
   }
 
   private setupEventListeners(): void {
-    window.addEventListener('keydown', (e) => {
+    this.keyDownHandler = (e: KeyboardEvent) => {
       this.keys.add(e.code);
-    });
+      e.preventDefault(); // Prevent default browser behavior
+    };
 
-    window.addEventListener('keyup', (e) => {
+    this.keyUpHandler = (e: KeyboardEvent) => {
       this.keys.delete(e.code);
-    });
+      e.preventDefault();
+    };
+
+    // Attach event listeners to window to ensure they work
+    window.addEventListener('keydown', this.keyDownHandler);
+    window.addEventListener('keyup', this.keyUpHandler);
   }
 
   public update(deltaTime: number): void {
@@ -160,7 +180,8 @@ export class SpaceInvadersEngine {
     let shouldDropDown = false;
 
     // Move aliens horizontally
-    for (const alien of aliens.filter(a => a.isAlive)) {
+    const aliveAliens = aliens.filter(a => a.isAlive);
+    for (const alien of aliveAliens) {
       alien.x += alienDirection * speed * deltaTime / 1000;
       
       // Check if any alien hits the edge
@@ -172,7 +193,7 @@ export class SpaceInvadersEngine {
     // Drop down and reverse direction if needed
     if (shouldDropDown) {
       this.gameState.alienDirection *= -1;
-      for (const alien of aliens.filter(a => a.isAlive)) {
+      for (const alien of aliveAliens) {
         alien.y += 20;
       }
     }
@@ -287,9 +308,12 @@ export class SpaceInvadersEngine {
   }
 
   public render(): void {
-    // Clear canvas
-    this.ctx.fillStyle = '#000011';
+    // Clear canvas with dark space background
+    this.ctx.fillStyle = '#000022';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Add stars background
+    this.renderStars();
 
     this.renderPlayer();
     this.renderAliens();
@@ -297,23 +321,54 @@ export class SpaceInvadersEngine {
     this.renderUI();
   }
 
+  private renderStars(): void {
+    // Simple star field background
+    this.ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 50; i++) {
+      const x = (i * 37) % this.canvas.width;
+      const y = (i * 73) % this.canvas.height;
+      this.ctx.fillRect(x, y, 1, 1);
+    }
+  }
+
   private renderPlayer(): void {
     const { player } = this.gameState;
     if (!player.isAlive) return;
 
+    // Player ship body
     this.ctx.fillStyle = '#00ff00';
     this.ctx.fillRect(player.x, player.y, player.width, player.height);
     
-    // Player gun
+    // Player ship details
     this.ctx.fillStyle = '#ffff00';
     this.ctx.fillRect(player.x + player.width / 2 - 3, player.y - 5, 6, 8);
+    
+    // Ship wings
+    this.ctx.fillStyle = '#00aa00';
+    this.ctx.fillRect(player.x - 5, player.y + 10, 10, 5);
+    this.ctx.fillRect(player.x + player.width - 5, player.y + 10, 10, 5);
   }
 
   private renderAliens(): void {
     for (const alien of this.gameState.aliens.filter(a => a.isAlive)) {
-      const colors = { basic: '#ff0000', medium: '#ff8800', boss: '#ff00ff' };
+      const colors = { 
+        basic: '#ff0000', 
+        medium: '#ff8800', 
+        boss: '#ff00ff' 
+      };
+      
+      // Alien body
       this.ctx.fillStyle = colors[alien.type];
       this.ctx.fillRect(alien.x, alien.y, alien.width, alien.height);
+      
+      // Alien details
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.fillRect(alien.x + 5, alien.y + 3, 4, 4);
+      this.ctx.fillRect(alien.x + alien.width - 9, alien.y + 3, 4, 4);
+      
+      // Alien antennae
+      this.ctx.fillRect(alien.x + 8, alien.y - 2, 2, 3);
+      this.ctx.fillRect(alien.x + alien.width - 10, alien.y - 2, 2, 3);
     }
   }
 
@@ -330,6 +385,9 @@ export class SpaceInvadersEngine {
     this.ctx.fillText(`Score: ${this.gameState.score}`, 10, 25);
     this.ctx.fillText(`Lives: ${this.gameState.player.lives}`, 10, 45);
     this.ctx.fillText(`Wave: ${this.gameState.wave}`, 10, 65);
+    
+    const aliveAliens = this.gameState.aliens.filter(a => a.isAlive).length;
+    this.ctx.fillText(`Aliens: ${aliveAliens}`, 10, 85);
   }
 
   public getGameState(): GameState {
@@ -338,6 +396,7 @@ export class SpaceInvadersEngine {
 
   public resetGame(): void {
     this.gameState = this.initializeGame();
+    this.render(); // Render immediately after reset
   }
 
   public pauseGame(): void {
@@ -349,7 +408,12 @@ export class SpaceInvadersEngine {
   }
 
   public destroy(): void {
-    window.removeEventListener('keydown', this.setupEventListeners);
-    window.removeEventListener('keyup', this.setupEventListeners);
+    // Remove event listeners properly
+    if (this.keyDownHandler) {
+      window.removeEventListener('keydown', this.keyDownHandler);
+    }
+    if (this.keyUpHandler) {
+      window.removeEventListener('keyup', this.keyUpHandler);
+    }
   }
 }
