@@ -3,11 +3,32 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Trophy, Zap } from "lucide-react";
-import { useGameSessions } from "@/hooks/useGameSessions";
+import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
 export const SpaceInvadersRecentGames = () => {
-  const { data: sessions, isLoading } = useGameSessions('space_invaders');
+  const { user } = useUnifiedAuth();
+
+  const { data: sessions, isLoading } = useQuery({
+    queryKey: ["game-sessions", user?.id, "space_invaders", "recent"],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from("game_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("game_type", "space_invaders")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
 
   if (isLoading) {
     return (

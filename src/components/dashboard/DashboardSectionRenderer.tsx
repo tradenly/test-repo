@@ -29,41 +29,41 @@ export const DashboardSectionRenderer = ({ activeSection, user, onSectionChange 
   const renderSection = () => {
     switch (activeSection) {
       case "overview":
-        return <DashboardOverview />;
+        return <DashboardOverview user={user} onSectionChange={onSectionChange} />;
       case "profile":
-        return <ProfileSection />;
+        return <ProfileSection user={user} />;
       case "flappy-hippos":
-        return <FlappyHipposSection />;
+        return <FlappyHipposSection user={user} />;
       case "falling-logs":
-        return <FallingLogsSection />;
+        return <FallingLogsSection user={user} />;
       case "poopee-crush":
-        return <PoopeeCrushSection />;
+        return <PoopeeCrushSection user={user} />;
       case "miss-poopee-man":
-        return <MissPoopeeManSection />;
+        return <MissPoopeeManSection user={user} />;
       case "space-invaders":
         return <SpaceInvadersSection />;
       case "leaderboard":
-        return <LeaderboardSection />;
+        return <LeaderboardSection user={user} />;
       case "documents":
-        return <DocumentsSection />;
+        return <DocumentsSection user={user} />;
       case "wallets":
-        return <WalletsSection />;
+        return <WalletsSection user={user} />;
       case "staking":
-        return <StakingSection />;
+        return <StakingSection user={user} />;
       case "social":
-        return <SocialSection />;
+        return <SocialSection user={user} />;
       case "portfolio":
-        return <PortfolioSection />;
+        return <PortfolioSection user={user} />;
       case "rewards":
-        return <RewardsSection />;
+        return <RewardsSection user={user} />;
       case "free-tools":
-        return <FreeToolsSection />;
+        return <FreeToolsSection user={user} />;
       case "news-updates":
-        return <NewsUpdatesSection />;
+        return <NewsUpdatesSection user={user} />;
       case "tokenomics":
-        return <TokenomicsSection />;
+        return <TokenomicsSection user={user} />;
       default:
-        return <DashboardOverview />;
+        return <DashboardOverview user={user} onSectionChange={onSectionChange} />;
     }
   };
 
