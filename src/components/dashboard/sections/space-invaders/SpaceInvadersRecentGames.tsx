@@ -8,6 +8,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
+// Helper function to safely access metadata properties
+const getMetadataValue = (metadata: any, key: string, defaultValue: any = 0) => {
+  if (!metadata || typeof metadata !== 'object') return defaultValue;
+  return metadata[key] ?? defaultValue;
+};
+
 export const SpaceInvadersRecentGames = () => {
   const { user } = useUnifiedAuth();
 
@@ -74,9 +80,9 @@ export const SpaceInvadersRecentGames = () => {
       <CardContent>
         <div className="space-y-3">
           {recentSessions.map((session) => {
-            const gameStatus = session.metadata?.gameStatus || 'completed';
-            const wave = session.metadata?.finalWave || session.metadata?.wave || 1;
-            const aliensDestroyed = session.metadata?.aliensDestroyed || 0;
+            const gameStatus = getMetadataValue(session.metadata, 'gameStatus', 'completed');
+            const wave = getMetadataValue(session.metadata, 'finalWave', getMetadataValue(session.metadata, 'wave', 1));
+            const aliensDestroyed = getMetadataValue(session.metadata, 'aliensDestroyed', 0);
             const netCredits = (session.credits_earned || 0) - (session.credits_spent || 0);
 
             return (

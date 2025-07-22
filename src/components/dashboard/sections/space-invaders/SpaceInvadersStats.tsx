@@ -7,6 +7,12 @@ import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+// Helper function to safely access metadata properties
+const getMetadataValue = (metadata: any, key: string, defaultValue: any = 0) => {
+  if (!metadata || typeof metadata !== 'object') return defaultValue;
+  return metadata[key] ?? defaultValue;
+};
+
 export const SpaceInvadersStats = () => {
   const { user } = useUnifiedAuth();
 
@@ -48,9 +54,15 @@ export const SpaceInvadersStats = () => {
     averageScore: completedSessions.length > 0 
       ? Math.round(completedSessions.reduce((sum, s) => sum + s.score, 0) / completedSessions.length)
       : 0,
-    highestWave: Math.max(0, ...completedSessions.map(s => s.metadata?.finalWave || s.metadata?.wave || 1)),
-    totalAliensDestroyed: completedSessions.reduce((sum, s) => sum + (s.metadata?.aliensDestroyed || 0), 0),
-    victories: completedSessions.filter(s => s.metadata?.gameStatus === 'victory').length
+    highestWave: Math.max(0, ...completedSessions.map(s => 
+      getMetadataValue(s.metadata, 'finalWave', getMetadataValue(s.metadata, 'wave', 1))
+    )),
+    totalAliensDestroyed: completedSessions.reduce((sum, s) => 
+      sum + getMetadataValue(s.metadata, 'aliensDestroyed', 0), 0
+    ),
+    victories: completedSessions.filter(s => 
+      getMetadataValue(s.metadata, 'gameStatus') === 'victory'
+    ).length
   };
 
   const netCredits = stats.totalCreditsEarned - stats.totalCreditsSpent;

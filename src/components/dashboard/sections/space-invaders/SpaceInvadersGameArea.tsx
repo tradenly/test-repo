@@ -145,7 +145,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
   }
 
   if (showBanner) {
-    return <GameDisabledBanner />;
+    return <GameDisabledBanner gameName="Space Invaders" />;
   }
 
   return (
