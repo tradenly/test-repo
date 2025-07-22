@@ -273,7 +273,7 @@ export const WalletVerificationForm = ({ user }: WalletVerificationFormProps) =>
                 className="border-gray-600"
               />
               <Label htmlFor="verify-memecoins" className="text-gray-300">
-                Verify POOPEE meme coins (1 credit per 500 coins)
+                Verify PPEE Meme Tokens (1 credit per 500 Tokens)
               </Label>
             </div>
           </div>
