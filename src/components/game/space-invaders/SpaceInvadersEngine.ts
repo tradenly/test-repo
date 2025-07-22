@@ -1,4 +1,3 @@
-
 export interface GameState {
   player: {
     x: number;
@@ -46,7 +45,6 @@ export class SpaceInvadersEngine {
   private lastTime = 0;
   private isRunning = false;
   private animationFrame?: number;
-  private rocketImage: HTMLImageElement | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -62,22 +60,7 @@ export class SpaceInvadersEngine {
     // Set up event listeners
     this.setupEventListeners();
     
-    // Load rocket image
-    this.loadRocketImage();
-    
     console.log('🛸 Space Invaders Engine initialized successfully');
-  }
-
-  private loadRocketImage(): void {
-    this.rocketImage = new Image();
-    this.rocketImage.onload = () => {
-      console.log('🚀 Rocket image loaded successfully');
-    };
-    this.rocketImage.onerror = () => {
-      console.error('❌ Failed to load rocket image');
-      this.rocketImage = null;
-    };
-    this.rocketImage.src = '/lovable-uploads/9ac5a433-4e51-400c-92a7-842594b088fe.png';
   }
 
   private createInitialState(): GameState {
@@ -170,7 +153,6 @@ export class SpaceInvadersEngine {
     }
   }
 
-  // Core game methods
   start(): void {
     if (this.isRunning) return;
     
@@ -231,7 +213,7 @@ export class SpaceInvadersEngine {
     const { player } = this.gameState;
     if (!player.isAlive) return;
 
-    const speed = 300; // pixels per second
+    const speed = 300;
     const moveDistance = speed * (deltaTime / 1000);
 
     if (this.keys['arrowleft'] || this.keys['a']) {
@@ -243,16 +225,14 @@ export class SpaceInvadersEngine {
   }
 
   private updateBullets(deltaTime: number): void {
-    const speed = 400; // pixels per second
+    const speed = 400;
     const moveDistance = speed * (deltaTime / 1000);
 
-    // Update player bullets
     this.gameState.playerBullets = this.gameState.playerBullets.filter(bullet => {
       bullet.y -= moveDistance;
       return bullet.y > -bullet.height;
     });
 
-    // Update alien bullets
     this.gameState.alienBullets = this.gameState.alienBullets.filter(bullet => {
       bullet.y += moveDistance;
       return bullet.y < this.canvas.height;
@@ -263,14 +243,12 @@ export class SpaceInvadersEngine {
     this.gameState.alienMoveTimer += deltaTime;
     this.gameState.alienShootTimer += deltaTime;
 
-    // Move aliens
-    if (this.gameState.alienMoveTimer > 500) { // Move every 500ms
+    if (this.gameState.alienMoveTimer > 500) {
       this.moveAliens();
       this.gameState.alienMoveTimer = 0;
     }
 
-    // Alien shooting
-    if (this.gameState.alienShootTimer > 1000) { // Shoot every 1000ms
+    if (this.gameState.alienShootTimer > 1000) {
       this.alienShoot();
       this.gameState.alienShootTimer = 0;
     }
@@ -281,7 +259,6 @@ export class SpaceInvadersEngine {
     const speed = 20;
     let shouldMoveDown = false;
 
-    // Check if any alien hits the edge
     for (const alien of aliens) {
       if (!alien.isAlive) continue;
       
@@ -293,7 +270,6 @@ export class SpaceInvadersEngine {
     }
 
     if (shouldMoveDown) {
-      // Move all aliens down and reverse direction
       for (const alien of aliens) {
         if (alien.isAlive) {
           alien.y += 20;
@@ -301,7 +277,6 @@ export class SpaceInvadersEngine {
       }
       this.gameState.alienDirection *= -1;
     } else {
-      // Move aliens horizontally
       for (const alien of aliens) {
         if (alien.isAlive) {
           alien.x += speed * alienDirection;
@@ -327,7 +302,7 @@ export class SpaceInvadersEngine {
 
   private shoot(): void {
     const { player, playerBullets } = this.gameState;
-    if (!player.isAlive || playerBullets.length >= 3) return; // Limit bullets
+    if (!player.isAlive || playerBullets.length >= 3) return;
 
     playerBullets.push({
       x: player.x + player.width / 2,
@@ -396,12 +371,10 @@ export class SpaceInvadersEngine {
 
     const aliveAliens = aliens.filter(alien => alien.isAlive);
     if (aliveAliens.length === 0) {
-      // Next wave
       this.gameState.wave++;
       this.gameState.aliens = this.createInitialState().aliens;
     }
 
-    // Check if aliens reached the bottom
     for (const alien of aliveAliens) {
       if (alien.y + alien.height >= player.y) {
         this.gameState.gameStatus = 'gameOver';
@@ -412,7 +385,6 @@ export class SpaceInvadersEngine {
   }
 
   private render(): void {
-    // Clear canvas
     this.ctx.fillStyle = '#000011';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -429,20 +401,10 @@ export class SpaceInvadersEngine {
     const { player } = this.gameState;
     if (!player.isAlive) return;
 
-    // Use rocket image if loaded, otherwise fallback to rectangle
-    if (this.rocketImage && this.rocketImage.complete && this.rocketImage.naturalWidth > 0) {
-      this.ctx.drawImage(
-        this.rocketImage,
-        player.x,
-        player.y,
-        player.width,
-        player.height
-      );
-    } else {
-      // Fallback to colored rectangle
-      this.ctx.fillStyle = '#00ff00';
-      this.ctx.fillRect(player.x, player.y, player.width, player.height);
-    }
+    // Use upward-facing rocket emoji
+    this.ctx.font = '30px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText('🚀', player.x + player.width / 2, player.y + player.height);
   }
 
   private renderAliens(): void {
@@ -466,13 +428,11 @@ export class SpaceInvadersEngine {
   private renderBullets(): void {
     const { playerBullets, alienBullets } = this.gameState;
 
-    // Player bullets (green)
     this.ctx.fillStyle = '#00ff00';
     for (const bullet of playerBullets) {
       this.ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     }
 
-    // Alien bullets (red)
     this.ctx.fillStyle = '#ff0000';
     for (const bullet of alienBullets) {
       this.ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
