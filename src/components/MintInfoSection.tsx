@@ -64,7 +64,7 @@ export const MintInfoSection = () => {
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
             <div className="mb-2">
               <img 
-                src="/lovable-uploads/c0b71020-c9b3-45d6-ab9e-6039d6dd8bb4.png" 
+                src="/lovable-uploads/edd10e7d-afa4-408d-9aaf-dca2c14ed667.png" 
                 alt="Hippo with sunglasses" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
@@ -76,7 +76,7 @@ export const MintInfoSection = () => {
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
             <div className="mb-2">
               <img 
-                src="/lovable-uploads/623aca37-1cc9-4d34-9467-be60a163841a.png" 
+                src="/lovable-uploads/aa3fd7bd-0166-4a43-8ed8-87dca2caacbf.png" 
                 alt="Cool hippo character" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
@@ -88,7 +88,7 @@ export const MintInfoSection = () => {
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
             <div className="mb-2">
               <img 
-                src="/lovable-uploads/b896f4cd-250a-4f3c-b051-0128831d13f0.png" 
+                src="/lovable-uploads/3c169d5a-bf8a-4792-8dee-1b753b85cc39.png" 
                 alt="Happy hippo with gold chain" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
@@ -100,7 +100,7 @@ export const MintInfoSection = () => {
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
             <div className="mb-2">
               <img 
-                src="/lovable-uploads/a17135f5-f44e-47e3-b35e-98de0b61ee4a.png" 
+                src="/lovable-uploads/56303339-9d85-4af3-865e-8f0a80fda0c9.png" 
                 alt="Blue hippo with chain" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
@@ -112,7 +112,7 @@ export const MintInfoSection = () => {
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
             <div className="mb-2">
               <img 
-                src="/lovable-uploads/83e7733d-c474-4f7a-b360-e8287b5e0bb5.png" 
+                src="/lovable-uploads/6dde568d-a13d-46ef-944c-5959fae3fe53.png" 
                 alt="Purple hippo with sunglasses" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
@@ -124,7 +124,7 @@ export const MintInfoSection = () => {
           <div className="bg-gray-700/60 rounded-lg p-6 text-center border border-gray-600">
             <div className="mb-2">
               <img 
-                src="/lovable-uploads/fa61c441-9bb0-472b-852c-909b43d82890.png" 
+                src="/lovable-uploads/2ff5720f-be7a-4ea8-a088-74c4321ad5aa.png" 
                 alt="Stylish hippo character" 
                 className="w-16 h-16 mx-auto rounded-lg"
               />
