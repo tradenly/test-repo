@@ -302,7 +302,7 @@ export const GameManagement = () => {
                             <Info className="h-3 w-3 text-gray-400 cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p><strong>When:</strong> High accuracy (>80%)</p>
+                            <p><strong>When:</strong> High accuracy (&gt;80%)</p>
                             <p><strong>Formula:</strong> (score ÷ 100) × bonus multiplier</p>
                             <p><strong>Safe range:</strong> 0.01-0.05</p>
                             <p><strong>Purpose:</strong> Reward skilled players</p>
