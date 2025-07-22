@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { 
   User, 
@@ -16,7 +17,9 @@ import {
   Newspaper,
   PieChart,
   MessageSquare,
-  Rocket
+  Rocket,
+  Zap,
+  Ghost
 } from "lucide-react";
 import { DashboardSection } from "@/pages/Dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -37,24 +40,24 @@ export const DashboardSidebar = ({
   const isMobile = useIsMobile();
   
   const menuItems = [
-    { id: "overview" as DashboardSection, label: "Overview", icon: LayoutDashboard, isIconComponent: true },
-    { id: "profile" as DashboardSection, label: "Profile", icon: User, isIconComponent: true },
-    { id: "flappy-hippos" as DashboardSection, label: "Flappy Hippos", icon: Gamepad2, isIconComponent: true },
-    { id: "falling-logs" as DashboardSection, label: "Falling Logs", icon: TreePine, isIconComponent: true },
-    { id: "poopee-crush" as DashboardSection, label: "POOPEE Crush", icon: "💩", isIconComponent: false },
-    { id: "miss-poopee-man" as DashboardSection, label: "Miss POOPEE-Man", icon: "👻", isIconComponent: false },
-    { id: "space-invaders" as DashboardSection, label: "Space Invaders", icon: Rocket, isIconComponent: true },
-    { id: "leaderboard" as DashboardSection, label: "Leaderboard", icon: Trophy, isIconComponent: true },
-    { id: "documents" as DashboardSection, label: "Documents", icon: FileText, isIconComponent: true },
-    { id: "wallets" as DashboardSection, label: "Wallets", icon: Wallet, isIconComponent: true },
-    { id: "staking" as DashboardSection, label: "Staking", icon: PiggyBank, isIconComponent: true },
-    { id: "tokenomics" as DashboardSection, label: "Tokenomics", icon: PieChart, isIconComponent: true },
-    { id: "social" as DashboardSection, label: "Social", icon: Users, isIconComponent: true },
-    { id: "portfolio" as DashboardSection, label: "Portfolio", icon: TrendingUp, isIconComponent: true },
-    { id: "rewards" as DashboardSection, label: "Rewards", icon: Gift, isIconComponent: true },
-    { id: "free-tools" as DashboardSection, label: "Free Tools", icon: Wrench, isIconComponent: true },
-    { id: "news-updates" as DashboardSection, label: "News & Updates", icon: Newspaper, isIconComponent: true },
-    { id: "contact" as DashboardSection, label: "Contact Us", icon: MessageSquare, isIconComponent: true },
+    { id: "overview" as DashboardSection, label: "Overview", icon: LayoutDashboard },
+    { id: "profile" as DashboardSection, label: "Profile", icon: User },
+    { id: "flappy-hippos" as DashboardSection, label: "Flappy Hippos", icon: Gamepad2 },
+    { id: "falling-logs" as DashboardSection, label: "Falling Logs", icon: TreePine },
+    { id: "poopee-crush" as DashboardSection, label: "POOPEE Crush", icon: Zap },
+    { id: "miss-poopee-man" as DashboardSection, label: "Miss POOPEE-Man", icon: Ghost },
+    { id: "space-invaders" as DashboardSection, label: "Space Invaders", icon: Rocket },
+    { id: "leaderboard" as DashboardSection, label: "Leaderboard", icon: Trophy },
+    { id: "documents" as DashboardSection, label: "Documents", icon: FileText },
+    { id: "wallets" as DashboardSection, label: "Wallets", icon: Wallet },
+    { id: "staking" as DashboardSection, label: "Staking", icon: PiggyBank },
+    { id: "tokenomics" as DashboardSection, label: "Tokenomics", icon: PieChart },
+    { id: "social" as DashboardSection, label: "Social", icon: Users },
+    { id: "portfolio" as DashboardSection, label: "Portfolio", icon: TrendingUp },
+    { id: "rewards" as DashboardSection, label: "Rewards", icon: Gift },
+    { id: "free-tools" as DashboardSection, label: "Free Tools", icon: Wrench },
+    { id: "news-updates" as DashboardSection, label: "News & Updates", icon: Newspaper },
+    { id: "contact" as DashboardSection, label: "Contact Us", icon: MessageSquare },
   ];
 
   const handleMenuClick = (sectionId: DashboardSection) => {
@@ -90,7 +93,7 @@ export const DashboardSidebar = ({
           />
         )}
         
-        {/* Mobile Menu - Reduced width for better UX */}
+        {/* Mobile Menu */}
         <div 
           className={`fixed left-0 top-0 h-full w-64 max-w-[75vw] bg-gray-900 z-50 transform transition-transform duration-300 ${
             isOpen ? 'translate-x-0' : '-translate-x-full'
@@ -110,7 +113,7 @@ export const DashboardSidebar = ({
             
             <nav className="space-y-1">
               {menuItems.map((item) => {
-                const IconComponent = item.isIconComponent ? item.icon : null;
+                const IconComponent = item.icon;
                 
                 return (
                   <button
@@ -122,11 +125,9 @@ export const DashboardSidebar = ({
                         : "text-gray-300 hover:text-white hover:bg-gray-800"
                     }`}
                   >
-                    {item.isIconComponent && IconComponent ? (
-                      <IconComponent className="h-4 w-4 flex-shrink-0" />
-                    ) : (
-                      <span className="text-base flex-shrink-0">{item.icon as string}</span>
-                    )}
+                    <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                      <IconComponent className="h-4 w-4" />
+                    </div>
                     <span className="truncate">{item.label}</span>
                   </button>
                 );
@@ -145,7 +146,7 @@ export const DashboardSidebar = ({
         <h2 className="text-xl font-bold text-white mb-6">💩 POOPEE Dashboard</h2>
         <nav className="space-y-2">
           {menuItems.map((item) => {
-            const IconComponent = item.isIconComponent ? item.icon : null;
+            const IconComponent = item.icon;
             
             return (
               <Button
@@ -158,11 +159,9 @@ export const DashboardSidebar = ({
                 }`}
                 onClick={() => onSectionChange(item.id)}
               >
-                {item.isIconComponent && IconComponent ? (
-                  <IconComponent className="mr-3 h-4 w-4" />
-                ) : (
-                  <span className="mr-3 text-lg">{item.icon as string}</span>
-                )}
+                <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mr-3">
+                  <IconComponent className="h-5 w-5" />
+                </div>
                 {item.label}
               </Button>
             );
