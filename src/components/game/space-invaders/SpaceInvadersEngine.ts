@@ -393,14 +393,10 @@ export class SpaceInvadersEngine {
     const { player } = this.gameState;
     if (!player.isAlive) return;
 
-    // Use a straight up rocket - save context for rotation
-    this.ctx.save();
-    this.ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
-    this.ctx.rotate(-Math.PI / 4); // Rotate to make rocket face straight up
+    // Use rocket emoji facing straight up - no rotation needed
     this.ctx.font = '30px Arial';
     this.ctx.textAlign = 'center';
-    this.ctx.fillText('🚀', 0, 0);
-    this.ctx.restore();
+    this.ctx.fillText('🚀', player.x + player.width / 2, player.y + player.height);
   }
 
   private renderAliens(): void {
