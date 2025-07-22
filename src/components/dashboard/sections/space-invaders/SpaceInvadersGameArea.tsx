@@ -20,7 +20,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
   const gameEngineRef = useRef<SpaceInvadersEngine | null>(null);
   
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [isGameRunning, setIsGameRunning] = useState(false);
+  const [isGameActive, setIsGameActive] = useState(false); // Tracks if game engine is running
   const [selectedSpeed, setSelectedSpeed] = useState<SpeedLevel>('intermediate');
   
   const { gameSettings, canPlay, showBanner, isLoading } = useGamePermissions('space_invaders');
@@ -34,7 +34,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
 
   // Game state polling to update UI
   useEffect(() => {
-    if (!gameEngineRef.current || !isGameRunning) return;
+    if (!gameEngineRef.current || !isGameActive) return;
 
     const interval = setInterval(() => {
       if (gameEngineRef.current) {
@@ -49,11 +49,11 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
     }, 100); // Poll every 100ms
 
     return () => clearInterval(interval);
-  }, [isGameRunning]);
+  }, [isGameActive]);
 
   const handleGameEnd = useCallback(async (finalGameState: GameState) => {
     console.log("🏁 Game ended with status:", finalGameState.gameStatus);
-    setIsGameRunning(false);
+    setIsGameActive(false);
     
     const gameStats = {
       score: finalGameState.score,
@@ -99,35 +99,33 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
       setGameState(initialState);
       
       console.log('✅ Game started successfully');
-      setIsGameRunning(true);
+      setIsGameActive(true);
       
     } catch (error) {
       console.error('❌ Error starting game:', error);
     }
-  }, [canPlay, startGame]);
+  }, [canPlay, startGame, selectedSpeed]);
 
   const handlePauseGame = useCallback(() => {
-    if (gameEngineRef.current && isGameRunning) {
+    if (gameEngineRef.current && gameState?.gameStatus === 'playing') {
       gameEngineRef.current.pauseGame();
-      setIsGameRunning(false);
       console.log("⏸️ Game paused");
     }
-  }, [isGameRunning]);
+  }, [gameState?.gameStatus]);
 
   const handleResumeGame = useCallback(() => {
-    if (gameEngineRef.current && !isGameRunning) {
+    if (gameEngineRef.current && gameState?.gameStatus === 'paused') {
       gameEngineRef.current.resumeGame();
-      setIsGameRunning(true);
       console.log("▶️ Game resumed");
     }
-  }, [isGameRunning]);
+  }, [gameState?.gameStatus]);
 
   const handleResetGame = useCallback(() => {
     if (gameEngineRef.current) {
       gameEngineRef.current.resetGame();
       setGameState(gameEngineRef.current.getGameState());
     }
-    setIsGameRunning(false);
+    setIsGameActive(false);
     console.log("🔄 Game reset");
   }, []);
 
@@ -184,6 +182,10 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
     return <GameDisabledBanner gameName="Space Invaders" />;
   }
 
+  const isGameRunning = gameState?.gameStatus === 'playing';
+  const isGamePaused = gameState?.gameStatus === 'paused';
+  const canStartNewGame = !isGameActive || gameState?.gameStatus === 'gameOver' || gameState?.gameStatus === 'victory';
+
   return (
     <div className="space-y-4">
       <Card className="bg-gray-800/50 border-gray-700">
@@ -195,7 +197,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
                 🛸 Space Invaders
                 {gameState && (
                   <Badge variant={isGameRunning ? "default" : "secondary"}>
-                    {isGameRunning ? "Playing" : gameState.gameStatus}
+                    {gameState.gameStatus}
                   </Badge>
                 )}
               </CardTitle>
@@ -244,7 +246,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Game Canvas - reduced height */}
+          {/* Game Canvas */}
           <div className="flex justify-center">
             <canvas
               ref={canvasRef}
@@ -256,7 +258,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
           </div>
 
           {/* Speed Selector - only show when not playing */}
-          {!isGameRunning && (!gameState || gameState.gameStatus === 'gameOver' || gameState.gameStatus === 'victory') && (
+          {canStartNewGame && (
             <div className="flex justify-center mb-4">
               <SpaceInvadersSpeedSelector
                 speed={selectedSpeed}
@@ -268,7 +270,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
 
           {/* Game Controls */}
           <div className="flex flex-wrap gap-2 justify-center">
-            {!isGameRunning && (!gameState || gameState.gameStatus === 'gameOver' || gameState.gameStatus === 'victory') ? (
+            {canStartNewGame ? (
               <Button
                 onClick={handleStartGame}
                 disabled={isStarting || !canPlay}
@@ -284,7 +286,7 @@ export const SpaceInvadersGameArea = ({ onGameComplete }: SpaceInvadersGameAreaP
                     <Pause className="h-4 w-4 mr-1" />
                     Pause
                   </Button>
-                ) : gameState?.gameStatus === 'paused' ? (
+                ) : isGamePaused ? (
                   <Button onClick={handleResumeGame} className="bg-green-600 hover:bg-green-700">
                     <Play className="h-4 w-4 mr-1" />
                     Resume

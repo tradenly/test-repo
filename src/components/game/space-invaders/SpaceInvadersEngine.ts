@@ -76,11 +76,11 @@ export class SpaceInvadersEngine {
   private createInitialState(): GameState {
     const aliens = [];
     const rows = 5;
-    const cols = 13; // Increased from 10 to 13 columns
-    const alienWidth = 32; // Slightly increased width
-    const alienHeight = 24; // Slightly increased height
-    const spacing = 10;
-    const startX = 50;
+    const cols = 13;
+    const alienWidth = 40; // Increased from 32
+    const alienHeight = 30; // Increased from 24
+    const spacing = 8; // Reduced spacing to fit more aliens
+    const startX = 30; // Adjusted start position
     const startY = 50;
 
     for (let row = 0; row < rows; row++) {
@@ -178,14 +178,18 @@ export class SpaceInvadersEngine {
   }
 
   pause(): void {
-    this.gameState.gameStatus = 'paused';
-    console.log('⏸️ Game paused');
+    if (this.gameState.gameStatus === 'playing') {
+      this.gameState.gameStatus = 'paused';
+      console.log('⏸️ Game paused');
+    }
   }
 
   resume(): void {
-    this.gameState.gameStatus = 'playing';
-    this.lastTime = performance.now();
-    console.log('▶️ Game resumed');
+    if (this.gameState.gameStatus === 'paused') {
+      this.gameState.gameStatus = 'playing';
+      this.lastTime = performance.now();
+      console.log('▶️ Game resumed');
+    }
   }
 
   stop(): void {
@@ -424,12 +428,17 @@ export class SpaceInvadersEngine {
     const topY = player.y;
     const bottomY = player.y + player.height;
     
-    // Draw rocket ship outline
+    // Draw rocket ship outline - improved design
     this.ctx.moveTo(centerX, topY); // Top point
-    this.ctx.lineTo(centerX - 15, bottomY); // Bottom left
-    this.ctx.lineTo(centerX - 5, bottomY - 8); // Inner left
-    this.ctx.lineTo(centerX + 5, bottomY - 8); // Inner right  
-    this.ctx.lineTo(centerX + 15, bottomY); // Bottom right
+    this.ctx.lineTo(centerX - 12, bottomY - 15); // Left body
+    this.ctx.lineTo(centerX - 8, bottomY - 15); // Left inner
+    this.ctx.lineTo(centerX - 15, bottomY); // Left thruster
+    this.ctx.lineTo(centerX - 5, bottomY - 5); // Left inner thruster
+    this.ctx.lineTo(centerX, bottomY - 8); // Center
+    this.ctx.lineTo(centerX + 5, bottomY - 5); // Right inner thruster
+    this.ctx.lineTo(centerX + 15, bottomY); // Right thruster
+    this.ctx.lineTo(centerX + 8, bottomY - 15); // Right inner
+    this.ctx.lineTo(centerX + 12, bottomY - 15); // Right body
     this.ctx.closePath();
     
     this.ctx.stroke();
@@ -439,7 +448,9 @@ export class SpaceInvadersEngine {
     const { aliens } = this.gameState;
     const alienEmojis = ['👻', '💩', '👾'];
 
-    this.ctx.font = '24px Arial'; // Increased from 20px to 24px
+    // CRITICAL FIX: Set fillStyle before rendering
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = '32px Arial'; // Increased from 24px to make aliens bigger
     this.ctx.textAlign = 'center';
 
     for (const alien of aliens) {
