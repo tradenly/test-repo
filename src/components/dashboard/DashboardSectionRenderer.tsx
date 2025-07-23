@@ -8,6 +8,7 @@ import { FallingLogsSection } from "./sections/FallingLogsSection";
 import { PoopeeCrushSection } from "./sections/PoopeeCrushSection";
 import { MissPoopeeManSection } from "./sections/MissPoopeeManSection";
 import { SpaceInvadersSection } from "./sections/SpaceInvadersSection";
+import { HippoKongSection } from "./sections/HippoKongSection";
 import { LeaderboardSection } from "./sections/LeaderboardSection";
 import { DocumentsSection } from "./sections/DocumentsSection";
 import { WalletsSection } from "./sections/WalletsSection";
@@ -42,6 +43,8 @@ export const DashboardSectionRenderer = ({ activeSection, user, onSectionChange 
         return <MissPoopeeManSection user={user} />;
       case "space-invaders":
         return <SpaceInvadersSection />;
+      case "hippo-kong":
+        return <HippoKongSection user={user} />;
       case "leaderboard":
         return <LeaderboardSection user={user} />;
       case "documents":
