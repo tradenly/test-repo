@@ -129,7 +129,7 @@ export const HippoKongGameArea = ({ user, canPlay, gameSettings }: HippoKongGame
   };
 
   const startGame = async () => {
-    if (!canPlay) {
+    if (!canPlay || !user?.id) {
       toast.error("This game is currently disabled");
       return;
     }

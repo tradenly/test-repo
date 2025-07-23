@@ -113,19 +113,23 @@ export class HippoKongEngine {
 
   private bindEvents() {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent default behavior for arrow keys and WASD to stop page scrolling
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
+        e.preventDefault();
+      }
       this.keys[e.key] = true;
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      // Prevent default behavior for arrow keys and WASD
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
+        e.preventDefault();
+      }
       this.keys[e.key] = false;
     };
 
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
-
-    // Store references for cleanup
-    this.canvas.addEventListener('keydown', handleKeyDown);
-    this.canvas.addEventListener('keyup', handleKeyUp);
   }
 
   start() {
@@ -300,25 +304,25 @@ export class HippoKongEngine {
           barrel.y = platform.y - barrel.height;
           barrel.velocityY = 0;
           hitPlatform = true;
+          
+          // Bounce off platform edges or fall through gaps
+          if (barrel.x <= platform.x + 10) {
+            barrel.velocityX = Math.abs(barrel.velocityX); // Bounce right
+          } else if (barrel.x + barrel.width >= platform.x + platform.width - 10) {
+            barrel.velocityX = -Math.abs(barrel.velocityX); // Bounce left
+          }
           break;
         }
       }
       
-      // Bounce off platform edges
-      if (hitPlatform) {
-        const platform = this.platforms.find(p => 
-          barrel.y + barrel.height >= p.y && barrel.y + barrel.height <= p.y + p.height
-        );
-        
-        if (platform) {
-          if (barrel.x <= platform.x || barrel.x + barrel.width >= platform.x + platform.width) {
-            barrel.velocityX *= -1;
-          }
-        }
+      // If barrel didn't hit a platform, let it fall to the next level
+      if (!hitPlatform && barrel.y > this.canvas.height) {
+        this.barrels.splice(i, 1);
+        continue;
       }
       
-      // Remove barrels that fall off screen
-      if (barrel.y > this.canvas.height + 100) {
+      // Remove barrels that go off screen horizontally
+      if (barrel.x < -50 || barrel.x > this.canvas.width + 50) {
         this.barrels.splice(i, 1);
       }
     }
