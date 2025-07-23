@@ -293,36 +293,51 @@ export class HippoKongEngine {
       barrel.y += barrel.velocityY * (deltaTime / 1000);
       
       // Check platform collisions for barrels
-      let hitPlatform = false;
+      let onPlatform = false;
       for (const platform of this.platforms) {
+        // Check if barrel is falling onto this platform
         if (barrel.x + barrel.width > platform.x &&
             barrel.x < platform.x + platform.width &&
             barrel.y + barrel.height > platform.y &&
             barrel.y < platform.y + platform.height &&
             barrel.velocityY > 0) {
           
+          // Land on platform
           barrel.y = platform.y - barrel.height;
           barrel.velocityY = 0;
-          hitPlatform = true;
-          
-          // Bounce off platform edges or fall through gaps
-          if (barrel.x <= platform.x + 10) {
-            barrel.velocityX = Math.abs(barrel.velocityX); // Bounce right
-          } else if (barrel.x + barrel.width >= platform.x + platform.width - 10) {
-            barrel.velocityX = -Math.abs(barrel.velocityX); // Bounce left
-          }
+          onPlatform = true;
           break;
         }
       }
       
-      // If barrel didn't hit a platform, let it fall to the next level
-      if (!hitPlatform && barrel.y > this.canvas.height) {
-        this.barrels.splice(i, 1);
-        continue;
+      // If barrel is on a platform, check if it should fall off the edges
+      if (onPlatform) {
+        // Find which platform the barrel is on
+        const currentPlatform = this.platforms.find(platform => 
+          Math.abs(barrel.y + barrel.height - platform.y) < 5
+        );
+        
+        if (currentPlatform) {
+          // Check if barrel is past the platform edges - let it fall off!
+          if (barrel.x + barrel.width < currentPlatform.x + 10 || 
+              barrel.x > currentPlatform.x + currentPlatform.width - 10) {
+            // Barrel is off the edge - start falling again
+            barrel.velocityY = 50; // Small initial downward velocity
+          } else {
+            // Barrel is on platform - bounce off edges if hitting them
+            if (barrel.x < currentPlatform.x + 10) {
+              barrel.x = currentPlatform.x + 10;
+              barrel.velocityX = Math.abs(barrel.velocityX);
+            } else if (barrel.x + barrel.width > currentPlatform.x + currentPlatform.width - 10) {
+              barrel.x = currentPlatform.x + currentPlatform.width - 10 - barrel.width;
+              barrel.velocityX = -Math.abs(barrel.velocityX);
+            }
+          }
+        }
       }
       
-      // Remove barrels that go off screen horizontally
-      if (barrel.x < -50 || barrel.x > this.canvas.width + 50) {
+      // Remove barrels that fall off screen
+      if (barrel.y > this.canvas.height + 100 || barrel.x < -100 || barrel.x > this.canvas.width + 100) {
         this.barrels.splice(i, 1);
       }
     }
