@@ -16,7 +16,10 @@ export interface HippoKongBarrel {
   height: number;
   velocityX: number;
   velocityY: number;
-  onLadder: boolean;
+  state: 'rolling' | 'falling' | 'seeking_ladder' | 'on_ladder';
+  platformIndex: number; // Track which platform level the barrel is on
+  rollTimer: number; // Time spent rolling on current platform
+  rollDirection: number; // 1 for right, -1 for left
 }
 
 export interface HippoKongPlatform {
@@ -274,9 +277,12 @@ export class HippoKongEngine {
         y: 80,
         width: 30,
         height: 30,
-        velocityX: (Math.random() > 0.5 ? 1 : -1) * (50 + Math.random() * 100),
+        velocityX: 0,
         velocityY: 0,
-        onLadder: false
+        state: 'rolling',
+        platformIndex: 4, // Top platform index
+        rollTimer: 0,
+        rollDirection: Math.random() > 0.5 ? 1 : -1
       });
     }
   }
@@ -285,73 +291,154 @@ export class HippoKongEngine {
     for (let i = this.barrels.length - 1; i >= 0; i--) {
       const barrel = this.barrels[i];
       
-      // Apply gravity
-      barrel.velocityY += 600 * (deltaTime / 1000);
+      // Update barrel based on its state
+      this.updateBarrelState(barrel, deltaTime);
+      
+      // Apply physics based on state
+      if (barrel.state === 'falling' || barrel.state === 'seeking_ladder') {
+        barrel.velocityY += 600 * (deltaTime / 1000); // Apply gravity
+      } else if (barrel.state === 'rolling') {
+        barrel.velocityY = 0; // No vertical movement when rolling
+        barrel.velocityX = barrel.rollDirection * 80; // Consistent rolling speed
+      } else if (barrel.state === 'on_ladder') {
+        barrel.velocityY = 150; // Move down ladder
+        barrel.velocityX = 0; // No horizontal movement on ladder
+      }
       
       // Update position
       barrel.x += barrel.velocityX * (deltaTime / 1000);
       barrel.y += barrel.velocityY * (deltaTime / 1000);
       
-      // Check platform collisions for barrels
-      let onPlatform = false;
-      for (const platform of this.platforms) {
-        // Check if barrel is falling onto this platform
-        if (barrel.x + barrel.width > platform.x &&
-            barrel.x < platform.x + platform.width &&
-            barrel.y + barrel.height > platform.y &&
-            barrel.y < platform.y + platform.height &&
-            barrel.velocityY > 0) {
-          
-          // Land on platform
-          barrel.y = platform.y - barrel.height;
-          barrel.velocityY = 0;
-          onPlatform = true;
-          break;
-        }
-      }
-      
-      // If barrel is on a platform, check if it should fall off the edges
-      if (onPlatform) {
-        // Find which platform the barrel is on
-        const currentPlatform = this.platforms.find(platform => 
-          Math.abs(barrel.y + barrel.height - platform.y) < 5
-        );
-        
-        if (currentPlatform) {
-          // Check if barrel is past the platform edges - let it fall off!
-          if (barrel.x + barrel.width < currentPlatform.x + 10 || 
-              barrel.x > currentPlatform.x + currentPlatform.width - 10) {
-            // Barrel is off the edge - start falling again
-            barrel.velocityY = 50; // Small initial downward velocity
-          } else {
-            // Barrel is on platform - bounce off edges if hitting them
-            if (barrel.x < currentPlatform.x + 10) {
-              barrel.x = currentPlatform.x + 10;
-              barrel.velocityX = Math.abs(barrel.velocityX);
-            } else if (barrel.x + barrel.width > currentPlatform.x + currentPlatform.width - 10) {
-              barrel.x = currentPlatform.x + currentPlatform.width - 10 - barrel.width;
-              barrel.velocityX = -Math.abs(barrel.velocityX);
-            }
-          }
-        }
-      }
+      // Check platform collisions and state transitions
+      this.handleBarrelCollisions(barrel);
       
       // Remove barrels that fall off screen
-      if (barrel.y > this.canvas.height + 100 || barrel.x < -100 || barrel.x > this.canvas.width + 100) {
+      if (barrel.y > this.canvas.height + 100) {
         this.barrels.splice(i, 1);
       }
     }
   }
 
-  private checkCollisions() {
-    // Check player-barrel collisions
-    for (const barrel of this.barrels) {
-      if (this.player.x + this.player.width > barrel.x &&
-          this.player.x < barrel.x + barrel.width &&
-          this.player.y + this.player.height > barrel.y &&
-          this.player.y < barrel.y + barrel.height) {
+  private updateBarrelState(barrel: HippoKongBarrel, deltaTime: number) {
+    barrel.rollTimer += deltaTime;
+    
+    switch (barrel.state) {
+      case 'rolling':
+        // Roll for 2-4 seconds before seeking ladder
+        if (barrel.rollTimer > 2000 + Math.random() * 2000) {
+          barrel.state = 'seeking_ladder';
+          barrel.rollTimer = 0;
+        }
+        break;
         
-        // Game over
+      case 'seeking_ladder':
+        // Look for nearby ladder to go down
+        const nearbyLadder = this.findNearestLadder(barrel);
+        if (nearbyLadder && this.isBarrelNearLadder(barrel, nearbyLadder)) {
+          barrel.state = 'on_ladder';
+          barrel.x = nearbyLadder.x + (nearbyLadder.width - barrel.width) / 2; // Center on ladder
+          barrel.rollTimer = 0;
+        }
+        break;
+        
+      case 'on_ladder':
+        // Continue down ladder until reaching next platform
+        break;
+        
+      case 'falling':
+        // Will be handled by collision detection
+        break;
+    }
+  }
+
+  private handleBarrelCollisions(barrel: HippoKongBarrel) {
+    // Check platform collisions
+    for (let platformIndex = 0; platformIndex < this.platforms.length; platformIndex++) {
+      const platform = this.platforms[platformIndex];
+      
+      if (barrel.x + barrel.width > platform.x &&
+          barrel.x < platform.x + platform.width &&
+          barrel.y + barrel.height > platform.y &&
+          barrel.y < platform.y + platform.height &&
+          barrel.velocityY > 0) {
+        
+        // Barrel lands on platform
+        barrel.y = platform.y - barrel.height;
+        barrel.velocityY = 0;
+        barrel.platformIndex = platformIndex;
+        
+        // Transition to rolling state
+        if (barrel.state === 'falling' || barrel.state === 'on_ladder') {
+          barrel.state = 'rolling';
+          barrel.rollDirection = Math.random() > 0.5 ? 1 : -1;
+          barrel.rollTimer = 0;
+        }
+        
+        // Handle edge bouncing when rolling
+        if (barrel.state === 'rolling') {
+          if (barrel.x <= platform.x + 5) {
+            barrel.x = platform.x + 5;
+            barrel.rollDirection = 1; // Bounce right
+          } else if (barrel.x + barrel.width >= platform.x + platform.width - 5) {
+            barrel.x = platform.x + platform.width - 5 - barrel.width;
+            barrel.rollDirection = -1; // Bounce left
+          }
+        }
+        
+        return; // Found collision, exit
+      }
+    }
+    
+    // Check if barrel is falling off platform edge while seeking ladder
+    if (barrel.state === 'seeking_ladder') {
+      const currentPlatform = this.platforms[barrel.platformIndex];
+      if (currentPlatform) {
+        // If barrel moves off platform edge, start falling
+        if (barrel.x + barrel.width < currentPlatform.x || barrel.x > currentPlatform.x + currentPlatform.width) {
+          barrel.state = 'falling';
+          barrel.rollTimer = 0;
+        }
+      }
+    }
+  }
+
+  private findNearestLadder(barrel: HippoKongBarrel): HippoKongLadder | null {
+    let nearestLadder: HippoKongLadder | null = null;
+    let nearestDistance = Infinity;
+    
+    for (const ladder of this.ladders) {
+      // Check if ladder is accessible from current platform
+      const ladderBottom = ladder.y + ladder.height;
+      const barrelBottom = barrel.y + barrel.height;
+      
+      // Ladder should be roughly at the same level as the barrel's platform
+      if (Math.abs(ladderBottom - barrelBottom) < 50) {
+        const distance = Math.abs(barrel.x - ladder.x);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestLadder = ladder;
+        }
+      }
+    }
+    
+    return nearestLadder;
+  }
+
+  private isBarrelNearLadder(barrel: HippoKongBarrel, ladder: HippoKongLadder): boolean {
+    const barrelCenter = barrel.x + barrel.width / 2;
+    const ladderCenter = ladder.x + ladder.width / 2;
+    return Math.abs(barrelCenter - ladderCenter) < 40; // Within 40 pixels
+  }
+
+  private checkCollisions() {
+    // Check player-barrel collisions BEFORE win condition
+    for (const barrel of this.barrels) {
+      if (this.player.x + this.player.width - 5 > barrel.x &&
+          this.player.x + 5 < barrel.x + barrel.width &&
+          this.player.y + this.player.height - 5 > barrel.y &&
+          this.player.y + 5 < barrel.y + barrel.height) {
+        
+        // Game over - collision detected!
         const duration = Math.floor((Date.now() - this.startTime) / 1000);
         this.onGameEnd(this.score, this.level, duration);
         this.pause();
@@ -372,7 +459,7 @@ export class HippoKongEngine {
   }
 
   private checkWinCondition() {
-    // Check if player reached the top platform
+    // Check if player reached the top platform (near princess)
     if (this.player.y <= 140) { // Near the top platform
       this.level++;
       this.onLevelUp(this.level);
@@ -380,8 +467,31 @@ export class HippoKongEngine {
       // Reset player position and increase difficulty
       this.player.x = 50;
       this.player.y = 520;
-      this.barrelSpawnInterval = Math.max(1000, this.barrelSpawnInterval - 200); // Spawn barrels faster
+      
+      // Progressive difficulty: faster spawning, more barrels
+      this.barrelSpawnInterval = Math.max(800, this.barrelSpawnInterval - 150);
+      
+      // Add more ladders for higher levels
+      if (this.level > 2) {
+        this.addMoreLadders();
+      }
+      
       this.barrels = []; // Clear existing barrels
+    }
+  }
+
+  private addMoreLadders() {
+    // Add additional ladders for higher difficulty levels
+    if (this.level === 3 && this.ladders.length === 4) {
+      this.ladders.push(
+        { x: 400, y: 450, width: 30, height: 110 },   // Extra ladder Level 0 to 1
+        { x: 300, y: 340, width: 30, height: 110 }    // Extra ladder Level 1 to 2
+      );
+    }
+    if (this.level === 4 && this.ladders.length === 6) {
+      this.ladders.push(
+        { x: 350, y: 230, width: 30, height: 110 }    // Extra ladder Level 2 to 3
+      );
     }
   }
 
