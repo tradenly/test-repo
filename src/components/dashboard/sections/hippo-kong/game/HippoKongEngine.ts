@@ -1,0 +1,550 @@
+export interface HippoKongPlayer {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  velocityY: number;
+  onGround: boolean;
+  onLadder: boolean;
+  direction: 'left' | 'right' | 'up' | 'down';
+}
+
+export interface HippoKongBarrel {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  velocityX: number;
+  velocityY: number;
+  state: 'rolling' | 'falling' | 'seeking_ladder' | 'on_ladder';
+  platformIndex: number; // Track which platform level the barrel is on
+  rollTimer: number; // Time spent rolling on current platform
+  rollDirection: number; // 1 for right, -1 for left
+}
+
+export interface HippoKongPlatform {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface HippoKongLadder {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export class HippoKongEngine {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private isRunning = false;
+  private animationId: number | null = null;
+  private lastTime = 0;
+  
+  private player: HippoKongPlayer;
+  private barrels: HippoKongBarrel[] = [];
+  private platforms: HippoKongPlatform[] = [];
+  private ladders: HippoKongLadder[] = [];
+  
+  private score = 0;
+  private level = 1;
+  private startTime = 0;
+  private barrelSpawnTimer = 0;
+  private barrelSpawnInterval = 3000; // 3 seconds
+  
+  private keys: { [key: string]: boolean } = {};
+  
+  // Callbacks
+  private onGameEnd: (score: number, level: number, duration: number) => void;
+  private onScoreUpdate: (score: number) => void;
+  private onLevelUp: (level: number) => void;
+
+  constructor(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    onGameEnd: (score: number, level: number, duration: number) => void,
+    onScoreUpdate: (score: number) => void,
+    onLevelUp: (level: number) => void
+  ) {
+    this.ctx = ctx;
+    this.canvas = canvas;
+    this.onGameEnd = onGameEnd;
+    this.onScoreUpdate = onScoreUpdate;
+    this.onLevelUp = onLevelUp;
+
+    this.setupLevel();
+    this.bindEvents();
+  }
+
+  private setupLevel() {
+    // Initialize player at bottom
+    this.player = {
+      x: 50,
+      y: 520,
+      width: 40,
+      height: 40,
+      velocityY: 0,
+      onGround: true,
+      onLadder: false,
+      direction: 'right'
+    };
+
+    // Create platforms (bottom to top)
+    this.platforms = [
+      { x: 0, y: 560, width: 800, height: 40 },     // Bottom platform
+      { x: 100, y: 450, width: 600, height: 20 },   // Level 1
+      { x: 50, y: 340, width: 700, height: 20 },    // Level 2
+      { x: 150, y: 230, width: 500, height: 20 },   // Level 3
+      { x: 250, y: 120, width: 300, height: 20 },   // Top platform
+    ];
+
+    // Create ladders connecting platforms
+    this.ladders = [
+      { x: 200, y: 450, width: 30, height: 110 },   // Bottom to Level 1
+      { x: 600, y: 340, width: 30, height: 110 },   // Level 1 to Level 2
+      { x: 150, y: 230, width: 30, height: 110 },   // Level 2 to Level 3
+      { x: 500, y: 120, width: 30, height: 110 },   // Level 3 to Top
+    ];
+
+    this.barrels = [];
+    this.score = 0;
+    this.level = 1;
+    this.barrelSpawnTimer = 0;
+  }
+
+  private bindEvents() {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent default behavior for arrow keys and WASD to stop page scrolling
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
+        e.preventDefault();
+      }
+      this.keys[e.key] = true;
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      // Prevent default behavior for arrow keys and WASD
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
+        e.preventDefault();
+      }
+      this.keys[e.key] = false;
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+  }
+
+  start() {
+    if (this.isRunning) return;
+    
+    this.isRunning = true;
+    this.startTime = Date.now();
+    this.lastTime = performance.now();
+    this.gameLoop(this.lastTime);
+  }
+
+  pause() {
+    this.isRunning = false;
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+  }
+
+  resume() {
+    if (!this.isRunning) {
+      this.isRunning = true;
+      this.lastTime = performance.now();
+      this.gameLoop(this.lastTime);
+    }
+  }
+
+  reset() {
+    this.pause();
+    this.setupLevel();
+  }
+
+  cleanup() {
+    this.pause();
+    // Remove event listeners would be handled by component cleanup
+  }
+
+  private gameLoop(currentTime: number) {
+    if (!this.isRunning) return;
+
+    const deltaTime = currentTime - this.lastTime;
+    this.lastTime = currentTime;
+
+    this.update(deltaTime);
+    this.render();
+
+    this.animationId = requestAnimationFrame((time) => this.gameLoop(time));
+  }
+
+  private update(deltaTime: number) {
+    this.updatePlayer(deltaTime);
+    this.updateBarrels(deltaTime);
+    this.spawnBarrels(deltaTime);
+    this.checkCollisions();
+    this.updateScore();
+    this.checkWinCondition();
+  }
+
+  private updatePlayer(deltaTime: number) {
+    const speed = 200; // pixels per second
+    const moveDistance = (speed * deltaTime) / 1000;
+
+    // Handle horizontal movement
+    if (this.keys['ArrowLeft'] || this.keys['a']) {
+      this.player.x = Math.max(0, this.player.x - moveDistance);
+      this.player.direction = 'left';
+    }
+    if (this.keys['ArrowRight'] || this.keys['d']) {
+      this.player.x = Math.min(this.canvas.width - this.player.width, this.player.x + moveDistance);
+      this.player.direction = 'right';
+    }
+
+    // Check if player is on a ladder
+    this.player.onLadder = this.isOnLadder();
+
+    // Handle vertical movement (ladders and jumping)
+    if (this.player.onLadder) {
+      // On ladder - can move up/down
+      if (this.keys['ArrowUp'] || this.keys['w']) {
+        this.player.y = Math.max(0, this.player.y - moveDistance);
+        this.player.direction = 'up';
+      }
+      if (this.keys['ArrowDown'] || this.keys['s']) {
+        this.player.y = Math.min(this.canvas.height - this.player.height, this.player.y + moveDistance);
+        this.player.direction = 'down';
+      }
+      this.player.velocityY = 0; // No gravity on ladders
+    } else {
+      // Apply gravity
+      this.player.velocityY += 800 * (deltaTime / 1000); // gravity
+      this.player.y += this.player.velocityY * (deltaTime / 1000);
+    }
+
+    // Check platform collisions
+    this.handlePlatformCollisions();
+  }
+
+  private isOnLadder(): boolean {
+    return this.ladders.some(ladder => 
+      this.player.x + this.player.width > ladder.x &&
+      this.player.x < ladder.x + ladder.width &&
+      this.player.y + this.player.height > ladder.y &&
+      this.player.y < ladder.y + ladder.height
+    );
+  }
+
+  private handlePlatformCollisions() {
+    this.player.onGround = false;
+
+    for (const platform of this.platforms) {
+      if (this.player.x + this.player.width > platform.x &&
+          this.player.x < platform.x + platform.width &&
+          this.player.y + this.player.height > platform.y &&
+          this.player.y < platform.y + platform.height) {
+        
+        // Landing on top of platform
+        if (this.player.velocityY > 0) {
+          this.player.y = platform.y - this.player.height;
+          this.player.velocityY = 0;
+          this.player.onGround = true;
+        }
+      }
+    }
+
+    // Prevent falling through bottom
+    if (this.player.y + this.player.height > this.canvas.height) {
+      this.player.y = this.canvas.height - this.player.height;
+      this.player.velocityY = 0;
+      this.player.onGround = true;
+    }
+  }
+
+  private spawnBarrels(deltaTime: number) {
+    this.barrelSpawnTimer += deltaTime;
+    
+    if (this.barrelSpawnTimer > this.barrelSpawnInterval) {
+      this.barrelSpawnTimer = 0;
+      
+      // Spawn barrel from top platform
+      this.barrels.push({
+        x: 250 + Math.random() * 200, // Random position on top platform
+        y: 80,
+        width: 30,
+        height: 30,
+        velocityX: 0,
+        velocityY: 0,
+        state: 'rolling',
+        platformIndex: 4, // Top platform index
+        rollTimer: 0,
+        rollDirection: Math.random() > 0.5 ? 1 : -1
+      });
+    }
+  }
+
+  private updateBarrels(deltaTime: number) {
+    for (let i = this.barrels.length - 1; i >= 0; i--) {
+      const barrel = this.barrels[i];
+      
+      // Update barrel based on its state
+      this.updateBarrelState(barrel, deltaTime);
+      
+      // Apply physics based on state
+      if (barrel.state === 'falling' || barrel.state === 'seeking_ladder') {
+        barrel.velocityY += 600 * (deltaTime / 1000); // Apply gravity
+      } else if (barrel.state === 'rolling') {
+        barrel.velocityY = 0; // No vertical movement when rolling
+        barrel.velocityX = barrel.rollDirection * 80; // Consistent rolling speed
+      } else if (barrel.state === 'on_ladder') {
+        barrel.velocityY = 150; // Move down ladder
+        barrel.velocityX = 0; // No horizontal movement on ladder
+      }
+      
+      // Update position
+      barrel.x += barrel.velocityX * (deltaTime / 1000);
+      barrel.y += barrel.velocityY * (deltaTime / 1000);
+      
+      // Check platform collisions and state transitions
+      this.handleBarrelCollisions(barrel);
+      
+      // Remove barrels that fall off screen
+      if (barrel.y > this.canvas.height + 100) {
+        this.barrels.splice(i, 1);
+      }
+    }
+  }
+
+  private updateBarrelState(barrel: HippoKongBarrel, deltaTime: number) {
+    barrel.rollTimer += deltaTime;
+    
+    switch (barrel.state) {
+      case 'rolling':
+        // Roll for 2-4 seconds before seeking ladder
+        if (barrel.rollTimer > 2000 + Math.random() * 2000) {
+          barrel.state = 'seeking_ladder';
+          barrel.rollTimer = 0;
+        }
+        break;
+        
+      case 'seeking_ladder':
+        // Look for nearby ladder to go down
+        const nearbyLadder = this.findNearestLadder(barrel);
+        if (nearbyLadder && this.isBarrelNearLadder(barrel, nearbyLadder)) {
+          barrel.state = 'on_ladder';
+          barrel.x = nearbyLadder.x + (nearbyLadder.width - barrel.width) / 2; // Center on ladder
+          barrel.rollTimer = 0;
+        }
+        break;
+        
+      case 'on_ladder':
+        // Continue down ladder until reaching next platform
+        break;
+        
+      case 'falling':
+        // Will be handled by collision detection
+        break;
+    }
+  }
+
+  private handleBarrelCollisions(barrel: HippoKongBarrel) {
+    // Check platform collisions
+    for (let platformIndex = 0; platformIndex < this.platforms.length; platformIndex++) {
+      const platform = this.platforms[platformIndex];
+      
+      if (barrel.x + barrel.width > platform.x &&
+          barrel.x < platform.x + platform.width &&
+          barrel.y + barrel.height > platform.y &&
+          barrel.y < platform.y + platform.height &&
+          barrel.velocityY > 0) {
+        
+        // Barrel lands on platform
+        barrel.y = platform.y - barrel.height;
+        barrel.velocityY = 0;
+        barrel.platformIndex = platformIndex;
+        
+        // Transition to rolling state
+        if (barrel.state === 'falling' || barrel.state === 'on_ladder') {
+          barrel.state = 'rolling';
+          barrel.rollDirection = Math.random() > 0.5 ? 1 : -1;
+          barrel.rollTimer = 0;
+        }
+        
+        // Handle edge bouncing when rolling
+        if (barrel.state === 'rolling') {
+          if (barrel.x <= platform.x + 5) {
+            barrel.x = platform.x + 5;
+            barrel.rollDirection = 1; // Bounce right
+          } else if (barrel.x + barrel.width >= platform.x + platform.width - 5) {
+            barrel.x = platform.x + platform.width - 5 - barrel.width;
+            barrel.rollDirection = -1; // Bounce left
+          }
+        }
+        
+        return; // Found collision, exit
+      }
+    }
+    
+    // Check if barrel is falling off platform edge while seeking ladder
+    if (barrel.state === 'seeking_ladder') {
+      const currentPlatform = this.platforms[barrel.platformIndex];
+      if (currentPlatform) {
+        // If barrel moves off platform edge, start falling
+        if (barrel.x + barrel.width < currentPlatform.x || barrel.x > currentPlatform.x + currentPlatform.width) {
+          barrel.state = 'falling';
+          barrel.rollTimer = 0;
+        }
+      }
+    }
+  }
+
+  private findNearestLadder(barrel: HippoKongBarrel): HippoKongLadder | null {
+    let nearestLadder: HippoKongLadder | null = null;
+    let nearestDistance = Infinity;
+    
+    for (const ladder of this.ladders) {
+      // Check if ladder is accessible from current platform
+      const ladderBottom = ladder.y + ladder.height;
+      const barrelBottom = barrel.y + barrel.height;
+      
+      // Ladder should be roughly at the same level as the barrel's platform
+      if (Math.abs(ladderBottom - barrelBottom) < 50) {
+        const distance = Math.abs(barrel.x - ladder.x);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestLadder = ladder;
+        }
+      }
+    }
+    
+    return nearestLadder;
+  }
+
+  private isBarrelNearLadder(barrel: HippoKongBarrel, ladder: HippoKongLadder): boolean {
+    const barrelCenter = barrel.x + barrel.width / 2;
+    const ladderCenter = ladder.x + ladder.width / 2;
+    return Math.abs(barrelCenter - ladderCenter) < 40; // Within 40 pixels
+  }
+
+  private checkCollisions() {
+    // Check player-barrel collisions BEFORE win condition
+    for (const barrel of this.barrels) {
+      if (this.player.x + this.player.width - 5 > barrel.x &&
+          this.player.x + 5 < barrel.x + barrel.width &&
+          this.player.y + this.player.height - 5 > barrel.y &&
+          this.player.y + 5 < barrel.y + barrel.height) {
+        
+        // Game over - collision detected!
+        const duration = Math.floor((Date.now() - this.startTime) / 1000);
+        this.onGameEnd(this.score, this.level, duration);
+        this.pause();
+        return;
+      }
+    }
+  }
+
+  private updateScore() {
+    // Award points for climbing (based on height)
+    const heightScore = Math.floor((this.canvas.height - this.player.y) / 10);
+    const newScore = heightScore + (this.level - 1) * 1000;
+    
+    if (newScore > this.score) {
+      this.score = newScore;
+      this.onScoreUpdate(this.score);
+    }
+  }
+
+  private checkWinCondition() {
+    // Check if player reached the top platform (near princess)
+    if (this.player.y <= 140) { // Near the top platform
+      this.level++;
+      this.onLevelUp(this.level);
+      
+      // Reset player position and increase difficulty
+      this.player.x = 50;
+      this.player.y = 520;
+      
+      // Progressive difficulty: faster spawning, more barrels
+      this.barrelSpawnInterval = Math.max(800, this.barrelSpawnInterval - 150);
+      
+      // Add more ladders for higher levels
+      if (this.level > 2) {
+        this.addMoreLadders();
+      }
+      
+      this.barrels = []; // Clear existing barrels
+    }
+  }
+
+  private addMoreLadders() {
+    // Add additional ladders for higher difficulty levels
+    if (this.level === 3 && this.ladders.length === 4) {
+      this.ladders.push(
+        { x: 400, y: 450, width: 30, height: 110 },   // Extra ladder Level 0 to 1
+        { x: 300, y: 340, width: 30, height: 110 }    // Extra ladder Level 1 to 2
+      );
+    }
+    if (this.level === 4 && this.ladders.length === 6) {
+      this.ladders.push(
+        { x: 350, y: 230, width: 30, height: 110 }    // Extra ladder Level 2 to 3
+      );
+    }
+  }
+
+  private render() {
+    // Clear canvas
+    this.ctx.fillStyle = '#1e293b'; // Dark blue background
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Draw platforms
+    this.ctx.fillStyle = '#8b4513'; // Brown
+    for (const platform of this.platforms) {
+      this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+    }
+
+    // Draw ladders
+    this.ctx.fillStyle = '#daa520'; // Gold
+    for (const ladder of this.ladders) {
+      this.ctx.fillRect(ladder.x, ladder.y, ladder.width, ladder.height);
+      
+      // Draw ladder rungs
+      this.ctx.fillStyle = '#b8860b'; // Darker gold
+      for (let y = ladder.y; y < ladder.y + ladder.height; y += 15) {
+        this.ctx.fillRect(ladder.x, y, ladder.width, 3);
+      }
+      this.ctx.fillStyle = '#daa520';
+    }
+
+    // Draw player (gorilla emoji)
+    this.ctx.font = '40px serif';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText('🦍', this.player.x + this.player.width / 2, this.player.y + this.player.height);
+
+    // Draw barrels
+    this.ctx.font = '30px serif';
+    for (const barrel of this.barrels) {
+      this.ctx.fillText('🛢️', barrel.x + barrel.width / 2, barrel.y + barrel.height);
+    }
+
+    // Draw princess at the top
+    this.ctx.font = '40px serif';
+    this.ctx.fillText('👸', 400, 110);
+
+    // Draw UI
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = '20px Arial';
+    this.ctx.textAlign = 'left';
+    this.ctx.fillText(`Score: ${this.score}`, 10, 30);
+    this.ctx.fillText(`Level: ${this.level}`, 10, 55);
+    
+    // Draw goal text
+    this.ctx.textAlign = 'center';
+    this.ctx.font = '16px Arial';
+    this.ctx.fillStyle = '#ffd700';
+    this.ctx.fillText('Rescue the Princess!', 400, 90);
+  }
+}
