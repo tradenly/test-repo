@@ -147,7 +147,8 @@ export const HippoKongGameArea = ({ user, canPlay, gameSettings }: HippoKongGame
         description: `Hippo Kong game entry`
       });
 
-      // Start countdown
+      // Reset engine and start countdown
+      engineRef.current?.reset(); // Reset player position and game state
       setGameState('starting');
       setScore(0);
       setLevel(1);

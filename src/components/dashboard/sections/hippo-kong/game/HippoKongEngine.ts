@@ -212,7 +212,7 @@ export class HippoKongEngine {
 
     // Handle jump (spacebar)
     if (this.keys[' '] && (this.player.onGround || this.player.onLadder) && !this.player.isJumping) {
-      this.player.velocityY = -240; // Precise jump to clear 30px barrels (~36px height) but not reach 110px platforms
+      this.player.velocityY = -250; // Jump ~39px high - enough to clear 30px barrels with collision buffer
       this.player.isJumping = true;
       this.player.onGround = false;
     }
