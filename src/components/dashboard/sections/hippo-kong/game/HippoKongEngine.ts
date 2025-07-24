@@ -621,8 +621,11 @@ export class HippoKongEngine {
     
     // Draw goal text
     this.ctx.textAlign = 'center';
-    this.ctx.font = '16px Arial';
+    this.ctx.font = 'bold 18px Arial';
     this.ctx.fillStyle = '#ffd700';
-    this.ctx.fillText('Rescue the Princess!', 400, 90);
+    this.ctx.strokeStyle = '#000000';
+    this.ctx.lineWidth = 2;
+    this.ctx.strokeText('Rescue the Princess!', 400, 50);
+    this.ctx.fillText('Rescue the Princess!', 400, 50);
   }
 }
