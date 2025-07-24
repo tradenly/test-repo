@@ -212,7 +212,7 @@ export class HippoKongEngine {
 
     // Handle jump (spacebar)
     if (this.keys[' '] && (this.player.onGround || this.player.onLadder) && !this.player.isJumping) {
-      this.player.velocityY = -180; // Much smaller jump - only enough to clear 30px barrels, not reach platforms
+      this.player.velocityY = -240; // Precise jump to clear 30px barrels (~36px height) but not reach 110px platforms
       this.player.isJumping = true;
       this.player.onGround = false;
     }
@@ -288,19 +288,26 @@ export class HippoKongEngine {
     if (this.barrelSpawnTimer > this.barrelSpawnInterval) {
       this.barrelSpawnTimer = 0;
       
-      // Spawn barrel from top platform
-      this.barrels.push({
-        x: 250 + Math.random() * 200, // Random position on top platform
-        y: 80,
-        width: 30,
-        height: 30,
-        velocityX: 0,
-        velocityY: 0,
-        state: 'rolling',
-        platformIndex: 4, // Top platform index
-        rollTimer: 0,
-        rollDirection: Math.random() > 0.5 ? 1 : -1
-      });
+      // Spawn multiple barrels at higher levels
+      const barrelCount = Math.min(1 + Math.floor(this.level / 3), 3); // 1-3 barrels based on level
+      
+      for (let i = 0; i < barrelCount; i++) {
+        // Spawn barrel from top platform with slight delay between multiple barrels
+        setTimeout(() => {
+          this.barrels.push({
+            x: 250 + Math.random() * 200, // Random position on top platform
+            y: 80,
+            width: 30,
+            height: 30,
+            velocityX: 0,
+            velocityY: 0,
+            state: 'rolling',
+            platformIndex: 4, // Top platform index
+            rollTimer: 0,
+            rollDirection: Math.random() > 0.5 ? 1 : -1
+          });
+        }, i * 200); // 200ms delay between barrels
+      }
     }
   }
 
@@ -515,29 +522,43 @@ export class HippoKongEngine {
       this.player.x = 50;
       this.player.y = 520;
       
-      // Progressive difficulty: faster spawning (more aggressive progression)
-      this.barrelSpawnInterval = Math.max(500, this.barrelSpawnInterval - 300);
+      // Progressive difficulty: much faster spawning and more aggressive progression
+      this.barrelSpawnInterval = Math.max(300, this.barrelSpawnInterval - 500); // Faster reduction
       
       // Add more ladders for higher levels
-      if (this.level > 2) {
-        this.addMoreLadders();
-      }
+      this.addMoreLadders();
       
       this.barrels = []; // Clear existing barrels
     }
   }
 
   private addMoreLadders() {
-    // Add additional ladders for higher difficulty levels
-    if (this.level === 3 && this.ladders.length === 4) {
+    // Add additional ladders progressively each level
+    if (this.level === 2 && this.ladders.length === 4) {
       this.ladders.push(
-        { x: 400, y: 450, width: 30, height: 110 },   // Extra ladder Level 0 to 1
+        { x: 400, y: 450, width: 30, height: 110 }   // Extra ladder Level 0 to 1
+      );
+    }
+    if (this.level === 3 && this.ladders.length === 5) {
+      this.ladders.push(
         { x: 300, y: 340, width: 30, height: 110 }    // Extra ladder Level 1 to 2
       );
     }
     if (this.level === 4 && this.ladders.length === 6) {
       this.ladders.push(
         { x: 350, y: 230, width: 30, height: 110 }    // Extra ladder Level 2 to 3
+      );
+    }
+    if (this.level === 5 && this.ladders.length === 7) {
+      this.ladders.push(
+        { x: 450, y: 120, width: 30, height: 110 }    // Extra ladder Level 3 to Top
+      );
+    }
+    if (this.level >= 6 && this.ladders.length === 8) {
+      // Add even more ladders for extreme difficulty
+      this.ladders.push(
+        { x: 550, y: 450, width: 30, height: 110 },   // Another Level 0 to 1
+        { x: 100, y: 340, width: 30, height: 110 }    // Another Level 1 to 2
       );
     }
   }
