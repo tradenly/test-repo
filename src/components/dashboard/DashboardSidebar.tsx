@@ -52,7 +52,7 @@ export const DashboardSidebar = ({
     { id: "poopee-crush" as DashboardSection, label: "POOPEE Crush", icon: Zap },
     { id: "miss-poopee-man" as DashboardSection, label: "Miss POOPEE-Man", icon: Ghost },
     { id: "space-invaders" as DashboardSection, label: "Space Invaders", icon: Rocket },
-    { id: "hippo-kong" as DashboardSection, label: "Hippo Kong", icon: Mountain },
+    { id: "hippo-jumper" as DashboardSection, label: "Hippo Jumper", icon: Mountain },
   ];
 
   const mainMenuItems = [
