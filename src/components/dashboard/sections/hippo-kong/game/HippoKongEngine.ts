@@ -212,7 +212,7 @@ export class HippoKongEngine {
 
     // Handle jump (spacebar)
     if (this.keys[' '] && (this.player.onGround || this.player.onLadder) && !this.player.isJumping) {
-      this.player.velocityY = -400; // Jump force
+      this.player.velocityY = -200; // Reduced jump force (was -400)
       this.player.isJumping = true;
       this.player.onGround = false;
     }
@@ -230,9 +230,15 @@ export class HippoKongEngine {
       }
       this.player.velocityY = 0; // No gravity on ladders
     } else {
-      // Apply gravity
-      this.player.velocityY += 800 * (deltaTime / 1000); // gravity
-      this.player.y += this.player.velocityY * (deltaTime / 1000);
+    // Apply gravity
+    this.player.velocityY += 800 * (deltaTime / 1000); // gravity
+    this.player.y += this.player.velocityY * (deltaTime / 1000);
+    
+    // Prevent player from going off screen top
+    if (this.player.y < 0) {
+      this.player.y = 0;
+      this.player.velocityY = 0;
+    }
     }
 
     // Check platform collisions
@@ -353,7 +359,15 @@ export class HippoKongEngine {
         break;
         
       case 'on_ladder':
-        // Continue down ladder until reaching next platform
+        // Check if reached bottom of ladder
+        const ladderBottom = this.ladders.find(l => 
+          Math.abs(barrel.x - (l.x + l.width/2 - barrel.width/2)) < 20
+        );
+        if (ladderBottom && barrel.y + barrel.height >= ladderBottom.y + ladderBottom.height) {
+          // Reached bottom of ladder, start falling to find next platform
+          barrel.state = 'falling';
+          barrel.rollTimer = 0;
+        }
         break;
         
       case 'falling':
@@ -411,6 +425,23 @@ export class HippoKongEngine {
         }
       }
     }
+    
+    // Force barrels to continue falling if they're not on any platform
+    if (barrel.state === 'rolling' || barrel.state === 'seeking_ladder') {
+      let onPlatform = false;
+      for (const platform of this.platforms) {
+        if (barrel.x + barrel.width > platform.x &&
+            barrel.x < platform.x + platform.width &&
+            Math.abs((barrel.y + barrel.height) - platform.y) < 10) {
+          onPlatform = true;
+          break;
+        }
+      }
+      if (!onPlatform) {
+        barrel.state = 'falling';
+        barrel.rollTimer = 0;
+      }
+    }
   }
 
   private findNearestLadder(barrel: HippoKongBarrel): HippoKongLadder | null {
@@ -459,9 +490,9 @@ export class HippoKongEngine {
   }
 
   private updateScore() {
-    // Award points for climbing (based on height)
-    const heightScore = Math.floor((this.canvas.height - this.player.y) / 10);
-    const newScore = heightScore + (this.level - 1) * 1000;
+    // Only award base points for climbing - no massive score increases
+    const heightScore = Math.floor((this.canvas.height - this.player.y) / 50); // Much smaller increments
+    const newScore = heightScore + (this.level - 1) * 50; // Smaller level bonus
     
     if (newScore > this.score) {
       this.score = newScore;
@@ -472,6 +503,11 @@ export class HippoKongEngine {
   private checkWinCondition() {
     // Check if player reached the top platform (near princess)
     if (this.player.y <= 140) { // Near the top platform
+      // Award 1 credit for rescuing princess (this triggers the credit award)
+      const duration = Math.floor((Date.now() - this.startTime) / 1000);
+      this.score += 100; // Small bonus for completing level
+      this.onScoreUpdate(this.score);
+      
       this.level++;
       this.onLevelUp(this.level);
       
@@ -479,8 +515,8 @@ export class HippoKongEngine {
       this.player.x = 50;
       this.player.y = 520;
       
-      // Progressive difficulty: faster spawning, more barrels
-      this.barrelSpawnInterval = Math.max(800, this.barrelSpawnInterval - 150);
+      // Progressive difficulty: faster spawning (more aggressive progression)
+      this.barrelSpawnInterval = Math.max(500, this.barrelSpawnInterval - 300);
       
       // Add more ladders for higher levels
       if (this.level > 2) {

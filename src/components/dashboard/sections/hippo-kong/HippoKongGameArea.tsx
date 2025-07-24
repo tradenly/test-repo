@@ -66,14 +66,9 @@ export const HippoKongGameArea = ({ user, canPlay, gameSettings }: HippoKongGame
     setScore(finalScore);
 
     try {
-      // Calculate credits earned based on score and settings
-      const baseEarning = finalScore * (gameSettings?.payout_multipliers?.base || 0.01);
-      const levelBonus = finalLevel * (gameSettings?.payout_multipliers?.bonus || 0.05);
-      const timeBonus = Math.floor(duration / 10) * (gameSettings?.payout_multipliers?.time_bonus || 0.005);
-      const totalEarned = Math.min(
-        baseEarning + levelBonus + timeBonus,
-        entryCost * (gameSettings?.special_features?.max_payout_multiplier || 2)
-      );
+      // Only earn credits if player rescued the princess (reached level 2+)
+      // 1 credit per princess rescued, regardless of score
+      const totalEarned = finalLevel > 1 ? Math.min(finalLevel - 1, 1) : 0;
 
       // Save game session
       if (user?.id) {
@@ -301,7 +296,7 @@ export const HippoKongGameArea = ({ user, canPlay, gameSettings }: HippoKongGame
         </div>
 
         <div className="text-center text-sm text-muted-foreground">
-          <p>Use arrow keys to move and climb. Avoid the falling barrels!</p>
+          <p>Use arrow keys to move and climb, spacebar to jump. Avoid the falling barrels!</p>
         </div>
       </CardContent>
     </Card>
