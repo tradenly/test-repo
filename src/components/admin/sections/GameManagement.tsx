@@ -22,7 +22,8 @@ export const GameManagement = () => {
     falling_logs: "🪵 Falling Logs", 
     poopee_crush: "💩 POOPEE Crush",
     miss_poopee_man: "👻 Miss POOPEE-Man",
-    space_invaders: "🛸 Space Invaders"
+    space_invaders: "🛸 Space Invaders",
+    hippo_kong: "🦍 Hippo Kong"
   };
 
   const handleSettingChange = (gameType: string, field: string, value: any) => {

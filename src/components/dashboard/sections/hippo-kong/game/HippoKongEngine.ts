@@ -6,6 +6,7 @@ export interface HippoKongPlayer {
   velocityY: number;
   onGround: boolean;
   onLadder: boolean;
+  isJumping: boolean;
   direction: 'left' | 'right' | 'up' | 'down';
 }
 
@@ -88,6 +89,7 @@ export class HippoKongEngine {
       velocityY: 0,
       onGround: true,
       onLadder: false,
+      isJumping: false,
       direction: 'right'
     };
 
@@ -116,16 +118,16 @@ export class HippoKongEngine {
 
   private bindEvents() {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent default behavior for arrow keys and WASD to stop page scrolling
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
+      // Prevent default behavior for arrow keys, WASD, and spacebar to stop page scrolling
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', ' '].includes(e.key)) {
         e.preventDefault();
       }
       this.keys[e.key] = true;
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      // Prevent default behavior for arrow keys and WASD
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
+      // Prevent default behavior for arrow keys, WASD, and spacebar
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', ' '].includes(e.key)) {
         e.preventDefault();
       }
       this.keys[e.key] = false;
@@ -208,8 +210,15 @@ export class HippoKongEngine {
     // Check if player is on a ladder
     this.player.onLadder = this.isOnLadder();
 
+    // Handle jump (spacebar)
+    if (this.keys[' '] && (this.player.onGround || this.player.onLadder) && !this.player.isJumping) {
+      this.player.velocityY = -400; // Jump force
+      this.player.isJumping = true;
+      this.player.onGround = false;
+    }
+
     // Handle vertical movement (ladders and jumping)
-    if (this.player.onLadder) {
+    if (this.player.onLadder && !this.player.isJumping) {
       // On ladder - can move up/down
       if (this.keys['ArrowUp'] || this.keys['w']) {
         this.player.y = Math.max(0, this.player.y - moveDistance);
@@ -253,6 +262,7 @@ export class HippoKongEngine {
           this.player.y = platform.y - this.player.height;
           this.player.velocityY = 0;
           this.player.onGround = true;
+          this.player.isJumping = false;
         }
       }
     }
@@ -262,6 +272,7 @@ export class HippoKongEngine {
       this.player.y = this.canvas.height - this.player.height;
       this.player.velocityY = 0;
       this.player.onGround = true;
+      this.player.isJumping = false;
     }
   }
 
