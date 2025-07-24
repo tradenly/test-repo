@@ -43,6 +43,7 @@ export class HippoKongEngine {
   private isRunning = false;
   private animationId: number | null = null;
   private lastTime = 0;
+  private princessImage: HTMLImageElement;
   
   private player: HippoKongPlayer;
   private barrels: HippoKongBarrel[] = [];
@@ -74,6 +75,10 @@ export class HippoKongEngine {
     this.onGameEnd = onGameEnd;
     this.onScoreUpdate = onScoreUpdate;
     this.onLevelUp = onLevelUp;
+
+    // Load princess image
+    this.princessImage = new Image();
+    this.princessImage.src = '/lovable-uploads/3ba2104a-d1f9-4bda-aa36-23d071c5fcc8.png';
 
     this.setupLevel();
     this.bindEvents();
@@ -599,8 +604,13 @@ export class HippoKongEngine {
     }
 
     // Draw princess at the top
-    this.ctx.font = '40px serif';
-    this.ctx.fillText('👸', 400, 110);
+    if (this.princessImage.complete) {
+      this.ctx.drawImage(this.princessImage, 370, 70, 60, 60); // 60x60 size, centered around original position
+    } else {
+      // Fallback to emoji if image hasn't loaded yet
+      this.ctx.font = '40px serif';
+      this.ctx.fillText('👸', 400, 110);
+    }
 
     // Draw UI
     this.ctx.fillStyle = '#ffffff';
