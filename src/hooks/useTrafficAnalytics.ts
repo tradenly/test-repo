@@ -164,7 +164,8 @@ class TrafficTracker {
         body: trackingData,
       });
     } catch (error) {
-      console.error('Error tracking page view:', error);
+      // Silently handle tracking errors to not break the app
+      console.warn('Traffic tracking error:', error);
     }
   }
 
@@ -189,7 +190,8 @@ class TrafficTracker {
         body: trackingData,
       });
     } catch (error) {
-      console.error('Error sending page view update:', error);
+      // Silently handle tracking errors to not break the app
+      console.warn('Traffic tracking update error:', error);
     }
   }
 
@@ -219,7 +221,8 @@ class TrafficTracker {
         body: trackingData,
       });
     } catch (error) {
-      console.error('Error ending session:', error);
+      // Silently handle tracking errors to not break the app
+      console.warn('Session end tracking error:', error);
     }
 
     this.isTracking = false;
@@ -236,7 +239,8 @@ class TrafficTracker {
     supabase.functions.invoke('track-visitor', {
       body: trackingData,
     }).catch(error => {
-      console.error('Error updating user ID:', error);
+      // Silently handle tracking errors to not break the app
+      console.warn('User ID update tracking error:', error);
     });
   }
 }
