@@ -579,17 +579,36 @@ export class HippoKongEngine {
       this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
     }
 
-    // Draw ladders
-    this.ctx.fillStyle = '#daa520'; // Gold
+    // Draw ladders with enhanced visuals
     for (const ladder of this.ladders) {
-      this.ctx.fillRect(ladder.x, ladder.y, ladder.width, ladder.height);
+      // Draw side rails (vertical supports)
+      this.ctx.fillStyle = '#8b4513'; // Brown wood color
+      this.ctx.fillRect(ladder.x, ladder.y, 8, ladder.height); // Left rail
+      this.ctx.fillRect(ladder.x + ladder.width - 8, ladder.y, 8, ladder.height); // Right rail
       
-      // Draw ladder rungs
-      this.ctx.fillStyle = '#b8860b'; // Darker gold
-      for (let y = ladder.y; y < ladder.y + ladder.height; y += 15) {
-        this.ctx.fillRect(ladder.x, y, ladder.width, 3);
+      // Add darker edges for depth
+      this.ctx.fillStyle = '#654321'; // Darker brown
+      this.ctx.fillRect(ladder.x + 6, ladder.y, 2, ladder.height); // Left rail shadow
+      this.ctx.fillRect(ladder.x + ladder.width - 2, ladder.y, 2, ladder.height); // Right rail shadow
+      
+      // Draw horizontal rungs with better spacing and detail
+      this.ctx.fillStyle = '#a0522d'; // Sienna brown for rungs
+      for (let y = ladder.y + 10; y < ladder.y + ladder.height - 10; y += 20) {
+        // Main rung
+        this.ctx.fillRect(ladder.x + 2, y, ladder.width - 4, 6);
+        
+        // Rung shadow for depth
+        this.ctx.fillStyle = '#654321';
+        this.ctx.fillRect(ladder.x + 2, y + 4, ladder.width - 4, 2);
+        
+        // Reset color for next rung
+        this.ctx.fillStyle = '#a0522d';
       }
-      this.ctx.fillStyle = '#daa520';
+      
+      // Add subtle highlights on the rails
+      this.ctx.fillStyle = '#deb887'; // Light brown highlight
+      this.ctx.fillRect(ladder.x + 1, ladder.y, 2, ladder.height); // Left rail highlight
+      this.ctx.fillRect(ladder.x + ladder.width - 7, ladder.y, 2, ladder.height); // Right rail highlight
     }
 
     // Draw player (gorilla emoji)

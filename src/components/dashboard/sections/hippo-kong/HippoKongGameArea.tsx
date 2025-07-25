@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { useCredits } from "@/hooks/useCredits";
 import { useSpendCredits, useEarnCredits } from "@/hooks/useCreditOperations";
 import { supabase } from "@/integrations/supabase/client";
-import { useGameAudio } from "@/hooks/useGameAudio";
 import { HippoKongEngine } from "./game/HippoKongEngine";
 
 interface HippoKongGameAreaProps {
@@ -32,7 +31,6 @@ export const HippoKongGameArea = ({ user, canPlay, gameSettings }: HippoKongGame
   const earnCredits = useEarnCredits();
   
   const credits = creditsData?.balance || 0;
-  const { toggleMute, isMuted } = useGameAudio();
 
   const entryCost = gameSettings?.entry_cost_credits || 1;
 
@@ -210,13 +208,6 @@ export const HippoKongGameArea = ({ user, canPlay, gameSettings }: HippoKongGame
             </CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => toggleMute()}
-            >
-              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            </Button>
             <span className="text-sm text-muted-foreground">
               Credits: {credits?.toFixed(1) || 0}
             </span>
