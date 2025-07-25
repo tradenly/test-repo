@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState, useMemo, useEffect } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
+import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
+import { useTrafficAnalytics } from "@/hooks/useTrafficAnalytics";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -24,6 +26,12 @@ const App = () => {
       },
     },
   }), []);
+
+  // Get user for traffic analytics
+  const { user } = useUnifiedAuth();
+  
+  // Initialize traffic analytics
+  useTrafficAnalytics(user);
 
   // Force dark mode on mount
   useEffect(() => {

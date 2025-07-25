@@ -448,6 +448,56 @@ export type Database = {
         }
         Relationships: []
       }
+      page_views: {
+        Row: {
+          created_at: string
+          exit_page: boolean
+          id: string
+          interactions_count: number
+          page_path: string
+          page_title: string | null
+          scroll_depth_percent: number | null
+          session_id: string
+          time_on_page_seconds: number | null
+          user_id: string | null
+          view_time: string
+        }
+        Insert: {
+          created_at?: string
+          exit_page?: boolean
+          id?: string
+          interactions_count?: number
+          page_path: string
+          page_title?: string | null
+          scroll_depth_percent?: number | null
+          session_id: string
+          time_on_page_seconds?: number | null
+          user_id?: string | null
+          view_time?: string
+        }
+        Update: {
+          created_at?: string
+          exit_page?: boolean
+          id?: string
+          interactions_count?: number
+          page_path?: string
+          page_title?: string | null
+          scroll_depth_percent?: number | null
+          session_id?: string
+          time_on_page_seconds?: number | null
+          user_id?: string | null
+          view_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_views_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "visitor_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -701,6 +751,47 @@ export type Database = {
         }
         Relationships: []
       }
+      traffic_sources: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          id: string
+          referrer_domain: string | null
+          search_terms: string | null
+          session_id: string
+          source_name: string | null
+          source_type: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          id?: string
+          referrer_domain?: string | null
+          search_terms?: string | null
+          session_id: string
+          source_name?: string | null
+          source_type: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          id?: string
+          referrer_domain?: string | null
+          search_terms?: string | null
+          session_id?: string
+          source_name?: string | null
+          source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traffic_sources_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "visitor_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_bans: {
         Row: {
           banned_at: string
@@ -916,6 +1007,146 @@ export type Database = {
           user_id?: string
           wallet_address?: string
           wallet_name?: string | null
+        }
+        Relationships: []
+      }
+      visitor_analytics: {
+        Row: {
+          browser_name: string | null
+          browser_version: string | null
+          city: string | null
+          country_code: string | null
+          country_name: string | null
+          created_at: string
+          device_type: string | null
+          id: string
+          is_bot: boolean
+          is_mobile: boolean
+          isp: string | null
+          latitude: number | null
+          longitude: number | null
+          os_name: string | null
+          os_version: string | null
+          region: string | null
+          screen_resolution: string | null
+          session_id: string
+          timezone: string | null
+          viewport_size: string | null
+        }
+        Insert: {
+          browser_name?: string | null
+          browser_version?: string | null
+          city?: string | null
+          country_code?: string | null
+          country_name?: string | null
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          is_bot?: boolean
+          is_mobile?: boolean
+          isp?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          os_name?: string | null
+          os_version?: string | null
+          region?: string | null
+          screen_resolution?: string | null
+          session_id: string
+          timezone?: string | null
+          viewport_size?: string | null
+        }
+        Update: {
+          browser_name?: string | null
+          browser_version?: string | null
+          city?: string | null
+          country_code?: string | null
+          country_name?: string | null
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          is_bot?: boolean
+          is_mobile?: boolean
+          isp?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          os_name?: string | null
+          os_version?: string | null
+          region?: string | null
+          screen_resolution?: string | null
+          session_id?: string
+          timezone?: string | null
+          viewport_size?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visitor_analytics_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "visitor_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visitor_sessions: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          end_time: string | null
+          id: string
+          ip_address: unknown
+          is_bounce: boolean
+          page_count: number
+          referrer: string | null
+          session_id: string
+          start_time: string
+          updated_at: string
+          user_agent: string
+          user_id: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          end_time?: string | null
+          id?: string
+          ip_address: unknown
+          is_bounce?: boolean
+          page_count?: number
+          referrer?: string | null
+          session_id: string
+          start_time?: string
+          updated_at?: string
+          user_agent: string
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          end_time?: string | null
+          id?: string
+          ip_address?: unknown
+          is_bounce?: boolean
+          page_count?: number
+          referrer?: string | null
+          session_id?: string
+          start_time?: string
+          updated_at?: string
+          user_agent?: string
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
         }
         Relationships: []
       }
