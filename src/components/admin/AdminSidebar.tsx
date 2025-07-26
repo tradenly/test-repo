@@ -7,14 +7,10 @@ import {
   Activity, 
   CreditCard, 
   BarChart3, 
-  TrendingUp,
   Settings,
   X,
   MessageSquare,
-  Gamepad2,
-  Mail,
-  Home,
-  DollarSign
+  Gamepad2
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -26,16 +22,15 @@ interface AdminSidebarProps {
 }
 
 const adminSections = [
-  { id: "overview" as AdminSection, label: "Overview", icon: Home },
+  { id: "overview" as AdminSection, label: "Overview", icon: BarChart3 },
   { id: "users" as AdminSection, label: "User Management", icon: Users },
   { id: "credits" as AdminSection, label: "Credit Management", icon: Coins },
   { id: "activity" as AdminSection, label: "Activity Monitor", icon: Activity },
-  { id: "payouts" as AdminSection, label: "Payout Management", icon: DollarSign },
+  { id: "payouts" as AdminSection, label: "Payout Management", icon: CreditCard },
   { id: "analytics" as AdminSection, label: "Analytics", icon: BarChart3 },
-  { id: "traffic" as AdminSection, label: "Traffic", icon: TrendingUp },
   { id: "requests" as AdminSection, label: "Requests", icon: MessageSquare },
   { id: "games" as AdminSection, label: "Games", icon: Gamepad2 },
-  { id: "contact" as AdminSection, label: "Contact Messages", icon: Mail },
+  { id: "contact" as AdminSection, label: "Contact Messages", icon: MessageSquare },
 ];
 
 export const AdminSidebar = ({ 

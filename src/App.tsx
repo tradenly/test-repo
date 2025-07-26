@@ -6,7 +6,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState, useMemo, useEffect } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
-import AppRoutes from "@/components/AppRoutes";
+import Index from "./pages/Index";
+import Auth from "./pages/Auth";
+import Dashboard from "./pages/Dashboard";
+import ResetPassword from "./pages/ResetPassword";
+import NotFound from "./pages/NotFound";
+import AdminPanel from "./pages/AdminPanel";
+import ContactUs from "./pages/ContactUs";
 
 const App = () => {
   // Create QueryClient inside component to ensure proper React context
@@ -32,7 +38,16 @@ const App = () => {
           <Sonner />
           <div className="dark bg-black min-h-screen">
             <BrowserRouter>
-              <AppRoutes />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/contact" element={<ContactUs />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
             </BrowserRouter>
           </div>
         </TooltipProvider>

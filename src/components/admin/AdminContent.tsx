@@ -6,7 +6,6 @@ import { CreditManagement } from "./sections/CreditManagement";
 import { ActivityMonitor } from "./sections/ActivityMonitor";
 import { PayoutManagement } from "./sections/PayoutManagement";
 import { AdminAnalytics } from "./sections/AdminAnalytics";
-import { TrafficAnalytics } from "./sections/TrafficAnalytics";
 import { ToolRequestManagement } from "./sections/ToolRequestManagement";
 import { GameManagement } from "./sections/GameManagement";
 import { ContactManagement } from "./sections/ContactManagement";
@@ -29,8 +28,6 @@ export const AdminContent = ({ activeSection }: AdminContentProps) => {
       return <PayoutManagement />;
     case "analytics":
       return <AdminAnalytics />;
-    case "traffic":
-      return <TrafficAnalytics />;
     case "requests":
       return <ToolRequestManagement />;
     case "games":
