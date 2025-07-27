@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       ai_agent_signups: {
         Row: {
+          active: boolean | null
           adjectives: string | null
           age: number | null
           agent_name: string | null
@@ -52,6 +53,7 @@ export type Database = {
           voice_type: string | null
         }
         Insert: {
+          active?: boolean | null
           adjectives?: string | null
           age?: number | null
           agent_name?: string | null
@@ -88,6 +90,7 @@ export type Database = {
           voice_type?: string | null
         }
         Update: {
+          active?: boolean | null
           adjectives?: string | null
           age?: number | null
           agent_name?: string | null

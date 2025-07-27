@@ -42,6 +42,7 @@ interface AIAgentSignup {
   status: string;
   verified: boolean;
   ppee_tokens_verified: boolean;
+  active: boolean;
   created_at: string;
   updated_at: string;
   profiles?: {
@@ -308,6 +309,16 @@ export const AIAgentManagement = () => {
                           Reject
                         </Button>
                       </>
+                    )}
+                    
+                    {signup.status === 'approved' && (
+                      <Button
+                        variant={signup.active ? "destructive" : "default"}
+                        size="sm"
+                        onClick={() => updateSignupStatus(signup.id, { active: !signup.active })}
+                      >
+                        {signup.active ? "Deactivate" : "Activate"}
+                      </Button>
                     )}
                     
                     <Button

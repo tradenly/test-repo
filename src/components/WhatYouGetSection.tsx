@@ -12,8 +12,13 @@ export const WhatYouGetSection = () => {
 
   const handleGameNavigation = (gameSection: string) => {
     if (user) {
-      // Navigate to dashboard with the specific game section
-      navigate(`/dashboard?section=${gameSection}`);
+      // Special handling for Meta Mint to route to free-tools
+      if (gameSection === 'meta-mint') {
+        navigate('/dashboard?section=free-tools');
+      } else {
+        // Navigate to dashboard with the specific game section
+        navigate(`/dashboard?section=${gameSection}`);
+      }
     } else {
       // Redirect to auth page if not logged in
       navigate('/auth');
