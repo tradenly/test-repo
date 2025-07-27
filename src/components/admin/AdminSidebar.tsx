@@ -10,7 +10,8 @@ import {
   Settings,
   X,
   MessageSquare,
-  Gamepad2
+  Gamepad2,
+  Bot
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -30,6 +31,7 @@ const adminSections = [
   { id: "analytics" as AdminSection, label: "Analytics", icon: BarChart3 },
   { id: "requests" as AdminSection, label: "Requests", icon: MessageSquare },
   { id: "games" as AdminSection, label: "Games", icon: Gamepad2 },
+  { id: "ai-agent" as AdminSection, label: "AI Agent", icon: Bot },
   { id: "contact" as AdminSection, label: "Contact Messages", icon: MessageSquare },
 ];
 

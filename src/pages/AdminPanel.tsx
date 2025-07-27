@@ -17,6 +17,7 @@ export type AdminSection =
   | "analytics"
   | "requests"
   | "games"
+  | "ai-agent"
   | "contact";
 
 const AdminPanel = () => {

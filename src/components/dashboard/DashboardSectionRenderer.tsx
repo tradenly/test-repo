@@ -19,6 +19,7 @@ import { RewardsSection } from "./sections/RewardsSection";
 import { FreeToolsSection } from "./sections/FreeToolsSection";
 import { NewsUpdatesSection } from "./sections/NewsUpdatesSection";
 import { TokenomicsSection } from "./sections/TokenomicsSection";
+import { AIAgentSection } from "./sections/AIAgentSection";
 
 interface DashboardSectionRendererProps {
   activeSection: DashboardSection;
@@ -45,6 +46,8 @@ export const DashboardSectionRenderer = ({ activeSection, user, onSectionChange 
         return <SpaceInvadersSection />;
       case "hippo-kong":
         return <HippoKongSection user={user} />;
+      case "ai-agent":
+        return <AIAgentSection user={user} />;
       case "leaderboard":
         return <LeaderboardSection user={user} />;
       case "documents":

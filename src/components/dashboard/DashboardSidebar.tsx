@@ -58,6 +58,7 @@ export const DashboardSidebar = ({
   const mainMenuItems = [
     { id: "overview" as DashboardSection, label: "Overview", icon: LayoutDashboard },
     { id: "profile" as DashboardSection, label: "Profile", icon: User },
+    { id: "ai-agent" as DashboardSection, label: "AI Agent", icon: MessageSquare },
     { id: "leaderboard" as DashboardSection, label: "Leaderboard", icon: Trophy },
     { id: "documents" as DashboardSection, label: "Documents", icon: FileText },
     { id: "wallets" as DashboardSection, label: "Wallets", icon: Wallet },
