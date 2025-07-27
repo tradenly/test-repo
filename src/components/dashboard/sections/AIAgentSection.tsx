@@ -46,6 +46,8 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
   const [socialProfile, setSocialProfile] = useState("");
   const [postingProbability, setPostingProbability] = useState("5");
   const [timelineReplyProbability, setTimelineReplyProbability] = useState("1");
+  const [socialUsername, setSocialUsername] = useState("");
+  const [socialPassword, setSocialPassword] = useState("");
   const [voiceModel, setVoiceModel] = useState("");
   const [voiceType, setVoiceType] = useState("");
   const [triggerApiKey, setTriggerApiKey] = useState("");
@@ -134,6 +136,8 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
       setSocialProfile("");
       setPostingProbability("5");
       setTimelineReplyProbability("1");
+      setSocialUsername("");
+      setSocialPassword("");
       setVoiceModel("");
       setVoiceType("");
       setTriggerApiKey("");
@@ -395,6 +399,44 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                     onChange={(e) => setTimelineReplyProbability(e.target.value)}
                   />
                   <p className="text-xs text-gray-500">Probability to reply to a timeline post. Don't use values over 5.</p>
+                </div>
+               </div>
+
+              {/* Social Media Credentials */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-white">Social Media Credentials</h3>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-4 w-4 text-gray-400" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>We recommend setting up an alt account to use with your AI agent in the event that you get banned from that platform for over posting. It is not recommended for you to use your main social media account.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="social-username">Username</Label>
+                    <Input
+                      id="social-username"
+                      value={socialUsername}
+                      onChange={(e) => setSocialUsername(e.target.value)}
+                      placeholder="Enter username for selected platform"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="social-password">Password</Label>
+                    <Input
+                      id="social-password"
+                      type="password"
+                      value={socialPassword}
+                      onChange={(e) => setSocialPassword(e.target.value)}
+                      placeholder="Enter password for selected platform"
+                    />
+                  </div>
                 </div>
               </div>
 
