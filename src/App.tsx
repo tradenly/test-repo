@@ -26,9 +26,6 @@ const App = () => {
     },
   }), []);
 
-  // Initialize traffic tracking
-  useTrafficTracking();
-
   // Force dark mode on mount
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -42,6 +39,7 @@ const App = () => {
           <Sonner />
           <div className="dark bg-black min-h-screen">
             <BrowserRouter>
+              <TrafficTrackingWrapper />
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
@@ -58,6 +56,12 @@ const App = () => {
       </QueryClientProvider>
     </ThemeProvider>
   );
+};
+
+// Component to handle traffic tracking inside Router context
+const TrafficTrackingWrapper = () => {
+  useTrafficTracking();
+  return null;
 };
 
 export default App;
