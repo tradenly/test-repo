@@ -156,6 +156,159 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
     }
   }, [activeTab]);
 
+  // Validation functions for each tab
+  const validateProfileTab = () => {
+    if (!agentName || !category || !age) {
+      toast({
+        title: "Required Fields Missing",
+        description: "Please fill in Agent Name, Category, and Age fields.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const validatePersonalityTab = () => {
+    if (!description) {
+      toast({
+        title: "Required Fields Missing", 
+        description: "Please fill in the Description field.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const validatePostingTab = () => {
+    if (!socialProfile || !postingProbability || !timelineReplyProbability) {
+      toast({
+        title: "Required Fields Missing",
+        description: "Please fill in Social Profile, Posting Probability, and Timeline Reply Probability fields.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const validateSignupFields = () => {
+    if (!email || !platform || !cardanoAddress) {
+      toast({
+        title: "Required Fields Missing",
+        description: "Please fill in email, platform, and Cardano wallet address in the signup section.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  // Tab navigation functions
+  const handleSaveAndNext = (currentTab: string, nextTab: string, validationFn: () => boolean) => {
+    if (validationFn()) {
+      setActiveTab(nextTab);
+      toast({
+        title: "Progress Saved",
+        description: "Your information has been saved. Continue with the next step.",
+      });
+    }
+  };
+
+  const handleCreateAgent = async () => {
+    // Validate all required tabs
+    if (!validateProfileTab() || !validatePersonalityTab() || !validatePostingTab() || !validateSignupFields()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('ai_agent_signups')
+        .insert({
+          user_id: user.id,
+          email,
+          platform,
+          cardano_wallet_address: cardanoAddress,
+          agent_name: agentName,
+          category,
+          ticker,
+          policy_id: policyId,
+          market_cap_value: marketCapValue ? parseFloat(marketCapValue) : null,
+          crypto_network: cryptoNetwork,
+          image_url: imageUrl,
+          age: age ? parseInt(age) : null,
+          bio,
+          description,
+          personality,
+          first_message: firstMessage,
+          response_style: responseStyle,
+          adjectives,
+          tone,
+          appearance,
+          social_profile: socialProfile,
+          posting_probability: parseInt(postingProbability),
+          timeline_reply_probability: parseInt(timelineReplyProbability),
+          voice_model: voiceModel,
+          voice_type: voiceType,
+          trigger_api_key: triggerApiKey,
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "AI Agent Created Successfully",
+        description: "Your AI agent has been created and is pending approval!",
+      });
+
+      // Reset form
+      setEmail("");
+      setPlatform("");
+      setCardanoAddress("");
+      setAgentName("");
+      setCategory("");
+      setTicker("");
+      setPolicyId("");
+      setMarketCapValue("");
+      setCryptoNetwork("");
+      setImageUrl("");
+      setAge("");
+      setBio("");
+      setDescription("");
+      setPersonality("");
+      setFirstMessage("");
+      setResponseStyle("");
+      setAdjectives("");
+      setTone("");
+      setAppearance("");
+      setSocialProfile("");
+      setPostingProbability("5");
+      setTimelineReplyProbability("1");
+      setSocialUsername("");
+      setSocialPassword("");
+      setVoiceModel("");
+      setVoiceType("");
+      setTriggerApiKey("");
+
+      // Navigate to deployed agents tab and reload
+      setActiveTab('deployed');
+      loadDeployedAgents();
+
+    } catch (error) {
+      console.error('Error creating AI agent:', error);
+      toast({
+        title: "Creation Failed",
+        description: "There was an error creating your AI agent. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!email || !platform || !cardanoAddress) {
       toast({
@@ -371,6 +524,16 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                   maxLength={500}
                 />
               </div>
+              
+              {/* Save & Next Button */}
+              <div className="flex justify-end pt-4 border-t border-border">
+                <Button 
+                  onClick={() => handleSaveAndNext('profile', 'personality', validateProfileTab)}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  Save & Next
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -444,6 +607,16 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                   onChange={(e) => setAppearance(e.target.value)}
                   placeholder="Appearance of the agent, example: a woman with long black hair and blue eyes"
                 />
+              </div>
+              
+              {/* Save & Next Button */}
+              <div className="flex justify-end pt-4 border-t border-border">
+                <Button 
+                  onClick={() => handleSaveAndNext('personality', 'posting', validatePersonalityTab)}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  Save & Next
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -579,6 +752,17 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                   />
                   <Button variant="secondary">Generate</Button>
                 </div>
+              </div>
+              
+              {/* Save & Create Button */}
+              <div className="flex justify-end pt-4 border-t border-border">
+                <Button 
+                  onClick={handleCreateAgent}
+                  disabled={isSubmitting}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {isSubmitting ? "Creating Agent..." : "Save & Create Agent"}
+                </Button>
               </div>
             </CardContent>
           </Card>
