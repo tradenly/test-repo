@@ -79,7 +79,7 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
         .from('ai_agent_signups')
         .select('*')
         .eq('user_id', user.id)
-        .eq('status', 'approved');
+        .in('status', ['pending', 'approved', 'active', 'inactive']);
       
       if (error) throw error;
       setDeployedAgents(data || []);
@@ -254,6 +254,8 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
           voice_model: voiceModel,
           voice_type: voiceType,
           trigger_api_key: triggerApiKey,
+          social_username: socialUsername,
+          social_password: socialPassword,
           status: 'pending'
         });
 
@@ -755,7 +757,17 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
               </div>
               
               {/* Save & Create Button */}
-              <div className="flex justify-end pt-4 border-t border-border">
+              <div className="flex justify-end items-center gap-2 pt-4 border-t border-border">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-gray-400" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Make sure to also fill out the information below with your email address and your Cardano wallet address.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <Button 
                   onClick={handleCreateAgent}
                   disabled={isSubmitting}
