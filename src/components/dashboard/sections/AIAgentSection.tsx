@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { UnifiedUser } from "@/hooks/useUnifiedAuth";
-import { Bot, Info, Wallet } from "lucide-react";
+import { Bot, Info, Wallet, Settings, BarChart3, Power, PowerOff, Edit, Trash2, MessageSquare, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,6 +22,9 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
+  const [deployedAgents, setDeployedAgents] = useState<any[]>([]);
+  const [userTier, setUserTier] = useState(1); // Default tier 1
+  const [isLoadingAgents, setIsLoadingAgents] = useState(false);
 
   // Profile fields
   const [agentName, setAgentName] = useState("");
@@ -61,6 +65,96 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
   const [email, setEmail] = useState("");
   const [platform, setPlatform] = useState("");
   const [cardanoAddress, setCardanoAddress] = useState("");
+
+  // Helper functions for deployed agents
+  const getTierLimit = (tier: number) => {
+    const limits = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
+    return limits[tier as keyof typeof limits] || 1;
+  };
+
+  const loadDeployedAgents = async () => {
+    setIsLoadingAgents(true);
+    try {
+      const { data, error } = await supabase
+        .from('ai_agent_signups')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'approved');
+      
+      if (error) throw error;
+      setDeployedAgents(data || []);
+    } catch (error) {
+      console.error('Error loading deployed agents:', error);
+      toast({
+        title: "Error Loading Agents",
+        description: "Failed to load your deployed agents. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingAgents(false);
+    }
+  };
+
+  const toggleAgentStatus = async (agentId: string, newStatus: 'active' | 'inactive') => {
+    try {
+      const { error } = await supabase
+        .from('ai_agent_signups')
+        .update({ status: newStatus })
+        .eq('id', agentId);
+
+      if (error) throw error;
+
+      setDeployedAgents(prev => 
+        prev.map(agent => 
+          agent.id === agentId ? { ...agent, status: newStatus } : agent
+        )
+      );
+
+      toast({
+        title: `Agent ${newStatus === 'active' ? 'Activated' : 'Deactivated'}`,
+        description: `Your agent has been ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully.`,
+      });
+    } catch (error) {
+      console.error('Error toggling agent status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update agent status. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteAgent = async (agentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ai_agent_signups')
+        .delete()
+        .eq('id', agentId);
+
+      if (error) throw error;
+
+      setDeployedAgents(prev => prev.filter(agent => agent.id !== agentId));
+
+      toast({
+        title: "Agent Deleted",
+        description: "Your AI agent has been deleted successfully.",
+      });
+    } catch (error) {
+      console.error('Error deleting agent:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete agent. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Load deployed agents when the deployed tab is accessed
+  useEffect(() => {
+    if (activeTab === 'deployed') {
+      loadDeployedAgents();
+    }
+  }, [activeTab]);
 
   const handleSubmit = async () => {
     if (!email || !platform || !cardanoAddress) {
@@ -165,11 +259,12 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-card">
+        <TabsList className="grid w-full grid-cols-5 bg-card">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="personality">Personality</TabsTrigger>
           <TabsTrigger value="posting">Posting</TabsTrigger>
           <TabsTrigger value="testing">Testing</TabsTrigger>
+          <TabsTrigger value="deployed">Deployed Agents</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -524,6 +619,176 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                 </div>
               </div>
               <Button className="w-full">Generate Post</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="deployed" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Deployed AI Agents
+                </div>
+                <Badge variant="secondary">
+                  Tier {userTier} - {deployedAgents.length}/{getTierLimit(userTier)} agents
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                Manage your deployed AI agents, view analytics, and control their activity
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingAgents ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center space-y-2">
+                    <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+                    <p className="text-gray-400">Loading your agents...</p>
+                  </div>
+                </div>
+              ) : deployedAgents.length === 0 ? (
+                <div className="text-center py-8 space-y-4">
+                  <Bot className="h-12 w-12 text-gray-400 mx-auto" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">No Deployed Agents</h3>
+                    <p className="text-gray-400 mb-4">You haven't deployed any AI agents yet. Configure and submit an agent to get started.</p>
+                    <Button onClick={() => setActiveTab('profile')} variant="outline">
+                      Create Your First Agent
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {deployedAgents.map((agent) => (
+                    <Card key={agent.id} className="border-l-4 border-l-primary">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 space-y-4">
+                            {/* Agent Header */}
+                            <div className="flex items-center gap-4">
+                              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Bot className="h-6 w-6 text-primary" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h3 className="text-lg font-semibold text-white">{agent.agent_name || 'Unnamed Agent'}</h3>
+                                  <Badge variant={agent.status === 'active' ? 'default' : 'secondary'}>
+                                    {agent.status}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-gray-400">{agent.platform} • {agent.category}</p>
+                              </div>
+                            </div>
+
+                            {/* Agent Stats */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div className="bg-background/50 rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <MessageSquare className="h-4 w-4 text-primary" />
+                                  <span className="text-xs text-gray-400">Posts Today</span>
+                                </div>
+                                <p className="text-lg font-semibold text-white">0</p>
+                              </div>
+                              <div className="bg-background/50 rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <BarChart3 className="h-4 w-4 text-primary" />
+                                  <span className="text-xs text-gray-400">Total Posts</span>
+                                </div>
+                                <p className="text-lg font-semibold text-white">0</p>
+                              </div>
+                              <div className="bg-background/50 rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Calendar className="h-4 w-4 text-primary" />
+                                  <span className="text-xs text-gray-400">Created</span>
+                                </div>
+                                <p className="text-sm font-semibold text-white">
+                                  {new Date(agent.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="bg-background/50 rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs text-gray-400">Post Frequency</span>
+                                </div>
+                                <p className="text-sm font-semibold text-white">{agent.posting_probability}%</p>
+                              </div>
+                            </div>
+
+                            {/* Recent Activity */}
+                            <div className="space-y-2">
+                              <h4 className="text-sm font-medium text-white">Recent Activity</h4>
+                              <div className="bg-background/30 rounded-lg p-3">
+                                <p className="text-sm text-gray-400">No recent activity to display</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex flex-col gap-2 ml-4">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => toggleAgentStatus(agent.id, agent.status === 'active' ? 'inactive' : 'active')}
+                              className="flex items-center gap-2"
+                            >
+                              {agent.status === 'active' ? (
+                                <>
+                                  <PowerOff className="h-4 w-4" />
+                                  Deactivate
+                                </>
+                              ) : (
+                                <>
+                                  <Power className="h-4 w-4" />
+                                  Activate
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex items-center gap-2"
+                              disabled
+                            >
+                              <Edit className="h-4 w-4" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => deleteAgent(agent.id)}
+                              className="flex items-center gap-2"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {/* Tier Upgrade Notice */}
+              {deployedAgents.length >= getTierLimit(userTier) && (
+                <Card className="mt-6 border-amber-500/50 bg-amber-500/5">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <Info className="h-5 w-5 text-amber-500" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-white">Agent Limit Reached</h4>
+                        <p className="text-sm text-gray-400">
+                          You've reached your tier {userTier} limit of {getTierLimit(userTier)} agents. 
+                          Upgrade your tier to deploy more agents across different platforms.
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline" disabled>
+                        Upgrade Tier
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
