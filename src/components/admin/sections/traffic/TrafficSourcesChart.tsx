@@ -40,43 +40,55 @@ export const TrafficSourcesChart = ({ data }: TrafficSourcesChartProps) => {
         <CardTitle className="text-white">Traffic Sources</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={120}
-                paddingAngle={2}
-                dataKey="value"
-              >
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="mt-4 space-y-2">
-          {chartData.map((source) => (
-            <div key={source.name} className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: source.color }}
-                />
-                <span className="text-gray-300 truncate">{source.name}</span>
-              </div>
-              <div className="text-right">
-                <div className="text-white font-medium">{source.value}</div>
-                <div className="text-gray-400 text-xs">{source.percentage.toFixed(1)}%</div>
-              </div>
+        {chartData.length > 0 ? (
+          <>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={120}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-          ))}
-        </div>
+            <div className="mt-4 space-y-2">
+              {chartData.map((source) => (
+                <div key={source.name} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: source.color }}
+                    />
+                    <span className="text-gray-300 truncate">{source.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-white font-medium">{source.value}</div>
+                    <div className="text-gray-400 text-xs">{source.percentage.toFixed(1)}%</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="h-80 flex items-center justify-center">
+            <div className="text-center text-gray-400">
+              <div className="text-lg mb-2">🌐</div>
+              <p className="font-medium">No traffic sources yet</p>
+              <p className="text-sm mt-1">This chart will show where your visitors come from.</p>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

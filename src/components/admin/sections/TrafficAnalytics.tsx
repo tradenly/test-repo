@@ -20,8 +20,22 @@ export const TrafficAnalytics = () => {
 
   const { data, loading, error } = useTrafficAnalytics(dateRange);
 
+  // Don't show "no data" state - show the UI with empty states instead
+  const displayData = data || {
+    totalSessions: 0,
+    uniqueVisitors: 0,
+    totalPageViews: 0,
+    averageSessionDuration: 0,
+    bounceRate: 0,
+    topPages: [],
+    trafficSources: [],
+    geoData: [],
+    deviceData: [],
+    dailyTraffic: []
+  };
+
   const handleExport = () => {
-    if (!data) return;
+    if (!data || data.totalSessions === 0) return;
     
     const csvData = [
       'Metric,Value',
@@ -79,15 +93,6 @@ export const TrafficAnalytics = () => {
     );
   }
 
-  if (!data) {
-    return (
-      <div className="p-6">
-        <div className="text-center text-gray-400">
-          No traffic data available
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 space-y-6">
@@ -126,22 +131,37 @@ export const TrafficAnalytics = () => {
       </Card>
 
       {/* Overview Metrics */}
-      <OverviewMetrics data={data} />
+      <OverviewMetrics data={displayData} />
+
+      {/* Status Banner for New Tracking */}
+      {displayData.totalSessions === 0 && (
+        <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4">
+          <div className="flex items-center gap-3 text-blue-400">
+            <div className="animate-pulse w-2 h-2 bg-blue-400 rounded-full"></div>
+            <div>
+              <p className="font-medium">Traffic Tracking Active</p>
+              <p className="text-sm text-blue-300 mt-1">
+                Your site is now tracking visitor data. Charts will populate as visitors browse your website.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TrafficTrendsChart data={data} />
-        <TrafficSourcesChart data={data} />
+        <TrafficTrendsChart data={displayData} />
+        <TrafficSourcesChart data={displayData} />
       </div>
 
       {/* Second Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <GeographicDistribution data={data} />
-        <DeviceBrowserStats data={data} />
+        <GeographicDistribution data={displayData} />
+        <DeviceBrowserStats data={displayData} />
       </div>
 
       {/* Top Pages Table */}
-      <TopPagesTable data={data} />
+      <TopPagesTable data={displayData} />
     </div>
   );
 };

@@ -67,6 +67,20 @@ export const useTrafficAnalytics = (dateRange: DateRange) => {
       } catch (err) {
         console.error('Error fetching traffic data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch traffic data');
+        
+        // Set empty data structure instead of null for better UX
+        setData({
+          totalSessions: 0,
+          uniqueVisitors: 0,
+          totalPageViews: 0,
+          averageSessionDuration: 0,
+          bounceRate: 0,
+          topPages: [],
+          trafficSources: [],
+          geoData: [],
+          deviceData: [],
+          dailyTraffic: []
+        });
       } finally {
         setLoading(false);
       }
