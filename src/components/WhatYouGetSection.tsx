@@ -123,6 +123,69 @@ export const WhatYouGetSection = () => {
       ),
       buttonClass: 'bg-yellow-600 hover:bg-yellow-700 border-yellow-500',
       section: 'space-invaders'
+    },
+    {
+      id: 'hippo-kong',
+      image: '/lovable-uploads/e52b0387-1d8b-4c6b-b594-f2e824a3a72b.png',
+      alt: 'Gorilla character in green jacket with brown fur',
+      title: 'Hippo Kong',
+      subtitle: 'Climb, Jump, Survive',
+      features: [
+        'Help the gorilla climb to the top',
+        `Costs ${getGameCost('hippo_kong')} credit${getGameCost('hippo_kong') !== 1 ? 's' : ''} per game`,
+        'Dodge falling barrels and obstacles',
+        'Classic arcade climbing action'
+      ],
+      buttonText: (
+        <span className="flex items-center gap-2">
+          Start Climbing
+          <Gamepad2 className="h-4 w-4" />
+        </span>
+      ),
+      buttonClass: 'bg-orange-600 hover:bg-orange-700 border-orange-500',
+      section: 'hippo-kong'
+    },
+    {
+      id: 'meta-mint',
+      image: '/lovable-uploads/e2ca9815-80dc-4e4b-aa77-bdbe18f425f1.png',
+      alt: 'Hippo character with green mohawk in urban setting',
+      title: 'Meta Mint',
+      subtitle: 'NFTs, But Actually Cool',
+      features: [
+        'Mint unique POOPEE NFTs',
+        'Trade and collect rare hippo variants',
+        'Exclusive meta-verse experiences',
+        'Actually useful digital assets'
+      ],
+      buttonText: (
+        <span className="flex items-center gap-2">
+          Mint NFTs
+          <Rocket className="h-4 w-4" />
+        </span>
+      ),
+      buttonClass: 'bg-cyan-600 hover:bg-cyan-700 border-cyan-500',
+      section: 'meta-mint'
+    },
+    {
+      id: 'ai-agents',
+      image: '/lovable-uploads/c0f514c3-8d68-420d-a918-91676558536b.png',
+      alt: 'Hippo character with green mohawk and tattoos in urban setting',
+      title: 'AI Agents',
+      subtitle: 'Bots That Actually Work',
+      features: [
+        'Deploy intelligent AI agents',
+        'Automate your POOPEE empire',
+        'Custom agent personalities',
+        'Actually helpful digital assistants'
+      ],
+      buttonText: (
+        <span className="flex items-center gap-2">
+          Deploy Agents
+          <Rocket className="h-4 w-4" />
+        </span>
+      ),
+      buttonClass: 'bg-emerald-600 hover:bg-emerald-700 border-emerald-500',
+      section: 'ai-agents'
     }
   ];
 
@@ -138,7 +201,7 @@ export const WhatYouGetSection = () => {
             We said we'd build games. We actually did. Shocking, we know.
           </p>
           <p className="text-lg text-gray-400 italic">
-            Five games that will make you question your life choices
+            Six games that will make you question your life choices
           </p>
         </div>
 
