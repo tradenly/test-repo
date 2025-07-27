@@ -15,6 +15,7 @@ export type AdminSection =
   | "activity" 
   | "payouts" 
   | "analytics"
+  | "traffic"
   | "requests"
   | "games"
   | "ai-agent"
