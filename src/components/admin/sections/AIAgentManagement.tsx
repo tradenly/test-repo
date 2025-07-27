@@ -311,13 +311,20 @@ export const AIAgentManagement = () => {
                       </>
                     )}
                     
-                    {signup.status === 'approved' && (
+                    {(signup.status === 'approved' || signup.status === 'active') && (
                       <Button
-                        variant={signup.active ? "destructive" : "default"}
+                        variant={signup.active || signup.status === 'active' ? "destructive" : "default"}
                         size="sm"
-                        onClick={() => updateSignupStatus(signup.id, { active: !signup.active })}
+                        onClick={() => {
+                          if (signup.status === 'active') {
+                            // Handle legacy 'active' status records
+                            updateSignupStatus(signup.id, { status: 'approved', active: false });
+                          } else {
+                            updateSignupStatus(signup.id, { active: !signup.active });
+                          }
+                        }}
                       >
-                        {signup.active ? "Deactivate" : "Activate"}
+                        {(signup.active || signup.status === 'active') ? "Deactivate" : "Activate"}
                       </Button>
                     )}
                     

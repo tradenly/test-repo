@@ -15,6 +15,9 @@ export const WhatYouGetSection = () => {
       // Special handling for Meta Mint to route to free-tools
       if (gameSection === 'meta-mint') {
         navigate('/dashboard?section=free-tools');
+      } else if (gameSection === 'ai-agents') {
+        // Special handling for AI Agents - route to ai-agent section (singular)
+        navigate('/dashboard?section=ai-agent');
       } else {
         // Navigate to dashboard with the specific game section
         navigate(`/dashboard?section=${gameSection}`);
