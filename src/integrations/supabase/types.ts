@@ -37,7 +37,9 @@ export type Database = {
           posting_probability: number | null
           ppee_tokens_verified: boolean | null
           response_style: string | null
+          social_password: string | null
           social_profile: string | null
+          social_username: string | null
           status: string | null
           ticker: string | null
           timeline_reply_probability: number | null
@@ -71,7 +73,9 @@ export type Database = {
           posting_probability?: number | null
           ppee_tokens_verified?: boolean | null
           response_style?: string | null
+          social_password?: string | null
           social_profile?: string | null
+          social_username?: string | null
           status?: string | null
           ticker?: string | null
           timeline_reply_probability?: number | null
@@ -105,7 +109,9 @@ export type Database = {
           posting_probability?: number | null
           ppee_tokens_verified?: boolean | null
           response_style?: string | null
+          social_password?: string | null
           social_profile?: string | null
+          social_username?: string | null
           status?: string | null
           ticker?: string | null
           timeline_reply_probability?: number | null

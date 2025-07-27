@@ -869,7 +869,11 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <h3 className="text-lg font-semibold text-white">{agent.agent_name || 'Unnamed Agent'}</h3>
-                                  <Badge variant={agent.status === 'active' ? 'default' : 'secondary'}>
+                                  <Badge variant={
+                                    agent.status === 'pending' ? 'secondary' : 
+                                    agent.status === 'approved' ? 'default' : 
+                                    agent.status === 'active' ? 'default' : 'outline'
+                                  }>
                                     {agent.status}
                                   </Badge>
                                 </div>
@@ -926,6 +930,7 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                               variant="outline"
                               onClick={() => toggleAgentStatus(agent.id, agent.status === 'active' ? 'inactive' : 'active')}
                               className="flex items-center gap-2"
+                              disabled={agent.status === 'pending'}
                             >
                               {agent.status === 'active' ? (
                                 <>
@@ -935,7 +940,7 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                               ) : (
                                 <>
                                   <Power className="h-4 w-4" />
-                                  Activate
+                                  {agent.status === 'pending' ? 'Pending Approval' : 'Activate'}
                                 </>
                               )}
                             </Button>
@@ -943,7 +948,7 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                               size="sm"
                               variant="outline"
                               className="flex items-center gap-2"
-                              disabled
+                              disabled={agent.status === 'pending'}
                             >
                               <Edit className="h-4 w-4" />
                               Edit

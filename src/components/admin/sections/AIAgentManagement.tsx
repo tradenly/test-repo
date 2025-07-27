@@ -17,6 +17,28 @@ interface AIAgentSignup {
   cardano_wallet_address: string;
   agent_name?: string;
   category?: string;
+  ticker?: string;
+  policy_id?: string;
+  market_cap_value?: number;
+  crypto_network?: string;
+  image_url?: string;
+  age?: number;
+  bio?: string;
+  description?: string;
+  personality?: string;
+  first_message?: string;
+  response_style?: string;
+  adjectives?: string;
+  tone?: string;
+  appearance?: string;
+  social_profile?: string;
+  posting_probability?: number;
+  timeline_reply_probability?: number;
+  voice_model?: string;
+  voice_type?: string;
+  trigger_api_key?: string;
+  social_username?: string;
+  social_password?: string;
   status: string;
   verified: boolean;
   ppee_tokens_verified: boolean;
@@ -322,38 +344,91 @@ export const AIAgentManagement = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Basic Information */}
               <div>
-                <h4 className="font-semibold text-white mb-2">Basic Information</h4>
-                <div className="space-y-1 text-sm">
+                <h4 className="font-semibold text-white mb-3">Basic Information</h4>
+                <div className="space-y-2 text-sm">
                   <p><strong>Agent Name:</strong> {selectedSignup.agent_name || 'Not specified'}</p>
                   <p><strong>Category:</strong> {selectedSignup.category || 'Not specified'}</p>
                   <p><strong>Email:</strong> {selectedSignup.email}</p>
                   <p><strong>Platform:</strong> {selectedSignup.platform}</p>
                   <p><strong>Cardano Address:</strong> {selectedSignup.cardano_wallet_address}</p>
+                  <p><strong>User:</strong> {selectedSignup.profiles?.full_name || selectedSignup.profiles?.username || 'Unknown'}</p>
                 </div>
               </div>
+
+              {/* Agent Details */}
               <div>
-                <h4 className="font-semibold text-white mb-2">Status</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span>Status:</span> {getStatusBadge(selectedSignup.status)}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span>PPEE Verified:</span>
-                    {selectedSignup.ppee_tokens_verified ? (
-                      <Badge variant="outline" className="text-green-400 border-green-400">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Yes
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-red-400 border-red-400">
-                        <XCircle className="h-3 w-3 mr-1" />
-                        No
-                      </Badge>
-                    )}
-                  </div>
+                <h4 className="font-semibold text-white mb-3">Agent Profile</h4>
+                <div className="space-y-2 text-sm">
+                  <p><strong>Ticker:</strong> {selectedSignup.ticker || 'Not specified'}</p>
+                  <p><strong>Policy ID:</strong> {selectedSignup.policy_id || 'Not specified'}</p>
+                  <p><strong>Market Cap:</strong> {selectedSignup.market_cap_value ? `$${selectedSignup.market_cap_value}` : 'Not specified'}</p>
+                  <p><strong>Network:</strong> {selectedSignup.crypto_network || 'Not specified'}</p>
+                  <p><strong>Age:</strong> {selectedSignup.age || 'Not specified'}</p>
+                  <p><strong>Bio:</strong> {selectedSignup.bio || 'Not specified'}</p>
+                </div>
+              </div>
+
+              {/* Personality & Voice */}
+              <div>
+                <h4 className="font-semibold text-white mb-3">Personality & Voice</h4>
+                <div className="space-y-2 text-sm">
+                  <p><strong>Description:</strong> {selectedSignup.description || 'Not specified'}</p>
+                  <p><strong>Personality:</strong> {selectedSignup.personality || 'Not specified'}</p>
+                  <p><strong>First Message:</strong> {selectedSignup.first_message || 'Not specified'}</p>
+                  <p><strong>Response Style:</strong> {selectedSignup.response_style || 'Not specified'}</p>
+                  <p><strong>Adjectives:</strong> {selectedSignup.adjectives || 'Not specified'}</p>
+                  <p><strong>Tone:</strong> {selectedSignup.tone || 'Not specified'}</p>
+                  <p><strong>Appearance:</strong> {selectedSignup.appearance || 'Not specified'}</p>
+                  <p><strong>Voice Model:</strong> {selectedSignup.voice_model || 'Not specified'}</p>
+                  <p><strong>Voice Type:</strong> {selectedSignup.voice_type || 'Not specified'}</p>
+                </div>
+              </div>
+
+              {/* Posting Configuration */}
+              <div>
+                <h4 className="font-semibold text-white mb-3">Posting Configuration</h4>
+                <div className="space-y-2 text-sm">
+                  <p><strong>Social Profile:</strong> {selectedSignup.social_profile || 'Not specified'}</p>
+                  <p><strong>Posting Probability:</strong> {selectedSignup.posting_probability || 'Not specified'}%</p>
+                  <p><strong>Timeline Reply Probability:</strong> {selectedSignup.timeline_reply_probability || 'Not specified'}%</p>
+                  <p><strong>Social Username:</strong> {selectedSignup.social_username || 'Not specified'}</p>
+                  <p><strong>Trigger API Key:</strong> {selectedSignup.trigger_api_key ? '***[HIDDEN]***' : 'Not specified'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Status Section */}
+            <div>
+              <h4 className="font-semibold text-white mb-3">Status & Verification</h4>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-2">
+                  <span>Status:</span> {getStatusBadge(selectedSignup.status)}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>PPEE Verified:</span>
+                  {selectedSignup.ppee_tokens_verified ? (
+                    <Badge variant="outline" className="text-green-400 border-green-400">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Yes
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-red-400 border-red-400">
+                      <XCircle className="h-3 w-3 mr-1" />
+                      No
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>Created:</span>
+                  <span className="text-gray-300">{new Date(selectedSignup.created_at).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>Updated:</span>
+                  <span className="text-gray-300">{new Date(selectedSignup.updated_at).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>
