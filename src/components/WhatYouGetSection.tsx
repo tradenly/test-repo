@@ -150,16 +150,16 @@ export const WhatYouGetSection = () => {
       image: '/lovable-uploads/e2ca9815-80dc-4e4b-aa77-bdbe18f425f1.png',
       alt: 'Hippo character with green mohawk in urban setting',
       title: 'Meta Mint',
-      subtitle: 'NFTs, But Actually Cool',
+      subtitle: 'AI Generated Metadata',
       features: [
-        'Mint unique POOPEE NFTs',
-        'Trade and collect rare hippo variants',
-        'Exclusive meta-verse experiences',
-        'Actually useful digital assets'
+        'Effortlessly generate metadata',
+        'No layers, No problem',
+        'Generate metadata for up to 10k NFTs',
+        'Use completely FREE integrated Tensorflow'
       ],
       buttonText: (
         <span className="flex items-center gap-2">
-          Mint NFTs
+          Generate Metadata
           <Rocket className="h-4 w-4" />
         </span>
       ),
