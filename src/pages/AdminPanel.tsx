@@ -4,7 +4,7 @@ import { Navigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminContent } from "@/components/admin/AdminContent";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { useSecurityGuard } from "@/hooks/useSecurityGuard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Menu } from "lucide-react";
 
@@ -22,16 +22,13 @@ export type AdminSection =
   | "contact";
 
 const AdminPanel = () => {
-  const { isAdmin, isLoading, user } = useAdminAuth();
+  const { isLoading, hasAccess } = useSecurityGuard(true);
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  console.log('🏛️ AdminPanel: Render - isAdmin:', isAdmin, 'isLoading:', isLoading, 'user exists:', !!user);
-
   // Show loading while checking auth
   if (isLoading) {
-    console.log('⏳ AdminPanel: Loading admin status');
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-xl">Checking admin access...</div>
@@ -39,16 +36,9 @@ const AdminPanel = () => {
     );
   }
 
-  // Redirect if no user
-  if (!user) {
-    console.log('🚫 AdminPanel: No user, redirecting to auth');
-    return <Navigate to="/auth" replace />;
-  }
-
-  // Redirect if not admin
-  if (!isAdmin) {
-    console.log('🚫 AdminPanel: Not admin, redirecting to dashboard');
-    return <Navigate to="/dashboard" replace />;
+  // If security check failed, component will be redirected
+  if (!hasAccess) {
+    return null;
   }
 
   if (isMobile) {
@@ -82,8 +72,7 @@ const AdminPanel = () => {
     );
   }
 
-  // Desktop layout (unchanged)
-  console.log('✅ AdminPanel: Rendering admin panel');
+  // Desktop layout
   return (
     <div className="min-h-screen bg-black">
       <Navigation />

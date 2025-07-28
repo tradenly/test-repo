@@ -17,6 +17,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { NotificationsDropdown } from "./NotificationsDropdown";
+import { logger } from "@/utils/logger";
 
 export const Navigation = () => {
   const { user, logout } = useUnifiedAuth();
@@ -27,7 +28,7 @@ export const Navigation = () => {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
-  console.log('🧭 Navigation: isAdmin:', isAdmin, 'adminLoading:', adminLoading);
+  logger.log(`🧭 Navigation: isAdmin: ${isAdmin}, adminLoading: ${adminLoading}`);
 
   // Refetch credits periodically to ensure real-time updates
   useEffect(() => {
@@ -156,7 +157,7 @@ export const Navigation = () => {
                   {isAdmin && !isOnAdmin && (
                     <DropdownMenuItem 
                       onClick={() => {
-                        console.log('🎯 Navigation: Admin panel clicked, isAdmin:', isAdmin, 'navigating to /admin');
+                        logger.log(`🎯 Navigation: Admin panel clicked, isAdmin: ${isAdmin}, navigating to /admin`);
                         navigate('/admin');
                       }}
                       className="text-yellow-300 hover:bg-gray-800 hover:text-yellow-100 cursor-pointer"
