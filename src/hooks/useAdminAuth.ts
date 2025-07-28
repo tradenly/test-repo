@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnifiedAuth } from './useUnifiedAuth';
+import { logger } from '@/utils/logger';
 
 export const useAdminAuth = () => {
   const { user, isAuthenticated, loading: authLoading } = useUnifiedAuth();
@@ -9,17 +10,17 @@ export const useAdminAuth = () => {
 
   useEffect(() => {
     const checkAdminStatus = async () => {
-      console.log('🔍 useAdminAuth: Checking admin status for user:', user?.id);
+      logger.log('🔍 useAdminAuth: Checking admin status for user:', user?.id);
       
       if (!user?.id || !isAuthenticated) {
-        console.log('❌ useAdminAuth: No user or not authenticated');
+        logger.log('❌ useAdminAuth: No user or not authenticated');
         setIsAdmin(false);
         setIsLoading(false);
         return;
       }
 
       try {
-        console.log('🔎 useAdminAuth: Querying admin role for user:', user.id);
+        logger.log('🔎 useAdminAuth: Querying admin role for user:', user.id);
         
         const { data, error } = await supabase
           .from('user_roles')
@@ -29,15 +30,15 @@ export const useAdminAuth = () => {
           .maybeSingle();
 
         if (error) {
-          console.error('❌ useAdminAuth: Database error:', error);
+          logger.error('❌ useAdminAuth: Database error:', error);
           setIsAdmin(false);
         } else {
           const hasAdminRole = !!data;
-          console.log('✅ useAdminAuth: Admin check result:', hasAdminRole);
+          logger.log('✅ useAdminAuth: Admin check result:', hasAdminRole);
           setIsAdmin(hasAdminRole);
         }
       } catch (error) {
-        console.error('💥 useAdminAuth: Exception:', error);
+        logger.error('💥 useAdminAuth: Exception:', error);
         setIsAdmin(false);
       } finally {
         setIsLoading(false);
@@ -53,7 +54,7 @@ export const useAdminAuth = () => {
   // Keep loading true while auth is loading
   const finalLoading = authLoading || isLoading;
 
-  console.log('📋 useAdminAuth: Final state - isAdmin:', isAdmin, 'isLoading:', finalLoading, 'user exists:', !!user);
+  logger.log(`📋 useAdminAuth: Final state - isAdmin: ${isAdmin}, isLoading: ${finalLoading}, user exists: ${!!user}`);
 
   return {
     isAdmin,

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 export interface UnifiedUser {
   id: string;
@@ -23,9 +24,8 @@ export const useUnifiedAuth = () => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (mounted && session?.user) {
-          console.log('UnifiedAuth: Found existing session, setting user immediately');
-          console.log('UnifiedAuth: User provider:', session.user.app_metadata?.provider);
-          console.log('UnifiedAuth: User metadata:', session.user.user_metadata);
+          logger.log('UnifiedAuth: Found existing session, setting user immediately');
+          logger.log('UnifiedAuth: User provider:', session.user.app_metadata?.provider);
           
           setUnifiedUser({
             id: session.user.id,
@@ -34,7 +34,7 @@ export const useUnifiedAuth = () => {
             supabaseUser: session.user,
           });
         } else if (mounted) {
-          console.log('UnifiedAuth: No existing session found');
+          logger.log('UnifiedAuth: No existing session found');
           setUnifiedUser(null);
         }
         
@@ -42,7 +42,7 @@ export const useUnifiedAuth = () => {
           setLoading(false);
         }
       } catch (error) {
-        console.error('UnifiedAuth: Session check failed:', error);
+        logger.error('UnifiedAuth: Session check failed:', error);
         if (mounted) {
           setUnifiedUser(null);
           setLoading(false);
@@ -53,12 +53,7 @@ export const useUnifiedAuth = () => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('UnifiedAuth: Auth state changed:', event, !!session);
-        
-        if (session?.user) {
-          console.log('UnifiedAuth: Provider:', session.user.app_metadata?.provider);
-          console.log('UnifiedAuth: Email verified:', session.user.email_confirmed_at);
-        }
+        logger.log(`UnifiedAuth: Auth state changed: ${event}, session exists: ${!!session}`);
         
         if (mounted) {
           if (session?.user) {
@@ -87,12 +82,12 @@ export const useUnifiedAuth = () => {
 
   const logout = async () => {
     try {
-      console.log('UnifiedAuth logout called');
+      logger.log('UnifiedAuth logout called');
       await supabase.auth.signOut();
       setUnifiedUser(null);
-      console.log('UnifiedAuth logout completed');
+      logger.log('UnifiedAuth logout completed');
     } catch (error) {
-      console.error('Logout failed:', error);
+      logger.error('Logout failed:', error);
     }
   };
 

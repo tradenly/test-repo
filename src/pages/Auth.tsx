@@ -6,6 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/utils/logger";
+import { 
+  sanitizeEmail, 
+  sanitizeUsername, 
+  sanitizeName, 
+  validatePassword, 
+  checkRateLimit 
+} from "@/utils/inputSanitizer";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -25,22 +33,22 @@ const Auth = () => {
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        console.log('🔐 User already authenticated, redirecting to dashboard');
+        logger.log('🔐 User already authenticated, redirecting to dashboard');
         navigate('/');
       }
     });
 
     // Listen for OAuth redirect and other auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 Auth state change:', event, !!session);
+      logger.log(`🔐 Auth state change: ${event}, session exists: ${!!session}`);
       
       if (event === 'SIGNED_IN' && session) {
-        console.log('✅ User signed in successfully');
+        logger.log('✅ User signed in successfully');
         
         // Process referral if there's a referral code and this is a new signup
         if (referralCode && event === 'SIGNED_IN') {
           try {
-            console.log('Processing referral for code:', referralCode);
+            logger.log('Processing referral for code:', referralCode);
             const { data, error } = await supabase.rpc('process_referral_signup', {
               new_user_id: session.user.id,
               referral_code_param: referralCode
@@ -52,10 +60,10 @@ const Auth = () => {
                 description: "Successfully signed up with referral! Your referrer has received 5 credits.",
               });
             } else if (error) {
-              console.log('Referral processing error:', error);
+              logger.log('Referral processing error:', error);
             }
           } catch (err) {
-            console.log('Referral processing failed:', err);
+            logger.log('Referral processing failed:', err);
           }
         } else {
           toast({
@@ -66,7 +74,7 @@ const Auth = () => {
         
         navigate('/');
       } else if (event === 'SIGNED_OUT') {
-        console.log('👋 User signed out');
+        logger.log('👋 User signed out');
       }
     });
 
@@ -88,22 +96,50 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
+    // Rate limiting check
+    const clientId = `signup_${email}`;
+    if (!checkRateLimit(clientId, 3, 15 * 60 * 1000)) {
+      toast({
+        title: "Too Many Attempts",
+        description: "Please wait 15 minutes before trying again",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Input sanitization and validation
+    const sanitizedEmail = sanitizeEmail(email);
+    const sanitizedUsername = sanitizeUsername(username);
+    const sanitizedFullName = sanitizeName(fullName);
+    
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      toast({
+        title: "Invalid Password",
+        description: passwordValidation.errors.join(', '),
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signUp({
-        email,
+        email: sanitizedEmail,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            username,
-            full_name: fullName,
+            username: sanitizedUsername,
+            full_name: sanitizedFullName,
             referral_code: referralCode, // Store referral code in user metadata
           }
         }
       });
 
       if (error) {
-        console.error('❌ Sign up error:', error);
+        logger.error('❌ Sign up error:', error);
         toast({
           title: "Error",
           description: error.message,
@@ -118,7 +154,7 @@ const Auth = () => {
         });
       }
     } catch (err) {
-      console.error('❌ Unexpected sign up error:', err);
+      logger.error('❌ Unexpected sign up error:', err);
       toast({
         title: "Error",
         description: "An unexpected error occurred during sign up",
@@ -133,14 +169,29 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
+    // Rate limiting check
+    const clientId = `signin_${email}`;
+    if (!checkRateLimit(clientId, 5, 15 * 60 * 1000)) {
+      toast({
+        title: "Too Many Attempts",
+        description: "Please wait 15 minutes before trying again",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Input sanitization
+    const sanitizedEmail = sanitizeEmail(email);
+
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: sanitizedEmail,
         password,
       });
 
       if (error) {
-        console.error('❌ Sign in error:', error);
+        logger.error('❌ Sign in error:', error);
         toast({
           title: "Error",
           description: error.message,
@@ -148,7 +199,7 @@ const Auth = () => {
         });
       }
     } catch (err) {
-      console.error('❌ Unexpected sign in error:', err);
+      logger.error('❌ Unexpected sign in error:', err);
       toast({
         title: "Error",
         description: "An unexpected error occurred during sign in",
@@ -163,13 +214,28 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
+    // Rate limiting check
+    const clientId = `forgot_${email}`;
+    if (!checkRateLimit(clientId, 3, 15 * 60 * 1000)) {
+      toast({
+        title: "Too Many Attempts",
+        description: "Please wait 15 minutes before trying again",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Input sanitization
+    const sanitizedEmail = sanitizeEmail(email);
+
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) {
-        console.error('❌ Password reset error:', error);
+        logger.error('❌ Password reset error:', error);
         toast({
           title: "Error",
           description: error.message,
@@ -183,7 +249,7 @@ const Auth = () => {
         setShowForgotPassword(false);
       }
     } catch (err) {
-      console.error('❌ Unexpected password reset error:', err);
+      logger.error('❌ Unexpected password reset error:', err);
       toast({
         title: "Error",
         description: "An unexpected error occurred while sending password reset",
@@ -195,7 +261,7 @@ const Auth = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    console.log('🚀 Starting Google OAuth flow');
+    logger.log('🚀 Starting Google OAuth flow');
     setGoogleLoading(true);
 
     try {
@@ -215,7 +281,7 @@ const Auth = () => {
       });
 
       if (error) {
-        console.error('❌ Google OAuth error:', error);
+        logger.error('❌ Google OAuth error:', error);
         toast({
           title: "Google Sign In Error",
           description: error.message || "Failed to sign in with Google. Please check your Google OAuth configuration.",
@@ -223,11 +289,11 @@ const Auth = () => {
         });
         setGoogleLoading(false);
       } else {
-        console.log('✅ Google OAuth initiated successfully');
+        logger.log('✅ Google OAuth initiated successfully');
         // Don't set loading to false here as user will be redirected
       }
     } catch (err) {
-      console.error('❌ Unexpected Google OAuth error:', err);
+      logger.error('❌ Unexpected Google OAuth error:', err);
       toast({
         title: "Error",
         description: "An unexpected error occurred during Google sign in",
