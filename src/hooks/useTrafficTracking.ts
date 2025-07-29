@@ -87,13 +87,12 @@ export const useTrafficTracking = (): TrafficTracking => {
       const utmTerm = urlParams.get('utm_term');
       const utmContent = urlParams.get('utm_content');
 
-      // Get client IP (will be handled by RLS and server)
-      const response = await fetch('https://api.ipify.org?format=json');
-      const { ip } = await response.json();
+      // Use a fallback IP address since we can't reliably get client IP from browser
+      const fallbackIP = '0.0.0.0';
 
-      await supabase.from('visitor_sessions').insert({
+      const { error: sessionError } = await supabase.from('visitor_sessions').insert({
         session_id: sessionData.sessionId,
-        ip_address: ip,
+        ip_address: fallbackIP,
         user_agent: userAgent,
         start_time: sessionData.startTime.toISOString(),
         referrer: referrer || null,
@@ -106,6 +105,11 @@ export const useTrafficTracking = (): TrafficTracking => {
         is_bounce: true // Will be updated later
       });
 
+      if (sessionError) {
+        console.error('Error creating session:', sessionError);
+        return;
+      }
+
       // Create visitor analytics record
       await createVisitorAnalytics(sessionData.sessionId);
     } catch (error) {
@@ -113,10 +117,10 @@ export const useTrafficTracking = (): TrafficTracking => {
     }
   };
 
-  // Create visitor analytics record
+  // Create visitor analytics record  
   const createVisitorAnalytics = async (sessionId: string) => {
     try {
-      // Get geographic and device information
+      // Get device and browser information
       const deviceInfo = {
         is_mobile: /Mobi|Android/i.test(navigator.userAgent),
         screen_resolution: `${screen.width}x${screen.height}`,
@@ -124,24 +128,39 @@ export const useTrafficTracking = (): TrafficTracking => {
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
       };
 
-      // Get browser info
+      // Get browser and OS info
       const browserInfo = getBrowserInfo();
       const osInfo = getOSInfo();
 
-      // Get geographic info (using a free service)
-      const geoResponse = await fetch('https://ipapi.co/json/');
-      const geoData = await geoResponse.json();
+      // Fallback geographic data based on browser timezone and language
+      const locale = navigator.language || 'en-US';
+      const country = locale.includes('-') ? locale.split('-')[1] : 'US';
+      const countryNames: Record<string, string> = {
+        'US': 'United States',
+        'GB': 'United Kingdom', 
+        'CA': 'Canada',
+        'AU': 'Australia',
+        'DE': 'Germany',
+        'FR': 'France',
+        'ES': 'Spain',
+        'IT': 'Italy',
+        'JP': 'Japan',
+        'CN': 'China',
+        'IN': 'India',
+        'BR': 'Brazil',
+        'MX': 'Mexico'
+      };
 
-      await supabase.from('visitor_analytics').insert({
+      const { error: analyticsError } = await supabase.from('visitor_analytics').insert({
         session_id: sessionId,
-        country_code: geoData.country_code || null,
-        country_name: geoData.country_name || null,
-        region: geoData.region || null,
-        city: geoData.city || null,
-        timezone: geoData.timezone || deviceInfo.timezone,
-        latitude: geoData.latitude || null,
-        longitude: geoData.longitude || null,
-        isp: geoData.org || null,
+        country_code: country,
+        country_name: countryNames[country] || 'Unknown',
+        region: null,
+        city: null,
+        timezone: deviceInfo.timezone,
+        latitude: null,
+        longitude: null,
+        isp: null,
         device_type: deviceInfo.is_mobile ? 'Mobile' : 'Desktop',
         browser_name: browserInfo.name,
         browser_version: browserInfo.version,
@@ -152,6 +171,10 @@ export const useTrafficTracking = (): TrafficTracking => {
         is_mobile: deviceInfo.is_mobile,
         is_bot: /bot|crawler|spider/i.test(navigator.userAgent)
       });
+
+      if (analyticsError) {
+        console.error('Error creating visitor analytics:', analyticsError);
+      }
     } catch (error) {
       console.error('Error creating visitor analytics:', error);
     }

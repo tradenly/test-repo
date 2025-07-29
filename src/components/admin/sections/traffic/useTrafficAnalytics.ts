@@ -102,13 +102,24 @@ function processTrafficData(
   const uniqueVisitors = new Set(sessions.map(s => s.ip_address)).size;
   const totalPageViews = pageViews.length;
   
-  const avgDuration = sessions.reduce((sum, s) => sum + (s.duration_seconds || 0), 0) / totalSessions || 0;
-  const bounces = sessions.filter(s => s.is_bounce).length;
-  const bounceRate = totalSessions > 0 ? (bounces / totalSessions) * 100 : 0;
+  // Fix average duration calculation
+  const sessionsWithDuration = sessions.filter(s => s.duration_seconds && s.duration_seconds > 0);
+  const avgDuration = sessionsWithDuration.length > 0 
+    ? Math.round(sessionsWithDuration.reduce((sum, s) => sum + s.duration_seconds, 0) / sessionsWithDuration.length)
+    : 0;
+  
+  // Fix bounce rate - only sessions with page_count <= 1 OR is_bounce = true
+  const bounces = sessions.filter(s => s.is_bounce === true || s.page_count <= 1).length;
+  const bounceRate = totalSessions > 0 ? Math.round((bounces / totalSessions) * 100) : 0;
 
-  // Process top pages
+  // Process top pages with proper null handling
   const pageStats = pageViews.reduce((acc, pv) => {
-    const page = pv.page_path || 'Unknown';
+    let page = pv.page_path || '/';
+    // Clean up the page path - remove query parameters and tokens
+    page = page.split('?')[0];
+    if (page.length > 50) {
+      page = page.substring(0, 47) + '...';
+    }
     acc[page] = (acc[page] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -119,21 +130,40 @@ function processTrafficData(
     .map(([page, views]) => ({
       page,
       views: views as number,
-      percentage: ((views as number) / totalPageViews) * 100
+      percentage: totalPageViews > 0 ? ((views as number) / totalPageViews) * 100 : 0
     }));
 
-  // Process traffic sources
+  // Process traffic sources with improved logic
   const sourceStats = sessions.reduce((acc, session) => {
     let source = 'Direct';
+    
     if (session.utm_source) {
       source = session.utm_source;
-    } else if (session.referrer && !session.referrer.includes(window.location.hostname)) {
+    } else if (session.referrer && session.referrer.trim() !== '') {
       try {
-        source = new URL(session.referrer).hostname;
+        const url = new URL(session.referrer);
+        const domain = url.hostname.toLowerCase();
+        
+        // Filter out internal referrers
+        if (domain.includes('lovable') || domain === window.location.hostname) {
+          source = 'Internal';
+        } else {
+          // Map common domains to readable names
+          if (domain.includes('google')) source = 'Google';
+          else if (domain.includes('facebook')) source = 'Facebook';
+          else if (domain.includes('twitter') || domain.includes('x.com')) source = 'Twitter/X';
+          else if (domain.includes('linkedin')) source = 'LinkedIn';
+          else if (domain.includes('youtube')) source = 'YouTube';
+          else if (domain.includes('instagram')) source = 'Instagram';
+          else if (domain.includes('reddit')) source = 'Reddit';
+          else if (domain.includes('github')) source = 'GitHub';
+          else source = domain.replace('www.', '');
+        }
       } catch {
-        source = 'Referrer';
+        source = 'Referral';
       }
     }
+    
     acc[source] = (acc[source] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -143,10 +173,10 @@ function processTrafficData(
     .map(([source, sessionCount]) => ({
       source,
       sessions: sessionCount as number,
-      percentage: ((sessionCount as number) / totalSessions) * 100
+      percentage: totalSessions > 0 ? ((sessionCount as number) / totalSessions) * 100 : 0
     }));
 
-  // Process geographic data
+  // Process geographic data with proper totals
   const geoStats = analytics.reduce((acc, item) => {
     const country = item.country_name || 'Unknown';
     acc[country] = (acc[country] || 0) + 1;
@@ -159,10 +189,10 @@ function processTrafficData(
     .map(([country, sessionCount]) => ({
       country,
       sessions: sessionCount as number,
-      percentage: ((sessionCount as number) / analytics.length) * 100
+      percentage: totalSessions > 0 ? ((sessionCount as number) / totalSessions) * 100 : 0
     }));
 
-  // Process device data
+  // Process device data with proper totals
   const deviceStats = analytics.reduce((acc, item) => {
     const type = item.device_type || (item.is_mobile ? 'Mobile' : 'Desktop');
     acc[type] = (acc[type] || 0) + 1;
@@ -174,12 +204,12 @@ function processTrafficData(
     .map(([type, sessionCount]) => ({
       type,
       sessions: sessionCount as number,
-      percentage: ((sessionCount as number) / analytics.length) * 100
+      percentage: totalSessions > 0 ? ((sessionCount as number) / totalSessions) * 100 : 0
     }));
 
-  // Process daily traffic
+  // Process daily traffic - use start_time for sessions
   const dailyStats = sessions.reduce((acc, session) => {
-    const date = format(new Date(session.created_at), 'yyyy-MM-dd');
+    const date = format(new Date(session.start_time || session.created_at), 'yyyy-MM-dd');
     if (!acc[date]) {
       acc[date] = { sessions: 0, pageViews: 0 };
     }
@@ -189,10 +219,11 @@ function processTrafficData(
 
   // Add page views to daily stats
   pageViews.forEach(pv => {
-    const date = format(new Date(pv.created_at), 'yyyy-MM-dd');
-    if (dailyStats[date]) {
-      dailyStats[date].pageViews += 1;
+    const date = format(new Date(pv.view_time || pv.created_at), 'yyyy-MM-dd');
+    if (!dailyStats[date]) {
+      dailyStats[date] = { sessions: 0, pageViews: 0 };
     }
+    dailyStats[date].pageViews += 1;
   });
 
   const dailyTraffic = Object.entries(dailyStats)

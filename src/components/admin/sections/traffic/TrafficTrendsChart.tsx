@@ -35,6 +35,12 @@ export const TrafficTrendsChart = ({ data }: TrafficTrendsChartProps) => {
         <CardTitle className="text-white">Traffic Trends</CardTitle>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 text-sm text-gray-400 space-y-1">
+          <p><span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+          <strong>Sessions:</strong> Number of unique visitor sessions per day</p>
+          <p><span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+          <strong>Page Views:</strong> Total number of pages viewed per day</p>
+        </div>
         {chartData.length > 0 ? (
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
