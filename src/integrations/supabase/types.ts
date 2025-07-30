@@ -14,6 +14,103 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_agent_logs: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          log_level: string
+          message: string
+          metadata: Json | null
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          log_level?: string
+          message: string
+          metadata?: Json | null
+          task_id?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          log_level?: string
+          message?: string
+          metadata?: Json | null
+          task_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_logs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agent_schedules: {
+        Row: {
+          active_hours_end: number
+          active_hours_start: number
+          agent_id: string
+          created_at: string
+          days_of_week: number[]
+          frequency_minutes: number
+          id: string
+          is_active: boolean
+          keywords: string[]
+          reply_keywords: string[]
+          twitter_account_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_hours_end?: number
+          active_hours_start?: number
+          agent_id: string
+          created_at?: string
+          days_of_week?: number[]
+          frequency_minutes?: number
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          reply_keywords?: string[]
+          twitter_account_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_hours_end?: number
+          active_hours_start?: number
+          agent_id?: string
+          created_at?: string
+          days_of_week?: number[]
+          frequency_minutes?: number
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          reply_keywords?: string[]
+          twitter_account_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_schedules_twitter_account_id_fkey"
+            columns: ["twitter_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_twitter_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_agent_signups: {
         Row: {
           active: boolean | null
@@ -127,6 +224,62 @@ export type Database = {
           voice_type?: string | null
         }
         Relationships: []
+      }
+      ai_agent_tasks: {
+        Row: {
+          agent_id: string | null
+          content: Json
+          created_at: string
+          error_message: string | null
+          executed_at: string | null
+          id: string
+          scheduled_for: string | null
+          status: string
+          task_type: string
+          twitter_account_id: string | null
+          twitter_response: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          content: Json
+          created_at?: string
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          scheduled_for?: string | null
+          status?: string
+          task_type: string
+          twitter_account_id?: string | null
+          twitter_response?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          content?: Json
+          created_at?: string
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          scheduled_for?: string | null
+          status?: string
+          task_type?: string
+          twitter_account_id?: string | null
+          twitter_response?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_tasks_twitter_account_id_fkey"
+            columns: ["twitter_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_twitter_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       blockchain_transactions: {
         Row: {
@@ -1082,6 +1235,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_twitter_accounts: {
+        Row: {
+          access_token: string
+          created_at: string
+          display_name: string | null
+          id: string
+          is_active: boolean
+          refresh_token: string | null
+          token_expires_at: string | null
+          twitter_user_id: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          twitter_user_id: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          twitter_user_id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
       }
       user_wallets: {
         Row: {
