@@ -602,15 +602,7 @@ export type Database = {
           user_id?: string | null
           view_time?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "page_views_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "visitor_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -1191,15 +1183,7 @@ export type Database = {
           timezone?: string | null
           viewport_size?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "visitor_analytics_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "visitor_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       visitor_sessions: {
         Row: {
