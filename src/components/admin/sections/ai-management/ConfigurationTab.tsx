@@ -110,11 +110,31 @@ export const ConfigurationTab = () => {
   };
 
   const testConnection = async (provider: string, configs: APIConfiguration) => {
-    // This would be implemented with specific test logic for each provider
-    toast({
-      title: "Test Connection",
-      description: `Testing ${provider} connection... (Feature coming soon)`,
-    });
+    try {
+      const action = provider.toLowerCase() === 'openai' ? 'test_openai' : 
+                     provider.toLowerCase() === 'twitter' ? 'test_twitter' : 
+                     'test_database';
+      
+      const { data, error } = await supabase.functions.invoke('test-connections', {
+        body: { action }
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      toast({
+        title: "Connection Test",
+        description: data.message || `${provider} connection tested`,
+        variant: data.status === 'success' ? 'default' : 'destructive'
+      });
+    } catch (error) {
+      toast({
+        title: "Connection Test Failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
+    }
   };
 
   const ConfigurationSection = ({ 
@@ -318,17 +338,17 @@ export const ConfigurationTab = () => {
                   <CardContent className="p-4">
                     <h4 className="font-semibold mb-2">Quick Actions</h4>
                     <p className="text-sm text-muted-foreground mb-3">Test and manage agent deployments</p>
-                    <div className="space-y-2">
-                      <Button variant="outline" size="sm" className="w-full">
-                        Test AI Connections
-                      </Button>
-                      <Button variant="outline" size="sm" className="w-full">
-                        Test Social APIs
-                      </Button>
-                      <Button variant="outline" size="sm" className="w-full">
-                        Deploy Test Agent
-                      </Button>
-                    </div>
+                     <div className="space-y-2">
+                       <Button variant="outline" size="sm" className="w-full" onClick={() => testConnection('OpenAI', aiConfigs)}>
+                         Test AI Connections
+                       </Button>
+                       <Button variant="outline" size="sm" className="w-full" onClick={() => testConnection('Twitter', socialConfigs)}>
+                         Test Social APIs
+                       </Button>
+                       <Button variant="outline" size="sm" className="w-full" onClick={() => testConnection('Database', {})}>
+                         Deploy Test Agent
+                       </Button>
+                     </div>
                   </CardContent>
                 </Card>
               </div>

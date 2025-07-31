@@ -42,3 +42,9 @@ verify_jwt = false
 
 [functions.ai-agent-orchestrator]
 verify_jwt = false
+
+[functions.agent-scheduler]
+verify_jwt = false
+
+[functions.test-connections]
+verify_jwt = false

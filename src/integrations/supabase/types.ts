@@ -60,6 +60,7 @@ export type Database = {
           active_hours_end: number
           active_hours_start: number
           agent_id: string
+          agent_signup_id: string | null
           created_at: string
           days_of_week: number[]
           frequency_minutes: number
@@ -75,6 +76,7 @@ export type Database = {
           active_hours_end?: number
           active_hours_start?: number
           agent_id: string
+          agent_signup_id?: string | null
           created_at?: string
           days_of_week?: number[]
           frequency_minutes?: number
@@ -90,6 +92,7 @@ export type Database = {
           active_hours_end?: number
           active_hours_start?: number
           agent_id?: string
+          agent_signup_id?: string | null
           created_at?: string
           days_of_week?: number[]
           frequency_minutes?: number
@@ -102,6 +105,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_agent_schedules_agent_signup_id_fkey"
+            columns: ["agent_signup_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_signups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ai_agent_schedules_twitter_account_id_fkey"
             columns: ["twitter_account_id"]

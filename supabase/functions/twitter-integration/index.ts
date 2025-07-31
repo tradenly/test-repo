@@ -30,14 +30,14 @@ interface TwitterTaskPayload {
   twitterAccountId: string;
 }
 
-// OAuth 1.0a signature generation for Twitter API
-function generateOAuthSignature(
+// OAuth 1.0a signature generation for Twitter API using Web Crypto API
+async function generateOAuthSignature(
   method: string,
   url: string,
   params: Record<string, string>,
   consumerSecret: string,
   tokenSecret: string
-): string {
+): Promise<string> {
   const signatureBaseString = `${method}&${encodeURIComponent(url)}&${encodeURIComponent(
     Object.entries(params)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -51,20 +51,32 @@ function generateOAuthSignature(
   const keyData = encoder.encode(signingKey);
   const data = encoder.encode(signatureBaseString);
   
-  return btoa(String.fromCharCode(...new Uint8Array(
-    crypto.subtle.importKey(
+  try {
+    const key = await crypto.subtle.importKey(
       'raw',
       keyData,
       { name: 'HMAC', hash: 'SHA-1' },
       false,
       ['sign']
-    ).then(key => 
-      crypto.subtle.sign('HMAC', key, data)
-    ).then(signature => new Uint8Array(signature))
-  )));
+    );
+    
+    const signature = await crypto.subtle.sign('HMAC', key, data);
+    const signatureArray = new Uint8Array(signature);
+    
+    // Convert to base64
+    let binary = '';
+    for (let i = 0; i < signatureArray.byteLength; i++) {
+      binary += String.fromCharCode(signatureArray[i]);
+    }
+    
+    return btoa(binary);
+  } catch (error) {
+    console.error('Error generating OAuth signature:', error);
+    throw new Error('Failed to generate OAuth signature');
+  }
 }
 
-function generateOAuthHeader(method: string, url: string, accessToken: string, accessTokenSecret: string): string {
+async function generateOAuthHeader(method: string, url: string, accessToken: string, accessTokenSecret: string): Promise<string> {
   const oauthParams = {
     oauth_consumer_key: TWITTER_API_KEY!,
     oauth_nonce: crypto.randomUUID().replace(/-/g, ''),
@@ -74,7 +86,7 @@ function generateOAuthHeader(method: string, url: string, accessToken: string, a
     oauth_version: "1.0",
   };
 
-  const signature = generateOAuthSignature(
+  const signature = await generateOAuthSignature(
     method,
     url,
     oauthParams,
@@ -161,7 +173,7 @@ async function postTweet(text: string, accessToken: string, accessTokenSecret: s
   const url = `${TWITTER_API_BASE}/tweets`;
   const method = "POST";
   
-  const oauthHeader = generateOAuthHeader(method, url, accessToken, accessTokenSecret);
+  const oauthHeader = await generateOAuthHeader(method, url, accessToken, accessTokenSecret);
   
   const response = await fetch(url, {
     method,
@@ -185,7 +197,7 @@ async function replyToTweet(text: string, replyToId: string, accessToken: string
   const url = `${TWITTER_API_BASE}/tweets`;
   const method = "POST";
   
-  const oauthHeader = generateOAuthHeader(method, url, accessToken, accessTokenSecret);
+  const oauthHeader = await generateOAuthHeader(method, url, accessToken, accessTokenSecret);
   
   const response = await fetch(url, {
     method,
@@ -214,7 +226,7 @@ async function likeTweet(tweetId: string, accessToken: string, accessTokenSecret
   const url = `${TWITTER_API_BASE}/users/${accessToken}/likes`;
   const method = "POST";
   
-  const oauthHeader = generateOAuthHeader(method, url, accessToken, accessTokenSecret);
+  const oauthHeader = await generateOAuthHeader(method, url, accessToken, accessTokenSecret);
   
   const response = await fetch(url, {
     method,
@@ -238,7 +250,7 @@ async function retweetTweet(tweetId: string, accessToken: string, accessTokenSec
   const url = `${TWITTER_API_BASE}/users/${accessToken}/retweets`;
   const method = "POST";
   
-  const oauthHeader = generateOAuthHeader(method, url, accessToken, accessTokenSecret);
+  const oauthHeader = await generateOAuthHeader(method, url, accessToken, accessTokenSecret);
   
   const response = await fetch(url, {
     method,
