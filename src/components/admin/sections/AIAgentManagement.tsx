@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentManagementTab } from "./ai-management/AgentManagementTab";
 import { ConfigurationTab } from "./ai-management/ConfigurationTab";
 import { TwitterAgentMonitor } from "./ai-management/TwitterAgentMonitor";
+import { SystemTestPanel } from "./ai-management/SystemTestPanel";
 
 export const AIAgentManagement = () => {
   return (
@@ -15,8 +16,12 @@ export const AIAgentManagement = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="management" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="test" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="test" className="flex items-center gap-2">
+            <Bot className="h-4 w-4" />
+            System Test
+          </TabsTrigger>
           <TabsTrigger value="management" className="flex items-center gap-2">
             <Bot className="h-4 w-4" />
             Agent Management
@@ -30,6 +35,10 @@ export const AIAgentManagement = () => {
             Configuration
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="test" className="mt-6">
+          <SystemTestPanel />
+        </TabsContent>
 
         <TabsContent value="management" className="mt-6">
           <AgentManagementTab />

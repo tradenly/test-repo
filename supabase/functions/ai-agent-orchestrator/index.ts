@@ -104,12 +104,12 @@ async function shouldGenerateContent(probability: number): Promise<boolean> {
 async function processAgentSchedules(supabase: any) {
   console.log('Processing agent schedules...');
   
-  // Get all active agent schedules
+  // Get all active agent schedules with proper joins
   const { data: schedules, error: schedulesError } = await supabase
     .from('ai_agent_schedules')
     .select(`
       *,
-      ai_agent_signups!inner(*)
+      ai_agent_signups!agent_signup_id(*)
     `)
     .eq('is_active', true)
     .eq('ai_agent_signups.active', true)
@@ -168,17 +168,11 @@ async function processAgentSchedules(supabase: any) {
         continue;
       }
 
-      // Get Twitter account for this agent
-      const { data: twitterAccount } = await supabase
-        .from('user_twitter_accounts')
-        .select('id')
-        .eq('user_id', agent.user_id)
-        .eq('is_active', true)
-        .limit(1)
-        .single();
-
-      if (!twitterAccount) {
-        console.log(`No active Twitter account for user ${agent.user_id}`);
+      // Get Twitter account for this agent (use the one already linked)
+      const twitterAccountId = schedule.twitter_account_id;
+      
+      if (!twitterAccountId) {
+        console.log(`No Twitter account linked for agent ${agent.id}`);
         continue;
       }
 
@@ -188,7 +182,7 @@ async function processAgentSchedules(supabase: any) {
         .insert({
           user_id: agent.user_id,
           agent_id: agent.id,
-          twitter_account_id: twitterAccount.id,
+          twitter_account_id: twitterAccountId,
           task_type: 'post',
           content: { text: content },
           status: 'pending'
@@ -218,7 +212,7 @@ async function processAgentSchedules(supabase: any) {
       await supabase
         .from('ai_agent_logs')
         .insert({
-          user_id: schedule.ai_agent_signups.user_id,
+          user_id: schedule.ai_agent_signups?.user_id || 'unknown',
           agent_id: schedule.agent_id,
           log_level: 'error',
           message: `Error in orchestrator: ${error.message}`
