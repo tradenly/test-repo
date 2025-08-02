@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Play, Pause, RefreshCw, Activity, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Play, Pause, RefreshCw, Activity, Clock, CheckCircle, XCircle, AlertTriangle, Bot, Send } from 'lucide-react';
 
 interface AgentTask {
   id: string;
@@ -182,40 +182,75 @@ export const TwitterAgentMonitor = () => {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Twitter Agent Monitor</CardTitle>
-            <CardDescription>Monitor AI agent activity and manage orchestration</CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            Twitter Agent Monitor
+          </CardTitle>
+          <CardDescription>Monitor AI agent activity and manage orchestration</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button 
               onClick={() => triggerOrchestrator('process_schedules')}
               disabled={isProcessing}
-              variant="outline"
-              size="sm"
+              className="w-full"
             >
-              <Play className="w-4 h-4 mr-2" />
-              Generate Content
+              <Bot className="h-4 w-4 mr-2" />
+              {isProcessing ? 'Processing...' : 'Generate Content'}
             </Button>
-            <Button
+            
+            <Button 
               onClick={() => triggerOrchestrator('process_tasks')}
               disabled={isProcessing}
               variant="outline"
-              size="sm"
+              className="w-full"
             >
-              <Activity className="w-4 h-4 mr-2" />
-              Process Tasks
+              <Send className="h-4 w-4 mr-2" />
+              {isProcessing ? 'Processing...' : 'Process Tasks'}
             </Button>
-            <Button
+            
+            <Button 
               onClick={() => triggerOrchestrator('full_cycle')}
               disabled={isProcessing}
-              size="sm"
+              variant="secondary"
+              className="w-full"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
-              Full Cycle
+              <RefreshCw className="h-4 w-4 mr-2" />
+              {isProcessing ? 'Processing...' : 'Full Cycle'}
             </Button>
           </div>
-        </CardHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-muted-foreground">
+            <div className="p-3 bg-muted/50 rounded border-l-4 border-blue-500">
+              <div className="flex items-start gap-2">
+                <Bot className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <strong className="text-foreground">Generate Content:</strong>
+                  <p className="mt-1">Creates new AI-generated posts based on active agent schedules and posting probabilities.</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-3 bg-muted/50 rounded border-l-4 border-orange-500">
+              <div className="flex items-start gap-2">
+                <Send className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <strong className="text-foreground">Process Tasks:</strong>
+                  <p className="mt-1">Executes all pending tasks by posting them to connected Twitter accounts.</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-3 bg-muted/50 rounded border-l-4 border-green-500">
+              <div className="flex items-start gap-2">
+                <RefreshCw className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <strong className="text-foreground">Full Cycle:</strong>
+                  <p className="mt-1">Runs both content generation and task processing in sequence for complete workflow.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
       <Tabs defaultValue="tasks" className="w-full">

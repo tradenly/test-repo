@@ -96,8 +96,14 @@ export const SystemTestPanel = () => {
           </div>
           <CardDescription className="text-xs">{description}</CardDescription>
           {tooltip && (
-            <div className="text-xs text-muted-foreground bg-muted p-2 rounded mt-2">
-              <strong>What this does:</strong> {tooltip}
+            <div className="text-xs text-muted-foreground bg-muted p-3 rounded mt-2 border-l-4 border-primary">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <strong className="text-foreground">What this does:</strong>
+                  <p className="mt-1">{tooltip}</p>
+                </div>
+              </div>
             </div>
           )}
         </CardHeader>
@@ -109,7 +115,7 @@ export const SystemTestPanel = () => {
             className="w-full"
           >
             <TestTube className="h-3 w-3 mr-1" />
-            Test {label}
+            {isRunning ? 'Testing...' : `Test ${label}`}
           </Button>
           
           {testResults[testType] && (
@@ -142,39 +148,56 @@ export const SystemTestPanel = () => {
               testType="connections"
               label="API Connections"
               description="Test OpenAI, Twitter, and Database connectivity"
-              tooltip="Verifies that all required API credentials are configured and working. Tests OpenAI for content generation, Twitter for posting, and database for data storage."
+              tooltip="Tests all required API connections: OpenAI for AI content generation, Twitter API for social media posting, and database connectivity for storing agent data and logs. This verifies that all credentials are properly configured and services are accessible."
             />
             
             <TestButton 
               testType="orchestrator_schedules"
-              label="Process Schedules"
-              description="Test agent schedule processing and content generation"
-              tooltip="Checks active agent schedules, generates AI content based on agent personalities, and creates posting tasks. This simulates the automatic content creation process."
+              label="Generate Content"
+              description="Test AI content generation for active agents"
+              tooltip="Checks active agent schedules and generates AI content based on agent personalities and configurations. This simulates the automatic content creation process that runs based on each agent's posting schedule and probability settings."
             />
             
             <TestButton 
               testType="orchestrator_tasks"
               label="Process Tasks"
-              description="Test pending task execution via Twitter API"
-              tooltip="Processes pending tasks by posting them to Twitter using the configured API credentials. This tests the actual social media posting functionality."
+              description="Execute pending tasks via Twitter API"
+              tooltip="Processes all pending tasks in the queue by posting them to Twitter using the configured API credentials. This tests the actual social media posting functionality and verifies that generated content reaches the target platforms."
             />
             
             <TestButton 
               testType="full_cycle"
-              label="Full Cycle"
+              label="Full Cycle Test"
               description="Complete end-to-end agent operation test"
-              tooltip="Runs the complete agent workflow: checks schedules → generates content → creates tasks → posts to Twitter. This is a full end-to-end test of the entire system."
+              tooltip="Runs the complete agent workflow from start to finish: 1) Checks active schedules, 2) Generates AI content for eligible agents, 3) Creates posting tasks, 4) Executes tasks via Twitter API. This is a comprehensive test of the entire AI agent system."
             />
           </div>
 
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <h4 className="font-semibold mb-2">Test Instructions:</h4>
-            <ol className="text-sm space-y-1 text-muted-foreground">
-              <li>1. <strong>API Connections</strong> - Verifies OpenAI API key and Twitter credentials</li>
-              <li>2. <strong>Process Schedules</strong> - Creates AI-generated content for active agents</li>
-              <li>3. <strong>Process Tasks</strong> - Executes pending tasks via Twitter API</li>
-              <li>4. <strong>Full Cycle</strong> - Runs complete agent workflow from content generation to posting</li>
-            </ol>
+          <div className="mt-6 p-4 bg-gradient-to-r from-muted/50 to-muted rounded-lg border">
+            <h4 className="font-semibold mb-3 flex items-center gap-2">
+              <TestTube className="h-4 w-4 text-primary" />
+              System Test Guide
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="font-medium text-foreground mb-2">Test Order Recommendation:</p>
+                <ol className="space-y-1 text-muted-foreground list-decimal list-inside">
+                  <li><strong>API Connections</strong> - Verify all services are accessible</li>
+                  <li><strong>Generate Content</strong> - Test AI content creation</li>
+                  <li><strong>Process Tasks</strong> - Verify posting functionality</li>
+                  <li><strong>Full Cycle Test</strong> - End-to-end system validation</li>
+                </ol>
+              </div>
+              <div>
+                <p className="font-medium text-foreground mb-2">System Requirements:</p>
+                <ul className="space-y-1 text-muted-foreground list-disc list-inside">
+                  <li>Active agent schedules configured</li>
+                  <li>Twitter accounts connected to agents</li>
+                  <li>API credentials properly set in secrets</li>
+                  <li>Agents in 'active' status</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
