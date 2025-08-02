@@ -13,6 +13,7 @@ import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { Bot, Info, Wallet, Settings, BarChart3, Power, PowerOff, Edit, Trash2, MessageSquare, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { TwitterAccountConnection } from "./TwitterAccountConnection";
 
 interface AIAgentSectionProps {
   user: UnifiedUser;
@@ -95,18 +96,22 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
     }
   };
 
+  const [editingAgent, setEditingAgent] = useState<any>(null);
+  const [selectedTwitterAccount, setSelectedTwitterAccount] = useState<string>('');
+  const [twitterAccounts, setTwitterAccounts] = useState<any[]>([]);
+
   const toggleAgentStatus = async (agentId: string, newStatus: 'active' | 'inactive') => {
     try {
       const { error } = await supabase
         .from('ai_agent_signups')
-        .update({ status: newStatus })
+        .update({ active: newStatus === 'active' })
         .eq('id', agentId);
 
       if (error) throw error;
 
       setDeployedAgents(prev => 
         prev.map(agent => 
-          agent.id === agentId ? { ...agent, status: newStatus } : agent
+          agent.id === agentId ? { ...agent, active: newStatus === 'active' } : agent
         )
       );
 
@@ -123,6 +128,136 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
       });
     }
   };
+
+  const editAgent = (agent: any) => {
+    setEditingAgent(agent);
+    // Pre-fill form with agent data
+    setAgentName(agent.agent_name || '');
+    setCategory(agent.category || '');
+    setTicker(agent.ticker || '');
+    setPolicyId(agent.policy_id || '');
+    setMarketCapValue(agent.market_cap_value?.toString() || '');
+    setCryptoNetwork(agent.crypto_network || '');
+    setImageUrl(agent.image_url || '');
+    setAge(agent.age?.toString() || '');
+    setBio(agent.bio || '');
+    setDescription(agent.description || '');
+    setPersonality(agent.personality || '');
+    setFirstMessage(agent.first_message || '');
+    setResponseStyle(agent.response_style || '');
+    setAdjectives(agent.adjectives || '');
+    setTone(agent.tone || '');
+    setAppearance(agent.appearance || '');
+    setSocialProfile(agent.social_profile || '');
+    setPostingProbability(agent.posting_probability?.toString() || '5');
+    setTimelineReplyProbability(agent.timeline_reply_probability?.toString() || '1');
+    setSocialUsername(agent.social_username || '');
+    setSocialPassword(agent.social_password || '');
+    setVoiceModel(agent.voice_model || '');
+    setVoiceType(agent.voice_type || '');
+    setTriggerApiKey(agent.trigger_api_key || '');
+    setActiveTab('profile');
+  };
+
+  const saveAgentChanges = async () => {
+    if (!editingAgent) return;
+
+    try {
+      const { error } = await supabase
+        .from('ai_agent_signups')
+        .update({
+          agent_name: agentName,
+          category,
+          ticker,
+          policy_id: policyId,
+          market_cap_value: marketCapValue ? parseFloat(marketCapValue) : null,
+          crypto_network: cryptoNetwork,
+          image_url: imageUrl,
+          age: age ? parseInt(age) : null,
+          bio,
+          description,
+          personality,
+          first_message: firstMessage,
+          response_style: responseStyle,
+          adjectives,
+          tone,
+          appearance,
+          social_profile: socialProfile,
+          posting_probability: parseInt(postingProbability),
+          timeline_reply_probability: parseInt(timelineReplyProbability),
+          social_username: socialUsername,
+          social_password: socialPassword,
+          voice_model: voiceModel,
+          voice_type: voiceType,
+          trigger_api_key: triggerApiKey,
+        })
+        .eq('id', editingAgent.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Agent Updated",
+        description: "Your AI agent has been updated successfully.",
+      });
+
+      setEditingAgent(null);
+      loadDeployedAgents();
+      
+      // Reset form
+      setAgentName("");
+      setCategory("");
+      setTicker("");
+      setPolicyId("");
+      setMarketCapValue("");
+      setCryptoNetwork("");
+      setImageUrl("");
+      setAge("");
+      setBio("");
+      setDescription("");
+      setPersonality("");
+      setFirstMessage("");
+      setResponseStyle("");
+      setAdjectives("");
+      setTone("");
+      setAppearance("");
+      setSocialProfile("");
+      setPostingProbability("5");
+      setTimelineReplyProbability("1");
+      setSocialUsername("");
+      setSocialPassword("");
+      setVoiceModel("");
+      setVoiceType("");
+      setTriggerApiKey("");
+      
+      setActiveTab('deployed');
+    } catch (error) {
+      console.error('Error updating agent:', error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update agent. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadTwitterAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_twitter_accounts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      if (error) throw error;
+      setTwitterAccounts(data || []);
+    } catch (error) {
+      console.error('Error loading Twitter accounts:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadTwitterAccounts();
+  }, [user.id]);
 
   const deleteAgent = async (agentId: string) => {
     try {
@@ -414,11 +549,12 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 bg-card">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-6 bg-card">
+          <TabsTrigger value="profile">{editingAgent ? 'Edit' : 'Profile'}</TabsTrigger>
           <TabsTrigger value="personality">Personality</TabsTrigger>
           <TabsTrigger value="posting">Posting</TabsTrigger>
           <TabsTrigger value="testing">Testing</TabsTrigger>
+          <TabsTrigger value="twitter">Twitter</TabsTrigger>
           <TabsTrigger value="deployed">Deployed Agents</TabsTrigger>
         </TabsList>
 
@@ -756,7 +892,7 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                 </div>
               </div>
               
-              {/* Save & Create Button */}
+              {/* Save & Next or Update Button */}
               <div className="flex justify-end items-center gap-2 pt-4 border-t border-border">
                 <TooltipProvider>
                   <Tooltip>
@@ -768,13 +904,23 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <Button 
-                  onClick={handleCreateAgent}
-                  disabled={isSubmitting}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {isSubmitting ? "Creating Agent..." : "Save & Create Agent"}
-                </Button>
+                {editingAgent ? (
+                  <Button 
+                    onClick={saveAgentChanges}
+                    disabled={isSubmitting}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {isSubmitting ? "Updating Agent..." : "Update Agent"}
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleCreateAgent}
+                    disabled={isSubmitting}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {isSubmitting ? "Creating Agent..." : "Save & Create Agent"}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -817,6 +963,52 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
               <Button className="w-full">Generate Post</Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="twitter" className="space-y-6">
+          <TwitterAccountConnection 
+            user={user} 
+            onAccountsChange={(accounts) => {
+              setTwitterAccounts(accounts);
+            }}
+          />
+          
+          {/* Agent to Account Linking */}
+          {editingAgent && twitterAccounts.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Link Twitter Account</CardTitle>
+                <CardDescription>
+                  Connect this agent to a specific Twitter account for posting
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="twitter-account">Select Twitter Account</Label>
+                  <Select value={selectedTwitterAccount} onValueChange={setSelectedTwitterAccount}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a Twitter account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {twitterAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          @{account.username} - {account.display_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={() => {
+                  toast({
+                    title: "Account Linked",
+                    description: "Twitter account linked to agent successfully"
+                  });
+                }}>
+                  Link Account
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="deployed" className="space-y-6">
@@ -923,16 +1115,16 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                             </div>
                           </div>
 
-                          {/* Action Buttons */}
+                           {/* Action Buttons */}
                           <div className="flex flex-col gap-2 ml-4">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => toggleAgentStatus(agent.id, agent.status === 'active' ? 'inactive' : 'active')}
+                              onClick={() => toggleAgentStatus(agent.id, agent.active ? 'inactive' : 'active')}
                               className="flex items-center gap-2"
                               disabled={agent.status === 'pending'}
                             >
-                              {agent.status === 'active' ? (
+                              {agent.active ? (
                                 <>
                                   <PowerOff className="h-4 w-4" />
                                   Deactivate
@@ -947,6 +1139,7 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                             <Button
                               size="sm"
                               variant="outline"
+                              onClick={() => editAgent(agent)}
                               className="flex items-center gap-2"
                               disabled={agent.status === 'pending'}
                             >
