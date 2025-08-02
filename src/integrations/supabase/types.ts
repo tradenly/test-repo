@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_posts: {
+        Row: {
+          agent_id: string
+          content: string
+          created_at: string
+          error_message: string | null
+          id: string
+          posted_at: string | null
+          status: string
+          twitter_oauth_id: string
+          twitter_post_id: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          content: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          posted_at?: string | null
+          status?: string
+          twitter_oauth_id: string
+          twitter_post_id?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          content?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          posted_at?: string | null
+          status?: string
+          twitter_oauth_id?: string
+          twitter_post_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_posts_twitter_oauth_id_fkey"
+            columns: ["twitter_oauth_id"]
+            isOneToOne: false
+            referencedRelation: "user_twitter_oauth"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_twitter_links: {
         Row: {
           agent_id: string
@@ -1304,6 +1351,45 @@ export type Database = {
           access_token?: string
           created_at?: string
           display_name?: string | null
+          id?: string
+          is_active?: boolean
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          twitter_user_id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      user_twitter_oauth: {
+        Row: {
+          access_token: string
+          created_at: string
+          id: string
+          is_active: boolean
+          refresh_token: string | null
+          token_expires_at: string | null
+          twitter_user_id: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          twitter_user_id: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
           id?: string
           is_active?: boolean
           refresh_token?: string | null

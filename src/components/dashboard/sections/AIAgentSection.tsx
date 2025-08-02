@@ -13,7 +13,7 @@ import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { Bot, Info, Wallet, Settings, BarChart3, Power, PowerOff, Edit, Trash2, MessageSquare, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { TwitterAccountConnection } from "./TwitterAccountConnection";
+import { TwitterOAuthConnection } from "./TwitterOAuthConnection";
 
 interface AIAgentSectionProps {
   user: UnifiedUser;
@@ -104,6 +104,12 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
   const [testTweetContent, setTestTweetContent] = useState('');
   const [selectedTestAccount, setSelectedTestAccount] = useState<string>('');
   const [testTweetLoading, setTestTweetLoading] = useState(false);
+  
+  // AI tweet functionality
+  const [aiTweetPrompt, setAiTweetPrompt] = useState('');
+  const [selectedAiAgent, setSelectedAiAgent] = useState<string>('');
+  const [selectedAiTestAccount, setSelectedAiTestAccount] = useState<string>('');
+  const [aiTweetLoading, setAiTweetLoading] = useState(false);
 
   const toggleAgentStatus = async (agentId: string, newStatus: 'active' | 'inactive') => {
     try {
@@ -287,23 +293,26 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
     setTestTweetLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('twitter-integration', {
+      const { data, error } = await supabase.functions.invoke('twitter-post', {
         body: {
-          taskId: 'test-tweet-' + Date.now(),
-          taskType: 'post',
-          content: { text: testTweetContent },
-          twitterAccountId: accountToUse
+          action: 'test-tweet',
+          tweetText: testTweetContent,
+          userId: user.id,
+          twitterOAuthId: accountToUse
         }
       });
 
       if (error) throw error;
 
-      toast({
-        title: "Success!",
-        description: "Test tweet posted successfully! Check your Twitter account.",
-      });
-
-      setTestTweetContent('');
+      if (data.success) {
+        toast({
+          title: "Success!",
+          description: data.message || "Test tweet posted successfully!",
+        });
+        setTestTweetContent('');
+      } else {
+        throw new Error(data.error || 'Unknown error occurred');
+      }
     } catch (error: any) {
       console.error('Error sending test tweet:', error);
       toast({
@@ -313,6 +322,71 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
       });
     } finally {
       setTestTweetLoading(false);
+    }
+  };
+
+  const handleAiTweet = async () => {
+    if (!aiTweetPrompt.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a prompt for the AI.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedAiAgent) {
+      toast({
+        title: "Error",
+        description: "Please select an AI agent.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const accountToUse = selectedAiTestAccount || twitterAccounts[0]?.id;
+    if (!accountToUse) {
+      toast({
+        title: "Error", 
+        description: "No Twitter account selected.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAiTweetLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('twitter-post', {
+        body: {
+          action: 'generate-and-post',
+          prompt: aiTweetPrompt,
+          userId: user.id,
+          agentId: selectedAiAgent,
+          twitterOAuthId: accountToUse
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Success!",
+          description: `AI generated and posted: "${data.content.substring(0, 50)}..."`,
+        });
+        setAiTweetPrompt('');
+      } else {
+        throw new Error(data.error || 'Unknown error occurred');
+      }
+    } catch (error: any) {
+      console.error('Error with AI tweet:', error);
+      toast({
+        title: "AI Tweet Failed",
+        description: error.message || "Failed to generate and post AI tweet.",
+        variant: "destructive",
+      });
+    } finally {
+      setAiTweetLoading(false);
     }
   };
 
@@ -1023,7 +1097,7 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
         </TabsContent>
 
         <TabsContent value="twitter" className="space-y-6">
-          <TwitterAccountConnection 
+          <TwitterOAuthConnection 
             user={user} 
             onAccountsChange={(accounts) => {
               setTwitterAccounts(accounts);
@@ -1068,7 +1142,7 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                       <SelectContent>
                         {twitterAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            @{account.username} - {account.display_name}
+                            @{account.username}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1090,6 +1164,85 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                     <>
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Send Test Tweet
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* AI Generated Tweet Test */}
+          {twitterAccounts.length > 0 && deployedAgents.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  AI Generated Tweet Test
+                </CardTitle>
+                <CardDescription>
+                  Test your AI agent's ability to generate and post tweets
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ai-prompt">Tweet Prompt</Label>
+                  <Textarea
+                    id="ai-prompt"
+                    value={aiTweetPrompt}
+                    onChange={(e) => setAiTweetPrompt(e.target.value)}
+                    placeholder="Give your AI agent a prompt for the tweet (e.g., 'Share an interesting fact about cryptocurrency')"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ai-agent-select">Select Agent</Label>
+                  <Select value={selectedAiAgent} onValueChange={setSelectedAiAgent}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose AI agent" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {deployedAgents.filter(agent => agent.status === 'approved').map((agent) => (
+                        <SelectItem key={agent.id} value={agent.id}>
+                          {agent.agent_name} - {agent.category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {twitterAccounts.length > 1 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="ai-tweet-account">Select Account</Label>
+                    <Select value={selectedAiTestAccount} onValueChange={setSelectedAiTestAccount}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose account to tweet from" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {twitterAccounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            @{account.username}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleAiTweet}
+                  disabled={!aiTweetPrompt.trim() || !selectedAiAgent || aiTweetLoading || (!selectedAiTestAccount && twitterAccounts.length > 1)}
+                  className="w-full"
+                >
+                  {aiTweetLoading ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                      Generating & Posting...
+                    </>
+                  ) : (
+                    <>
+                      <Bot className="h-4 w-4 mr-2" />
+                      Generate & Post AI Tweet
                     </>
                   )}
                 </Button>

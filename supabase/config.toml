@@ -40,6 +40,9 @@ port = 54329
 [functions.twitter-integration]
 verify_jwt = false
 
+[functions.twitter-post]
+verify_jwt = false
+
 [functions.ai-agent-orchestrator]
 verify_jwt = false
 
