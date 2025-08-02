@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_twitter_links: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          twitter_account_id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          twitter_account_id: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          twitter_account_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_agent_logs: {
         Row: {
           agent_id: string
