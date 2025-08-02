@@ -99,6 +99,11 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
   const [editingAgent, setEditingAgent] = useState<any>(null);
   const [selectedTwitterAccount, setSelectedTwitterAccount] = useState<string>('');
   const [twitterAccounts, setTwitterAccounts] = useState<any[]>([]);
+  
+  // Test tweet functionality
+  const [testTweetContent, setTestTweetContent] = useState('');
+  const [selectedTestAccount, setSelectedTestAccount] = useState<string>('');
+  const [testTweetLoading, setTestTweetLoading] = useState(false);
 
   const toggleAgentStatus = async (agentId: string, newStatus: 'active' | 'inactive') => {
     try {
@@ -258,6 +263,58 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
   useEffect(() => {
     loadTwitterAccounts();
   }, [user.id]);
+
+  const handleTestTweet = async () => {
+    if (!testTweetContent.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter tweet content.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const accountToUse = selectedTestAccount || twitterAccounts[0]?.id;
+    if (!accountToUse) {
+      toast({
+        title: "Error", 
+        description: "No Twitter account selected.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setTestTweetLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('twitter-integration', {
+        body: {
+          taskId: 'test-tweet-' + Date.now(),
+          taskType: 'post',
+          content: { text: testTweetContent },
+          twitterAccountId: accountToUse
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Test tweet posted successfully! Check your Twitter account.",
+      });
+
+      setTestTweetContent('');
+    } catch (error: any) {
+      console.error('Error sending test tweet:', error);
+      toast({
+        title: "Tweet Failed",
+        description: error.message || "Failed to send test tweet. Please check your Twitter connection.",
+        variant: "destructive",
+      });
+    } finally {
+      setTestTweetLoading(false);
+    }
+  };
 
   const deleteAgent = async (agentId: string) => {
     try {
@@ -972,6 +1029,73 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
               setTwitterAccounts(accounts);
             }}
           />
+
+          {/* Test Tweet Card */}
+          {twitterAccounts.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Test Tweet
+                </CardTitle>
+                <CardDescription>
+                  Send a test tweet to verify your Twitter connection is working
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="test-tweet">Tweet Content</Label>
+                  <Textarea
+                    id="test-tweet"
+                    value={testTweetContent}
+                    onChange={(e) => setTestTweetContent(e.target.value)}
+                    placeholder="Write your test tweet here..."
+                    maxLength={280}
+                    rows={3}
+                  />
+                  <div className="flex justify-between items-center text-sm text-gray-400">
+                    <span>{testTweetContent.length}/280 characters</span>
+                  </div>
+                </div>
+                
+                {twitterAccounts.length > 1 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="test-tweet-account">Select Account</Label>
+                    <Select value={selectedTestAccount} onValueChange={setSelectedTestAccount}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose account to tweet from" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {twitterAccounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            @{account.username} - {account.display_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleTestTweet}
+                  disabled={!testTweetContent.trim() || testTweetLoading || (!selectedTestAccount && twitterAccounts.length > 1)}
+                  className="w-full"
+                >
+                  {testTweetLoading ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                      Sending Tweet...
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Send Test Tweet
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           
           {/* Agent to Account Linking */}
           {editingAgent && twitterAccounts.length > 0 && (
