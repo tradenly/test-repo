@@ -69,10 +69,9 @@ async function testTwitterConnection() {
 
 async function testDatabaseConnection(supabase: any) {
   try {
-    const { data, error } = await supabase
+    const { count, error } = await supabase
       .from('ai_agent_signups')
-      .select('count(*)')
-      .limit(1);
+      .select('*', { count: 'exact', head: true });
 
     if (error) {
       return { status: 'error', message: `Database error: ${error.message}` };
@@ -95,9 +94,9 @@ async function getSystemStatus(supabase: any) {
     .select('status')
     .eq('active', true);
 
-  const { data: schedules } = await supabase
+  const { count: schedulesCount } = await supabase
     .from('ai_agent_schedules')
-    .select('count(*)')
+    .select('*', { count: 'exact', head: true })
     .eq('is_active', true);
 
   const { data: tasks } = await supabase
@@ -123,7 +122,7 @@ async function getSystemStatus(supabase: any) {
     },
     stats: {
       signups: signupCounts,
-      activeSchedules: schedules?.[0]?.count || 0,
+      activeSchedules: schedulesCount || 0,
       tasksLast24h: taskCounts
     }
   };
