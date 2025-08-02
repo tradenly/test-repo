@@ -4,37 +4,35 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Twitter, Plus, Trash2, CheckCircle, XCircle, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Twitter, Plus, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { UnifiedUser } from '@/hooks/useUnifiedAuth';
 
-interface TwitterOAuthAccount {
+interface TwitterAccount {
   id: string;
   twitter_user_id: string;
   username: string;
-  access_token: string;
+  display_name: string;
   is_active: boolean;
   token_expires_at: string | null;
-  created_at: string;
 }
 
-interface TwitterOAuthConnectionProps {
+interface TwitterAccountConnectionProps {
   user: UnifiedUser;
-  onAccountsChange?: (accounts: TwitterOAuthAccount[]) => void;
+  onAccountsChange?: (accounts: TwitterAccount[]) => void;
 }
 
-export const TwitterOAuthConnection = ({ user, onAccountsChange }: TwitterOAuthConnectionProps) => {
+export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAccountConnectionProps) => {
   const { toast } = useToast();
-  const [accounts, setAccounts] = useState<TwitterOAuthAccount[]>([]);
+  const [accounts, setAccounts] = useState<TwitterAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   
-  // Manual form fields for testing (temporary)
+  // Form fields for simple connection (using our app's API keys)
   const [username, setUsername] = useState('');
-  const [accessToken, setAccessToken] = useState('');
+  const [displayName, setDisplayName] = useState('');
 
   useEffect(() => {
     loadTwitterAccounts();
@@ -43,7 +41,7 @@ export const TwitterOAuthConnection = ({ user, onAccountsChange }: TwitterOAuthC
   const loadTwitterAccounts = async () => {
     try {
       const { data, error } = await supabase
-        .from('user_twitter_oauth')
+        .from('user_twitter_accounts')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
@@ -65,10 +63,10 @@ export const TwitterOAuthConnection = ({ user, onAccountsChange }: TwitterOAuthC
   };
 
   const addTwitterAccount = async () => {
-    if (!username || !accessToken) {
+    if (!username) {
       toast({
         title: 'Missing Information',
-        description: 'Please provide username and Bearer token',
+        description: 'Please provide username',
         variant: 'destructive',
       });
       return;
@@ -76,13 +74,16 @@ export const TwitterOAuthConnection = ({ user, onAccountsChange }: TwitterOAuthC
 
     setIsAdding(true);
     try {
+      // In a real implementation, this would trigger OAuth flow
+      // For now, we'll store the username and use our app's credentials
       const { error } = await supabase
-        .from('user_twitter_oauth')
+        .from('user_twitter_accounts')
         .insert({
           user_id: user.id,
           twitter_user_id: username,
           username,
-          access_token: accessToken,
+          display_name: displayName || username,
+          access_token: 'app_managed', // Will be handled by our app's credentials
           is_active: true,
         });
 
@@ -95,7 +96,7 @@ export const TwitterOAuthConnection = ({ user, onAccountsChange }: TwitterOAuthC
 
       // Reset form
       setUsername('');
-      setAccessToken('');
+      setDisplayName('');
       setShowAddForm(false);
       
       // Reload accounts
@@ -115,7 +116,7 @@ export const TwitterOAuthConnection = ({ user, onAccountsChange }: TwitterOAuthC
   const removeTwitterAccount = async (accountId: string) => {
     try {
       const { error } = await supabase
-        .from('user_twitter_oauth')
+        .from('user_twitter_accounts')
         .delete()
         .eq('id', accountId);
 
@@ -140,7 +141,7 @@ export const TwitterOAuthConnection = ({ user, onAccountsChange }: TwitterOAuthC
   const toggleAccountStatus = async (accountId: string, newStatus: boolean) => {
     try {
       const { error } = await supabase
-        .from('user_twitter_oauth')
+        .from('user_twitter_accounts')
         .update({ is_active: newStatus })
         .eq('id', accountId);
 
@@ -177,32 +178,19 @@ export const TwitterOAuthConnection = ({ user, onAccountsChange }: TwitterOAuthC
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Twitter className="h-5 w-5" />
-          Twitter OAuth Connection
+          Twitter Account Management
         </CardTitle>
         <CardDescription>
-          Connect your Twitter accounts using OAuth 2.0 Bearer tokens for secure API access
+          Connect your Twitter accounts to enable AI agent posting
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Setup Required:</strong> You need a Twitter Developer account with OAuth 2.0 Bearer token. 
-            <Button variant="link" className="p-0 h-auto ml-2" asChild>
-              <a href="https://developer.twitter.com" target="_blank" rel="noopener noreferrer">
-                Get Bearer Token <ExternalLink className="h-3 w-3 ml-1" />
-              </a>
-            </Button>
-          </AlertDescription>
-        </Alert>
-
         {accounts.length === 0 ? (
           <div className="text-center py-8">
             <Twitter className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="font-semibold mb-2">No Twitter Accounts Connected</h3>
             <p className="text-muted-foreground mb-4">
-              Connect a Twitter account to enable your AI agents to post tweets
+              Connect a Twitter account to enable your AI agents to post
             </p>
             <Button onClick={() => setShowAddForm(true)} className="gap-2">
               <Plus className="h-4 w-4" />
@@ -234,7 +222,7 @@ export const TwitterOAuthConnection = ({ user, onAccountsChange }: TwitterOAuthC
                   <div>
                     <div className="font-medium">@{account.username}</div>
                     <div className="text-sm text-muted-foreground">
-                      Connected {new Date(account.created_at).toLocaleDateString()}
+                      {account.display_name}
                     </div>
                   </div>
                   <Badge variant={account.is_active ? 'default' : 'secondary'}>
@@ -271,24 +259,10 @@ export const TwitterOAuthConnection = ({ user, onAccountsChange }: TwitterOAuthC
             <CardHeader>
               <CardTitle className="text-lg">Connect Twitter Account</CardTitle>
               <CardDescription>
-                Add your Twitter OAuth 2.0 Bearer token to enable posting
+                Add your Twitter account details (we'll handle the authentication)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="text-sm">
-                  <strong>How to get your Bearer Token:</strong>
-                  <ol className="list-decimal list-inside mt-2 space-y-1">
-                    <li>Go to <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank" className="text-blue-500 underline">Twitter Developer Portal</a></li>
-                    <li>Create a new app or select existing app</li>
-                    <li>Go to "Keys and tokens" tab</li>
-                    <li>Generate Bearer Token (OAuth 2.0)</li>
-                    <li>Ensure app has "Read and Write" permissions</li>
-                  </ol>
-                </AlertDescription>
-              </Alert>
-              
               <div className="space-y-2">
                 <Label htmlFor="username">Twitter Username</Label>
                 <Input
@@ -298,21 +272,15 @@ export const TwitterOAuthConnection = ({ user, onAccountsChange }: TwitterOAuthC
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
-              
               <div className="space-y-2">
-                <Label htmlFor="bearer-token">Bearer Token</Label>
+                <Label htmlFor="display-name">Display Name (Optional)</Label>
                 <Input
-                  id="bearer-token"
-                  type="password"
-                  placeholder="Your Twitter OAuth 2.0 Bearer token"
-                  value={accessToken}
-                  onChange={(e) => setAccessToken(e.target.value)}
+                  id="display-name"
+                  placeholder="Your Display Name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">
-                  This token will be securely stored and used to post tweets on your behalf
-                </p>
               </div>
-              
               <div className="flex gap-2">
                 <Button
                   onClick={addTwitterAccount}

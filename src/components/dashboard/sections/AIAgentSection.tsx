@@ -13,7 +13,7 @@ import { UnifiedUser } from "@/hooks/useUnifiedAuth";
 import { Bot, Info, Wallet, Settings, BarChart3, Power, PowerOff, Edit, Trash2, MessageSquare, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { TwitterOAuthConnection } from "./TwitterOAuthConnection";
+import { TwitterAccountConnection } from "./TwitterAccountConnection";
 
 interface AIAgentSectionProps {
   user: UnifiedUser;
@@ -293,12 +293,12 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
     setTestTweetLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('twitter-post', {
+      const { data, error } = await supabase.functions.invoke('twitter-integration', {
         body: {
           action: 'test-tweet',
           tweetText: testTweetContent,
           userId: user.id,
-          twitterOAuthId: accountToUse
+          twitterAccountId: accountToUse
         }
       });
 
@@ -357,13 +357,13 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
     setAiTweetLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('twitter-post', {
+      const { data, error } = await supabase.functions.invoke('twitter-integration', {
         body: {
           action: 'generate-and-post',
           prompt: aiTweetPrompt,
           userId: user.id,
           agentId: selectedAiAgent,
-          twitterOAuthId: accountToUse
+          twitterAccountId: accountToUse
         }
       });
 
@@ -1097,7 +1097,7 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
         </TabsContent>
 
         <TabsContent value="twitter" className="space-y-6">
-          <TwitterOAuthConnection 
+          <TwitterAccountConnection 
             user={user} 
             onAccountsChange={(accounts) => {
               setTwitterAccounts(accounts);

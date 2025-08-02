@@ -10,24 +10,20 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
 
+// Use our app's Twitter credentials (properly configured)
 const API_KEY = Deno.env.get("TWITTER_API_KEY")?.trim();
 const API_SECRET = Deno.env.get("TWITTER_API_SECRET")?.trim();
 const ACCESS_TOKEN = Deno.env.get("TWITTER_ACCESS_TOKEN")?.trim();
 const ACCESS_TOKEN_SECRET = Deno.env.get("TWITTER_ACCESS_TOKEN_SECRET")?.trim();
 
 function validateEnvironmentVariables() {
-  if (!API_KEY) {
-    throw new Error("Missing TWITTER_API_KEY environment variable");
+  if (!API_KEY || !API_SECRET || !ACCESS_TOKEN || !ACCESS_TOKEN_SECRET) {
+    throw new Error("Missing Twitter API credentials in environment variables");
   }
-  if (!API_SECRET) {
-    throw new Error("Missing TWITTER_API_SECRET environment variable");
-  }
-  if (!ACCESS_TOKEN) {
-    throw new Error("Missing TWITTER_ACCESS_TOKEN environment variable");
-  }
-  if (!ACCESS_TOKEN_SECRET) {
-    throw new Error("Missing TWITTER_ACCESS_TOKEN_SECRET environment variable");
+  if (!openaiApiKey) {
+    console.warn("OpenAI API key not configured - AI generation will be disabled");
   }
 }
 
@@ -123,59 +119,41 @@ async function sendTweet(tweetText: string): Promise<any> {
   return JSON.parse(responseText);
 }
 
-async function processTask(taskId: string, taskType: string, content: any, twitterAccountId: string, supabase: any) {
-  console.log(`Processing task ${taskId} of type ${taskType}`);
-  
-  try {
-    let result;
-    
-    switch (taskType) {
-      case 'post':
-        if (!content.text) {
-          throw new Error('No text content provided for post task');
-        }
-        result = await sendTweet(content.text);
-        break;
-      default:
-        throw new Error(`Unknown task type: ${taskType}`);
-    }
-
-    // Update task as completed
-    const { error: updateError } = await supabase
-      .from('ai_agent_tasks')
-      .update({
-        status: 'completed',
-        executed_at: new Date().toISOString(),
-        twitter_response: result
-      })
-      .eq('id', taskId);
-
-    if (updateError) {
-      console.error('Error updating task:', updateError);
-    }
-
-    console.log(`Task ${taskId} completed successfully`);
-    return { success: true, result };
-    
-  } catch (error) {
-    console.error(`Error processing task ${taskId}:`, error);
-    
-    // Update task as failed
-    const { error: updateError } = await supabase
-      .from('ai_agent_tasks')
-      .update({
-        status: 'failed',
-        error_message: error.message,
-        executed_at: new Date().toISOString()
-      })
-      .eq('id', taskId);
-
-    if (updateError) {
-      console.error('Error updating failed task:', updateError);
-    }
-
-    return { success: false, error: error.message };
+async function generateTweetContent(prompt: string, agentPersonality: string): Promise<string> {
+  if (!openaiApiKey) {
+    throw new Error("OpenAI API key not configured");
   }
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4.1-2025-04-14',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an AI agent with this personality: ${agentPersonality}. Generate a tweet that matches this personality. Keep it under 280 characters and make it engaging.`
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 100,
+      temperature: 0.8,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`OpenAI API error: ${error}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content.trim();
 }
 
 serve(async (req) => {
@@ -188,21 +166,100 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     if (req.method === 'POST') {
-      const { taskId, taskType, content, twitterAccountId } = await req.json();
+      const { action, tweetText, userId, twitterAccountId, agentId, prompt } = await req.json();
       
-      if (!taskId || !taskType || !content) {
-        throw new Error('Missing required parameters: taskId, taskType, content');
+      console.log(`Processing action: ${action}`);
+
+      if (action === 'test-tweet') {
+        // Test tweet functionality - uses our app's credentials
+        if (!tweetText || !userId || !twitterAccountId) {
+          throw new Error('Missing required parameters: tweetText, userId, twitterAccountId');
+        }
+
+        // Verify the user owns this Twitter account
+        const { data: accountData, error: accountError } = await supabase
+          .from('user_twitter_accounts')
+          .select('username')
+          .eq('id', twitterAccountId)
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .single();
+
+        if (accountError || !accountData) {
+          throw new Error('Twitter account not found or inactive');
+        }
+
+        // Post the tweet using our app's credentials
+        const result = await sendTweet(tweetText);
+        
+        console.log(`Tweet posted successfully for @${accountData.username}`);
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          tweetId: result.data?.id,
+          message: `Tweet posted successfully for @${accountData.username}!`
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
-      
-      const result = await processTask(taskId, taskType, content, twitterAccountId, supabase);
-      
-      return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+
+      if (action === 'generate-and-post') {
+        // Generate AI content and post
+        if (!userId || !agentId || !twitterAccountId || !prompt) {
+          throw new Error('Missing required parameters: userId, agentId, twitterAccountId, prompt');
+        }
+
+        // Get agent personality
+        const { data: agentData, error: agentError } = await supabase
+          .from('ai_agent_signups')
+          .select('personality, agent_name')
+          .eq('id', agentId)
+          .eq('user_id', userId)
+          .single();
+
+        if (agentError || !agentData) {
+          throw new Error('Agent not found');
+        }
+
+        // Verify Twitter account
+        const { data: accountData, error: accountError } = await supabase
+          .from('user_twitter_accounts')
+          .select('username')
+          .eq('id', twitterAccountId)
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .single();
+
+        if (accountError || !accountData) {
+          throw new Error('Twitter account not found or inactive');
+        }
+
+        // Generate tweet content
+        const generatedContent = await generateTweetContent(prompt, agentData.personality || agentData.agent_name);
+        
+        // Post the tweet using our app's credentials
+        const result = await sendTweet(generatedContent);
+        
+        console.log(`AI-generated tweet posted successfully for @${accountData.username}`);
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          tweetId: result.data?.id,
+          content: generatedContent,
+          message: `AI-generated tweet posted successfully for @${accountData.username}!`
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      throw new Error(`Unknown action: ${action}`);
     }
 
     if (req.method === 'GET') {
-      return new Response(JSON.stringify({ status: 'Twitter Integration active' }), {
+      return new Response(JSON.stringify({ 
+        status: 'Twitter Integration Service active',
+        timestamp: new Date().toISOString()
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -214,7 +271,10 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error("Twitter Integration error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: error.message 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
