@@ -1,17 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-// Twitter API configuration
-const TWITTER_API_BASE = "https://api.twitter.com/2";
-const TWITTER_API_KEY = Deno.env.get("TWITTER_API_KEY");
-const TWITTER_API_SECRET = Deno.env.get("TWITTER_API_SECRET");
-const TWITTER_BEARER_TOKEN = Deno.env.get("TWITTER_BEARER_TOKEN");
-const TWITTER_ACCESS_TOKEN = Deno.env.get("TWITTER_ACCESS_TOKEN");
-const TWITTER_ACCESS_TOKEN_SECRET = Deno.env.get("TWITTER_ACCESS_TOKEN_SECRET");
-
-// Supabase configuration
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+import { createHmac } from "node:crypto";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,79 +8,73 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-interface TwitterTaskPayload {
-  taskId: string;
-  taskType: 'post' | 'reply' | 'like' | 'retweet';
-  content: {
-    text?: string;
-    reply_to_id?: string;
-    tweet_id?: string;
-  };
-  twitterAccountId: string;
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const API_KEY = Deno.env.get("TWITTER_API_KEY")?.trim();
+const API_SECRET = Deno.env.get("TWITTER_API_SECRET")?.trim();
+const ACCESS_TOKEN = Deno.env.get("TWITTER_ACCESS_TOKEN")?.trim();
+const ACCESS_TOKEN_SECRET = Deno.env.get("TWITTER_ACCESS_TOKEN_SECRET")?.trim();
+
+function validateEnvironmentVariables() {
+  if (!API_KEY) {
+    throw new Error("Missing TWITTER_API_KEY environment variable");
+  }
+  if (!API_SECRET) {
+    throw new Error("Missing TWITTER_API_SECRET environment variable");
+  }
+  if (!ACCESS_TOKEN) {
+    throw new Error("Missing TWITTER_ACCESS_TOKEN environment variable");
+  }
+  if (!ACCESS_TOKEN_SECRET) {
+    throw new Error("Missing TWITTER_ACCESS_TOKEN_SECRET environment variable");
+  }
 }
 
-// OAuth 1.0a signature generation for Twitter API using Web Crypto API
-async function generateOAuthSignature(
+function generateOAuthSignature(
   method: string,
   url: string,
   params: Record<string, string>,
   consumerSecret: string,
   tokenSecret: string
-): Promise<string> {
-  const signatureBaseString = `${method}&${encodeURIComponent(url)}&${encodeURIComponent(
+): string {
+  const signatureBaseString = `${method}&${encodeURIComponent(
+    url
+  )}&${encodeURIComponent(
     Object.entries(params)
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort()
       .map(([k, v]) => `${k}=${v}`)
       .join("&")
   )}`;
-  
-  const signingKey = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(tokenSecret)}`;
-  
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(signingKey);
-  const data = encoder.encode(signatureBaseString);
-  
-  try {
-    const key = await crypto.subtle.importKey(
-      'raw',
-      keyData,
-      { name: 'HMAC', hash: 'SHA-1' },
-      false,
-      ['sign']
-    );
-    
-    const signature = await crypto.subtle.sign('HMAC', key, data);
-    const signatureArray = new Uint8Array(signature);
-    
-    // Convert to base64
-    let binary = '';
-    for (let i = 0; i < signatureArray.byteLength; i++) {
-      binary += String.fromCharCode(signatureArray[i]);
-    }
-    
-    return btoa(binary);
-  } catch (error) {
-    console.error('Error generating OAuth signature:', error);
-    throw new Error('Failed to generate OAuth signature');
-  }
+  const signingKey = `${encodeURIComponent(
+    consumerSecret
+  )}&${encodeURIComponent(tokenSecret)}`;
+  const hmacSha1 = createHmac("sha1", signingKey);
+  const signature = hmacSha1.update(signatureBaseString).digest("base64");
+
+  console.log("Signature Base String:", signatureBaseString);
+  console.log("Signing Key:", signingKey);
+  console.log("Generated Signature:", signature);
+
+  return signature;
 }
 
-async function generateOAuthHeader(method: string, url: string, accessToken: string, accessTokenSecret: string): Promise<string> {
+function generateOAuthHeader(method: string, url: string): string {
   const oauthParams = {
-    oauth_consumer_key: TWITTER_API_KEY!,
-    oauth_nonce: crypto.randomUUID().replace(/-/g, ''),
+    oauth_consumer_key: API_KEY!,
+    oauth_nonce: Math.random().toString(36).substring(2),
     oauth_signature_method: "HMAC-SHA1",
     oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
-    oauth_token: accessToken,
+    oauth_token: ACCESS_TOKEN!,
     oauth_version: "1.0",
   };
 
-  const signature = await generateOAuthSignature(
+  const signature = generateOAuthSignature(
     method,
     url,
     oauthParams,
-    TWITTER_API_SECRET!,
-    accessTokenSecret
+    API_SECRET!,
+    ACCESS_TOKEN_SECRET!
   );
 
   const signedOAuthParams = {
@@ -99,193 +82,119 @@ async function generateOAuthHeader(method: string, url: string, accessToken: str
     oauth_signature: signature,
   };
 
-  return "OAuth " + Object.entries(signedOAuthParams)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
-    .join(", ");
+  const entries = Object.entries(signedOAuthParams).sort((a, b) =>
+    a[0].localeCompare(b[0])
+  );
+
+  return (
+    "OAuth " +
+    entries
+      .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
+      .join(", ")
+  );
 }
 
-async function executeTwitterTask(payload: TwitterTaskPayload, supabase: any) {
-  console.log(`Executing Twitter task: ${payload.taskType} for task ${payload.taskId}`);
+async function sendTweet(tweetText: string): Promise<any> {
+  const url = "https://api.x.com/2/tweets";
+  const method = "POST";
+  const params = { text: tweetText };
+
+  const oauthHeader = generateOAuthHeader(method, url);
+  console.log("OAuth Header:", oauthHeader);
+
+  const response = await fetch(url, {
+    method: method,
+    headers: {
+      Authorization: oauthHeader,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(params),
+  });
+
+  const responseText = await response.text();
+  console.log("Response Body:", responseText);
+
+  if (!response.ok) {
+    throw new Error(
+      `HTTP error! status: ${response.status}, body: ${responseText}`
+    );
+  }
+
+  return JSON.parse(responseText);
+}
+
+async function processTask(taskId: string, taskType: string, content: any, twitterAccountId: string, supabase: any) {
+  console.log(`Processing task ${taskId} of type ${taskType}`);
   
   try {
-    // Get Twitter account details
-    const { data: twitterAccount, error: accountError } = await supabase
-      .from('user_twitter_accounts')
-      .select('*')
-      .eq('id', payload.twitterAccountId)
-      .single();
-
-    if (accountError || !twitterAccount) {
-      throw new Error(`Twitter account not found: ${accountError?.message}`);
-    }
-
     let result;
     
-    switch (payload.taskType) {
+    switch (taskType) {
       case 'post':
-        result = await postTweet(payload.content.text!, twitterAccount.access_token, twitterAccount.refresh_token);
-        break;
-      case 'reply':
-        result = await replyToTweet(payload.content.text!, payload.content.reply_to_id!, twitterAccount.access_token, twitterAccount.refresh_token);
-        break;
-      case 'like':
-        result = await likeTweet(payload.content.tweet_id!, twitterAccount.access_token, twitterAccount.refresh_token);
-        break;
-      case 'retweet':
-        result = await retweetTweet(payload.content.tweet_id!, twitterAccount.access_token, twitterAccount.refresh_token);
+        if (!content.text) {
+          throw new Error('No text content provided for post task');
+        }
+        result = await sendTweet(content.text);
         break;
       default:
-        throw new Error(`Unknown task type: ${payload.taskType}`);
+        throw new Error(`Unknown task type: ${taskType}`);
     }
 
-    // Update task status to completed
-    await supabase
+    // Update task as completed
+    const { error: updateError } = await supabase
       .from('ai_agent_tasks')
       .update({
         status: 'completed',
         executed_at: new Date().toISOString(),
         twitter_response: result
       })
-      .eq('id', payload.taskId);
+      .eq('id', taskId);
 
-    console.log(`Task ${payload.taskId} completed successfully`);
+    if (updateError) {
+      console.error('Error updating task:', updateError);
+    }
+
+    console.log(`Task ${taskId} completed successfully`);
     return { success: true, result };
-
-  } catch (error) {
-    console.error(`Task ${payload.taskId} failed:`, error);
     
-    // Update task status to failed
-    await supabase
+  } catch (error) {
+    console.error(`Error processing task ${taskId}:`, error);
+    
+    // Update task as failed
+    const { error: updateError } = await supabase
       .from('ai_agent_tasks')
       .update({
         status: 'failed',
-        executed_at: new Date().toISOString(),
-        error_message: error.message
+        error_message: error.message,
+        executed_at: new Date().toISOString()
       })
-      .eq('id', payload.taskId);
+      .eq('id', taskId);
 
-    throw error;
+    if (updateError) {
+      console.error('Error updating failed task:', updateError);
+    }
+
+    return { success: false, error: error.message };
   }
-}
-
-async function postTweet(text: string, accessToken: string, accessTokenSecret: string) {
-  const url = `${TWITTER_API_BASE}/tweets`;
-  const method = "POST";
-  
-  const oauthHeader = await generateOAuthHeader(method, url, accessToken, accessTokenSecret);
-  
-  const response = await fetch(url, {
-    method,
-    headers: {
-      "Authorization": oauthHeader,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ text }),
-  });
-
-  const responseData = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(`Twitter API error: ${response.status} - ${JSON.stringify(responseData)}`);
-  }
-
-  return responseData;
-}
-
-async function replyToTweet(text: string, replyToId: string, accessToken: string, accessTokenSecret: string) {
-  const url = `${TWITTER_API_BASE}/tweets`;
-  const method = "POST";
-  
-  const oauthHeader = await generateOAuthHeader(method, url, accessToken, accessTokenSecret);
-  
-  const response = await fetch(url, {
-    method,
-    headers: {
-      "Authorization": oauthHeader,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      text,
-      reply: {
-        in_reply_to_tweet_id: replyToId
-      }
-    }),
-  });
-
-  const responseData = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(`Twitter API error: ${response.status} - ${JSON.stringify(responseData)}`);
-  }
-
-  return responseData;
-}
-
-async function likeTweet(tweetId: string, accessToken: string, accessTokenSecret: string) {
-  const url = `${TWITTER_API_BASE}/users/${accessToken}/likes`;
-  const method = "POST";
-  
-  const oauthHeader = await generateOAuthHeader(method, url, accessToken, accessTokenSecret);
-  
-  const response = await fetch(url, {
-    method,
-    headers: {
-      "Authorization": oauthHeader,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ tweet_id: tweetId }),
-  });
-
-  const responseData = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(`Twitter API error: ${response.status} - ${JSON.stringify(responseData)}`);
-  }
-
-  return responseData;
-}
-
-async function retweetTweet(tweetId: string, accessToken: string, accessTokenSecret: string) {
-  const url = `${TWITTER_API_BASE}/users/${accessToken}/retweets`;
-  const method = "POST";
-  
-  const oauthHeader = await generateOAuthHeader(method, url, accessToken, accessTokenSecret);
-  
-  const response = await fetch(url, {
-    method,
-    headers: {
-      "Authorization": oauthHeader,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ tweet_id: tweetId }),
-  });
-
-  const responseData = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(`Twitter API error: ${response.status} - ${JSON.stringify(responseData)}`);
-  }
-
-  return responseData;
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    if (!TWITTER_API_KEY || !TWITTER_API_SECRET || !TWITTER_ACCESS_TOKEN || !TWITTER_ACCESS_TOKEN_SECRET) {
-      throw new Error('Missing Twitter API credentials');
-    }
-
+    validateEnvironmentVariables();
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     if (req.method === 'POST') {
-      const payload: TwitterTaskPayload = await req.json();
-      const result = await executeTwitterTask(payload, supabase);
+      const { taskId, taskType, content, twitterAccountId } = await req.json();
+      
+      if (!taskId || !taskType || !content) {
+        throw new Error('Missing required parameters: taskId, taskType, content');
+      }
+      
+      const result = await processTask(taskId, taskType, content, twitterAccountId, supabase);
       
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -293,8 +202,7 @@ serve(async (req) => {
     }
 
     if (req.method === 'GET') {
-      // Health check endpoint
-      return new Response(JSON.stringify({ status: 'Twitter integration active' }), {
+      return new Response(JSON.stringify({ status: 'Twitter Integration active' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -304,8 +212,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
-    console.error('Twitter integration error:', error);
+  } catch (error: any) {
+    console.error("Twitter Integration error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

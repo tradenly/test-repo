@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Filter, Eye, CheckCircle, XCircle } from "lucide-react";
+import { Search, Filter, Eye, CheckCircle, XCircle, Edit2 } from "lucide-react";
+import { AgentEditDialog } from "./AgentEditDialog";
 
 interface AIAgentSignup {
   id: string;
@@ -58,6 +59,7 @@ export const AgentManagementTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedSignup, setSelectedSignup] = useState<AIAgentSignup | null>(null);
+  const [editingAgent, setEditingAgent] = useState<AIAgentSignup | null>(null);
 
   useEffect(() => {
     fetchSignups();
@@ -126,6 +128,12 @@ export const AgentManagementTab = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleAgentSave = (agentId: string, updates: Partial<AIAgentSignup>) => {
+    setSignups(prev => prev.map(signup => 
+      signup.id === agentId ? { ...signup, ...updates } : signup
+    ));
   };
 
   const filteredSignups = signups.filter(signup => {
@@ -279,6 +287,15 @@ export const AgentManagementTab = () => {
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       View Details
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingAgent(signup)}
+                    >
+                      <Edit2 className="h-4 w-4 mr-1" />
+                      Edit
                     </Button>
                     
                     {signup.status === 'pending' && (
@@ -452,6 +469,14 @@ export const AgentManagementTab = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Agent Edit Dialog */}
+      <AgentEditDialog
+        agent={editingAgent}
+        isOpen={!!editingAgent}
+        onClose={() => setEditingAgent(null)}
+        onSave={handleAgentSave}
+      />
     </div>
   );
 };

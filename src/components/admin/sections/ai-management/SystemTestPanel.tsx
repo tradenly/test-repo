@@ -76,7 +76,12 @@ export const SystemTestPanel = () => {
     return { icon: <CheckCircle className="h-4 w-4" />, color: 'default', text: 'Passed' };
   };
 
-  const TestButton = ({ testType, label, description }: { testType: string; label: string; description: string }) => {
+  const TestButton = ({ testType, label, description, tooltip }: { 
+    testType: string; 
+    label: string; 
+    description: string;
+    tooltip?: string;
+  }) => {
     const status = getTestStatus(testType);
     
     return (
@@ -90,6 +95,11 @@ export const SystemTestPanel = () => {
             </Badge>
           </div>
           <CardDescription className="text-xs">{description}</CardDescription>
+          {tooltip && (
+            <div className="text-xs text-muted-foreground bg-muted p-2 rounded mt-2">
+              <strong>What this does:</strong> {tooltip}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="pt-0">
           <Button 
@@ -132,24 +142,28 @@ export const SystemTestPanel = () => {
               testType="connections"
               label="API Connections"
               description="Test OpenAI, Twitter, and Database connectivity"
+              tooltip="Verifies that all required API credentials are configured and working. Tests OpenAI for content generation, Twitter for posting, and database for data storage."
             />
             
             <TestButton 
               testType="orchestrator_schedules"
               label="Process Schedules"
               description="Test agent schedule processing and content generation"
+              tooltip="Checks active agent schedules, generates AI content based on agent personalities, and creates posting tasks. This simulates the automatic content creation process."
             />
             
             <TestButton 
               testType="orchestrator_tasks"
               label="Process Tasks"
               description="Test pending task execution via Twitter API"
+              tooltip="Processes pending tasks by posting them to Twitter using the configured API credentials. This tests the actual social media posting functionality."
             />
             
             <TestButton 
               testType="full_cycle"
               label="Full Cycle"
               description="Complete end-to-end agent operation test"
+              tooltip="Runs the complete agent workflow: checks schedules → generates content → creates tasks → posts to Twitter. This is a full end-to-end test of the entire system."
             />
           </div>
 
