@@ -51,3 +51,6 @@ verify_jwt = false
 
 [functions.test-connections]
 verify_jwt = false
+
+[functions.twitter-oauth]
+verify_jwt = false

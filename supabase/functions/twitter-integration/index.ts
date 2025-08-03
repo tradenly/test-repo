@@ -90,18 +90,15 @@ function generateOAuthHeader(method: string, url: string): string {
   );
 }
 
-async function sendTweet(tweetText: string): Promise<any> {
+async function sendTweet(tweetText: string, userAccessToken: string): Promise<any> {
   const url = "https://api.x.com/2/tweets";
-  const method = "POST";
   const params = { text: tweetText };
 
-  const oauthHeader = generateOAuthHeader(method, url);
-  console.log("OAuth Header:", oauthHeader);
-
+  // Use the user's access token for OAuth 2.0
   const response = await fetch(url, {
-    method: method,
+    method: "POST",
     headers: {
-      Authorization: oauthHeader,
+      Authorization: `Bearer ${userAccessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(params),
@@ -176,10 +173,10 @@ serve(async (req) => {
           throw new Error('Missing required parameters: tweetText, userId, twitterAccountId');
         }
 
-        // Verify the user owns this Twitter account
+        // Verify the user owns this Twitter account and get their access token
         const { data: accountData, error: accountError } = await supabase
           .from('user_twitter_accounts')
-          .select('username')
+          .select('username, access_token')
           .eq('id', twitterAccountId)
           .eq('user_id', userId)
           .eq('is_active', true)
@@ -189,8 +186,12 @@ serve(async (req) => {
           throw new Error('Twitter account not found or inactive');
         }
 
-        // Post the tweet using our app's credentials
-        const result = await sendTweet(tweetText);
+        if (!accountData.access_token || accountData.access_token === 'app_managed') {
+          throw new Error('Twitter account not properly connected. Please reconnect your account.');
+        }
+
+        // Post the tweet using the user's access token
+        const result = await sendTweet(tweetText, accountData.access_token);
         
         console.log(`Tweet posted successfully for @${accountData.username}`);
         
@@ -221,10 +222,10 @@ serve(async (req) => {
           throw new Error('Agent not found');
         }
 
-        // Verify Twitter account
+        // Verify Twitter account and get access token
         const { data: accountData, error: accountError } = await supabase
           .from('user_twitter_accounts')
-          .select('username')
+          .select('username, access_token')
           .eq('id', twitterAccountId)
           .eq('user_id', userId)
           .eq('is_active', true)
@@ -234,11 +235,15 @@ serve(async (req) => {
           throw new Error('Twitter account not found or inactive');
         }
 
+        if (!accountData.access_token || accountData.access_token === 'app_managed') {
+          throw new Error('Twitter account not properly connected. Please reconnect your account.');
+        }
+
         // Generate tweet content
         const generatedContent = await generateTweetContent(prompt, agentData.personality || agentData.agent_name);
         
-        // Post the tweet using our app's credentials
-        const result = await sendTweet(generatedContent);
+        // Post the tweet using the user's access token
+        const result = await sendTweet(generatedContent, accountData.access_token);
         
         console.log(`AI-generated tweet posted successfully for @${accountData.username}`);
         

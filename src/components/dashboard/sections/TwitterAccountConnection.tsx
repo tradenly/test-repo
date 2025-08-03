@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,12 +25,7 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
   const { toast } = useToast();
   const [accounts, setAccounts] = useState<TwitterAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
-  
-  // Form fields for simple connection (using our app's API keys)
-  const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
     loadTwitterAccounts();
@@ -62,54 +55,72 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
     }
   };
 
-  const addTwitterAccount = async () => {
-    if (!username) {
-      toast({
-        title: 'Missing Information',
-        description: 'Please provide username',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsAdding(true);
+  const connectTwitterAccount = async () => {
+    setIsConnecting(true);
     try {
-      // In a real implementation, this would trigger OAuth flow
-      // For now, we'll store the username and use our app's credentials
-      const { error } = await supabase
-        .from('user_twitter_accounts')
-        .insert({
-          user_id: user.id,
-          twitter_user_id: username,
-          username,
-          display_name: displayName || username,
-          access_token: 'app_managed', // Will be handled by our app's credentials
-          is_active: true,
-        });
+      // Get authorization URL from our OAuth function
+      const { data, error } = await supabase.functions.invoke('twitter-oauth', {
+        body: {
+          action: 'get-auth-url',
+          userId: user.id,
+        },
+      });
 
       if (error) throw error;
 
-      toast({
-        title: 'Success',
-        description: 'Twitter account connected successfully',
-      });
+      // Open OAuth popup
+      const popup = window.open(
+        data.authUrl,
+        'twitter-oauth',
+        'width=600,height=600,scrollbars=yes,resizable=yes'
+      );
 
-      // Reset form
-      setUsername('');
-      setDisplayName('');
-      setShowAddForm(false);
-      
-      // Reload accounts
-      loadTwitterAccounts();
+      // Listen for OAuth completion
+      const handleMessage = async (event: MessageEvent) => {
+        if (event.data.type === 'TWITTER_AUTH_SUCCESS' && event.data.code) {
+          popup?.close();
+          
+          // Exchange code for tokens
+          const { data: tokenData, error: tokenError } = await supabase.functions.invoke('twitter-oauth', {
+            body: {
+              action: 'exchange-code',
+              userId: user.id,
+              code: event.data.code,
+            },
+          });
+
+          if (tokenError) throw tokenError;
+
+          toast({
+            title: 'Success',
+            description: `Twitter account @${tokenData.username} connected successfully!`,
+          });
+
+          loadTwitterAccounts();
+          window.removeEventListener('message', handleMessage);
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+
+      // Check if popup was closed without completing OAuth
+      const checkClosed = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(checkClosed);
+          window.removeEventListener('message', handleMessage);
+          setIsConnecting(false);
+        }
+      }, 1000);
+
     } catch (error) {
-      console.error('Error adding Twitter account:', error);
+      console.error('Error connecting Twitter account:', error);
       toast({
         title: 'Error',
         description: 'Failed to connect Twitter account',
         variant: 'destructive',
       });
     } finally {
-      setIsAdding(false);
+      setIsConnecting(false);
     }
   };
 
@@ -181,7 +192,7 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
           Twitter Account Management
         </CardTitle>
         <CardDescription>
-          Connect your Twitter accounts to enable AI agent posting
+          Connect your Twitter accounts to enable AI agent posting (OAuth 2.0)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -190,11 +201,15 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
             <Twitter className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="font-semibold mb-2">No Twitter Accounts Connected</h3>
             <p className="text-muted-foreground mb-4">
-              Connect a Twitter account to enable your AI agents to post
+              Connect your Twitter account to enable AI agent posting
             </p>
-            <Button onClick={() => setShowAddForm(true)} className="gap-2">
+            <Button 
+              onClick={connectTwitterAccount} 
+              disabled={isConnecting}
+              className="gap-2"
+            >
               <Plus className="h-4 w-4" />
-              Connect Twitter Account
+              {isConnecting ? 'Connecting...' : 'Connect Twitter Account'}
             </Button>
           </div>
         ) : (
@@ -204,11 +219,12 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowAddForm(true)}
+                onClick={connectTwitterAccount}
+                disabled={isConnecting}
                 className="gap-2"
               >
                 <Plus className="h-4 w-4" />
-                Add Account
+                {isConnecting ? 'Connecting...' : 'Add Account'}
               </Button>
             </div>
 
@@ -252,53 +268,6 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
               </div>
             ))}
           </div>
-        )}
-
-        {showAddForm && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Connect Twitter Account</CardTitle>
-              <CardDescription>
-                Add your Twitter account details (we'll handle the authentication)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username">Twitter Username</Label>
-                <Input
-                  id="username"
-                  placeholder="your_username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="display-name">Display Name (Optional)</Label>
-                <Input
-                  id="display-name"
-                  placeholder="Your Display Name"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={addTwitterAccount}
-                  disabled={isAdding}
-                  className="flex-1"
-                >
-                  {isAdding ? 'Connecting...' : 'Connect Account'}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAddForm(false)}
-                  disabled={isAdding}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         )}
       </CardContent>
     </Card>
