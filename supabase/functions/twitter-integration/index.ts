@@ -186,8 +186,8 @@ serve(async (req) => {
           throw new Error('Twitter account not found or inactive');
         }
 
-        if (!accountData.access_token || accountData.access_token === 'app_managed') {
-          throw new Error('Twitter account not properly connected. Please reconnect your account.');
+        if (!accountData.access_token) {
+          throw new Error('Twitter account not properly connected. Please reconnect your account using OAuth.');
         }
 
         // Post the tweet using the user's access token
@@ -235,8 +235,8 @@ serve(async (req) => {
           throw new Error('Twitter account not found or inactive');
         }
 
-        if (!accountData.access_token || accountData.access_token === 'app_managed') {
-          throw new Error('Twitter account not properly connected. Please reconnect your account.');
+        if (!accountData.access_token) {
+          throw new Error('Twitter account not properly connected. Please reconnect your account using OAuth.');
         }
 
         // Generate tweet content
