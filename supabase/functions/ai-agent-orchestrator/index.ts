@@ -39,9 +39,12 @@ interface AgentSchedule {
   active_hours_start: number;
   active_hours_end: number;
   days_of_week: number[];
+  active_days?: number[];
   keywords: string[];
   reply_keywords: string[];
   is_active: boolean;
+  timezone?: string;
+  max_posts_per_day?: number;
 }
 
 async function generateAIContent(prompt: string, agentPersonality: string): Promise<string> {
@@ -88,8 +91,9 @@ async function isWithinActiveHours(schedule: AgentSchedule): Promise<boolean> {
   // Convert to Monday = 1, Sunday = 7 format
   const dayOfWeek = currentDay === 0 ? 7 : currentDay;
   
-  // Check if current day is in active days
-  if (!schedule.days_of_week.includes(dayOfWeek)) {
+  // Check if current day is in active days (use new field if available, fallback to old)
+  const activeDays = schedule.active_days || schedule.days_of_week || [1,2,3,4,5,6,7];
+  if (!activeDays.includes(dayOfWeek)) {
     return false;
   }
   
@@ -109,11 +113,22 @@ async function processAgentSchedules(supabase: any) {
     .from('ai_agent_schedules')
     .select(`
       *,
-      ai_agent_signups!agent_signup_id(*)
+      ai_agent_signups!ai_agent_schedules_agent_signup_id_fkey(
+        id,
+        user_id,
+        posting_probability,
+        timeline_reply_probability,
+        active,
+        status,
+        personality,
+        description,
+        bio,
+        response_style,
+        adjectives,
+        tone
+      )
     `)
-    .eq('is_active', true)
-    .eq('ai_agent_signups.active', true)
-    .eq('ai_agent_signups.status', 'approved');
+    .eq('is_active', true);
 
   if (schedulesError) {
     console.error('Error fetching schedules:', schedulesError);
@@ -132,8 +147,14 @@ async function processAgentSchedules(supabase: any) {
 
       const agent = schedule.ai_agent_signups;
       
+      // Skip if agent not active or approved
+      if (!agent || !agent.active || agent.status !== 'approved') {
+        console.log(`Skipping agent ${agent?.id || 'unknown'} - not active or approved`);
+        continue;
+      }
+      
       // Check if should generate content based on probability
-      if (!(await shouldGenerateContent(agent.posting_probability))) {
+      if (!(await shouldGenerateContent(agent.posting_probability || 5))) {
         console.log(`Skipping content generation for agent ${agent.id} based on probability`);
         continue;
       }

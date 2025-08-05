@@ -131,6 +131,7 @@ export type Database = {
       }
       ai_agent_schedules: {
         Row: {
+          active_days: number[] | null
           active_hours_end: number
           active_hours_start: number
           agent_id: string
@@ -141,12 +142,15 @@ export type Database = {
           id: string
           is_active: boolean
           keywords: string[]
+          max_posts_per_day: number | null
           reply_keywords: string[]
+          timezone: string | null
           twitter_account_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          active_days?: number[] | null
           active_hours_end?: number
           active_hours_start?: number
           agent_id: string
@@ -157,12 +161,15 @@ export type Database = {
           id?: string
           is_active?: boolean
           keywords?: string[]
+          max_posts_per_day?: number | null
           reply_keywords?: string[]
+          timezone?: string | null
           twitter_account_id: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          active_days?: number[] | null
           active_hours_end?: number
           active_hours_start?: number
           agent_id?: string
@@ -173,7 +180,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           keywords?: string[]
+          max_posts_per_day?: number | null
           reply_keywords?: string[]
+          timezone?: string | null
           twitter_account_id?: string
           updated_at?: string
           user_id?: string
@@ -1323,6 +1332,7 @@ export type Database = {
       user_twitter_accounts: {
         Row: {
           access_token: string
+          authentication_method: string | null
           created_at: string
           display_name: string | null
           id: string
@@ -1336,6 +1346,7 @@ export type Database = {
         }
         Insert: {
           access_token: string
+          authentication_method?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
@@ -1349,6 +1360,7 @@ export type Database = {
         }
         Update: {
           access_token?: string
+          authentication_method?: string | null
           created_at?: string
           display_name?: string | null
           id?: string

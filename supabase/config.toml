@@ -54,3 +54,6 @@ verify_jwt = false
 
 [functions.twitter-oauth]
 verify_jwt = false
+
+[functions.twitter-integration-v1]
+verify_jwt = false

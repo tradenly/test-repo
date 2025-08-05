@@ -56,6 +56,17 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
   const [voiceModel, setVoiceModel] = useState("");
   const [voiceType, setVoiceType] = useState("");
   const [triggerApiKey, setTriggerApiKey] = useState("");
+  
+  // Enhanced scheduling fields
+  const [timezone, setTimezone] = useState("UTC");
+  const [frequencyMinutes, setFrequencyMinutes] = useState("60");
+  const [maxPostsPerDay, setMaxPostsPerDay] = useState("24");
+  const [activeDays, setActiveDays] = useState([1,2,3,4,5,6,7]);
+  const [activeHoursStart, setActiveHoursStart] = useState("9");
+  const [activeHoursEnd, setActiveHoursEnd] = useState("17");
+  
+  // Twitter authentication method
+  const [twitterAuthMethod, setTwitterAuthMethod] = useState("oauth_v2");
 
   // Testing fields
   const [inReplyToId, setInReplyToId] = useState("");
@@ -293,13 +304,23 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
     setTestTweetLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('twitter-integration', {
-        body: {
+      // Use appropriate Twitter integration based on auth method
+      const functionName = twitterAuthMethod === "oauth_v1" ? 'twitter-integration-v1' : 'twitter-integration';
+      const requestBody = twitterAuthMethod === "oauth_v1" ? 
+        {
+          action: 'test-tweet-v1',
+          text: testTweetContent,
+          userId: user.id
+        } : 
+        {
           action: 'test-tweet',
           tweetText: testTweetContent,
           userId: user.id,
           twitterAccountId: accountToUse
-        }
+        };
+
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: requestBody
       });
 
       if (error) throw error;
@@ -357,14 +378,25 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
     setAiTweetLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('twitter-integration', {
-        body: {
+      // Use appropriate Twitter integration based on auth method
+      const functionName = twitterAuthMethod === "oauth_v1" ? 'twitter-integration-v1' : 'twitter-integration';
+      const requestBody = twitterAuthMethod === "oauth_v1" ? 
+        {
+          action: 'generate-and-post-v1',
+          prompt: aiTweetPrompt,
+          userId: user.id,
+          agentId: selectedAiAgent
+        } : 
+        {
           action: 'generate-and-post',
           prompt: aiTweetPrompt,
           userId: user.id,
           agentId: selectedAiAgent,
           twitterAccountId: accountToUse
-        }
+        };
+
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: requestBody
       });
 
       if (error) throw error;
@@ -937,9 +969,124 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
                   />
                   <p className="text-xs text-gray-500">Probability to reply to a timeline post. Don't use values over 5.</p>
                 </div>
+              </div>
+
+              {/* Enhanced Scheduling Section */}
+              <div className="bg-background border rounded-lg p-4 space-y-4">
+                <h3 className="text-lg font-semibold mb-3">Posting Schedule Configuration</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="timezone">Timezone</Label>
+                    <Select value={timezone} onValueChange={setTimezone}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select timezone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="UTC">UTC</SelectItem>
+                        <SelectItem value="America/New_York">Eastern Time</SelectItem>
+                        <SelectItem value="America/Chicago">Central Time</SelectItem>
+                        <SelectItem value="America/Denver">Mountain Time</SelectItem>
+                        <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
+                        <SelectItem value="Europe/London">London</SelectItem>
+                        <SelectItem value="Europe/Paris">Paris</SelectItem>
+                        <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="frequency">Posting Frequency</Label>
+                    <Select value={frequencyMinutes} onValueChange={setFrequencyMinutes}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="15">Every 15 minutes</SelectItem>
+                        <SelectItem value="30">Every 30 minutes</SelectItem>
+                        <SelectItem value="60">Every hour</SelectItem>
+                        <SelectItem value="120">Every 2 hours</SelectItem>
+                        <SelectItem value="240">Every 4 hours</SelectItem>
+                        <SelectItem value="480">Every 8 hours</SelectItem>
+                        <SelectItem value="720">Every 12 hours</SelectItem>
+                        <SelectItem value="1440">Daily</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="max-posts">Max Posts Per Day</Label>
+                    <Input
+                      id="max-posts"
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={maxPostsPerDay}
+                      onChange={(e) => setMaxPostsPerDay(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Daily posting limit for rate control</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="active-hours-start">Active Hours Start</Label>
+                    <Input
+                      id="active-hours-start"
+                      type="number"
+                      min="0"
+                      max="23"
+                      value={activeHoursStart}
+                      onChange={(e) => setActiveHoursStart(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="active-hours-end">Active Hours End</Label>
+                    <Input
+                      id="active-hours-end"
+                      type="number"
+                      min="0"
+                      max="23"
+                      value={activeHoursEnd}
+                      onChange={(e) => setActiveHoursEnd(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Active Days</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 1, label: 'Mon' },
+                      { value: 2, label: 'Tue' },
+                      { value: 3, label: 'Wed' },
+                      { value: 4, label: 'Thu' },
+                      { value: 5, label: 'Fri' },
+                      { value: 6, label: 'Sat' },
+                      { value: 7, label: 'Sun' }
+                    ].map(day => (
+                      <Button
+                        key={day.value}
+                        type="button"
+                        variant={activeDays.includes(day.value) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          setActiveDays(prev => 
+                            prev.includes(day.value) 
+                              ? prev.filter(d => d !== day.value)
+                              : [...prev, day.value]
+                          );
+                        }}
+                      >
+                        {day.label}
+                      </Button>
+                    ))}
+                   </div>
+                 </div>
                </div>
 
-              {/* Social Media Credentials */}
+               {/* Social Media Credentials */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-semibold text-white">Social Media Credentials</h3>
@@ -1097,12 +1244,125 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
         </TabsContent>
 
         <TabsContent value="twitter" className="space-y-6">
-          <TwitterAccountConnection 
-            user={user} 
-            onAccountsChange={(accounts) => {
-              setTwitterAccounts(accounts);
-            }}
-          />
+          {/* Authentication Method Selector */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Twitter Authentication Method</CardTitle>
+              <CardDescription>Choose how you want to connect your Twitter account</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="oauth-v2"
+                    name="twitter-auth"
+                    value="oauth_v2"
+                    checked={twitterAuthMethod === "oauth_v2"}
+                    onChange={(e) => setTwitterAuthMethod(e.target.value)}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="oauth-v2" className="cursor-pointer">
+                    <div>
+                      <div className="font-medium">OAuth 2.0 (Recommended)</div>
+                      <div className="text-sm text-muted-foreground">Secure authentication via Twitter Developer App</div>
+                    </div>
+                  </Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="oauth-v1"
+                    name="twitter-auth"
+                    value="oauth_v1"
+                    checked={twitterAuthMethod === "oauth_v1"}
+                    onChange={(e) => setTwitterAuthMethod(e.target.value)}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="oauth-v1" className="cursor-pointer">
+                    <div>
+                      <div className="font-medium">OAuth 1.0a (Legacy)</div>
+                      <div className="text-sm text-muted-foreground">Username/password authentication (working as of Aug 2)</div>
+                    </div>
+                  </Label>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Authentication Component */}
+          {twitterAuthMethod === "oauth_v2" ? (
+            <TwitterAccountConnection 
+              user={user} 
+              onAccountsChange={(accounts) => {
+                setTwitterAccounts(accounts);
+              }}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Twitter OAuth 1.0a Connection</CardTitle>
+                <CardDescription>Connect using username and password (legacy method)</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-sm text-amber-800">
+                    ⚠️ This method uses your Twitter username and password. Only use this with a dedicated agent account.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="twitter-username">Twitter Username</Label>
+                    <Input
+                      id="twitter-username"
+                      value={socialUsername}
+                      onChange={(e) => setSocialUsername(e.target.value)}
+                      placeholder="@yourusername"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="twitter-password">Twitter Password</Label>
+                    <Input
+                      id="twitter-password"
+                      type="password"
+                      value={socialPassword}
+                      onChange={(e) => setSocialPassword(e.target.value)}
+                      placeholder="Your Twitter password"
+                    />
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={() => {
+                    if (socialUsername && socialPassword) {
+                      setTwitterAccounts([{
+                        id: 'legacy-account',
+                        username: socialUsername.replace('@', ''),
+                        display_name: socialUsername,
+                        is_active: true,
+                        authentication_method: 'oauth_v1'
+                      }]);
+                      toast({
+                        title: "Account Connected",
+                        description: "Legacy Twitter account connected successfully.",
+                      });
+                    } else {
+                      toast({
+                        title: "Missing Information",
+                        description: "Please enter both username and password.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="w-full"
+                >
+                  Connect Account
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Test Tweet Card */}
           {twitterAccounts.length > 0 && (
