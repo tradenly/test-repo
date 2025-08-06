@@ -59,7 +59,7 @@ async function generateAIContent(prompt: string, agentPersonality: string): Prom
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1-2025-04-14',
       messages: [
         {
           role: 'system',
@@ -112,8 +112,16 @@ async function processAgentSchedules(supabase: any) {
   const { data: schedules, error: schedulesError } = await supabase
     .from('ai_agent_schedules')
     .select(`
-      *,
-      ai_agent_signups!ai_agent_schedules_agent_signup_id_fkey(
+      id,
+      agent_signup_id,
+      frequency_minutes,
+      active_hours_start,
+      active_hours_end,
+      active_days,
+      timezone,
+      max_posts_per_day,
+      is_active,
+      ai_agent_signups!agent_signup_id(
         id,
         user_id,
         posting_probability,

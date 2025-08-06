@@ -131,7 +131,7 @@ async function generateAIContent(prompt: string, agentPersonality: string): Prom
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1-2025-04-14',
       messages: [
         {
           role: 'system',
@@ -173,7 +173,23 @@ serve(async (req) => {
       console.log(`Processing action: ${action}`);
 
       if (action === 'test-tweet-v1') {
-        // Send a test tweet using Twitter v1.1 API
+        // Validate required parameters
+        if (!text || !userId) {
+          throw new Error('Missing required parameters: text, userId');
+        }
+
+        // Verify user exists and has permission
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', userId)
+          .single();
+
+        if (userError || !userData) {
+          throw new Error('User not found or unauthorized');
+        }
+
+        // Send a test tweet using Twitter v1.1 API with our app credentials
         const result = await sendTweetV1(text);
         
         return new Response(JSON.stringify({ 

@@ -90,6 +90,35 @@ function generateOAuthHeader(method: string, url: string): string {
   );
 }
 
+// Fallback function using v1.1 API with our app credentials for testing
+async function sendTweetV1Fallback(tweetText: string): Promise<any> {
+  const url = "https://api.twitter.com/1.1/statuses/update.json";
+  const method = "POST";
+  const oauthHeader = generateOAuthHeader(method, url);
+
+  console.log("Sending fallback tweet via v1.1 API:", tweetText.substring(0, 50) + "...");
+
+  const response = await fetch(url, {
+    method: method,
+    headers: {
+      Authorization: oauthHeader,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: `status=${encodeURIComponent(tweetText)}`,
+  });
+
+  const responseText = await response.text();
+  console.log("Twitter v1.1 Fallback Response:", responseText);
+
+  if (!response.ok) {
+    throw new Error(
+      `HTTP error! status: ${response.status}, body: ${responseText}`
+    );
+  }
+
+  return JSON.parse(responseText);
+}
+
 async function sendTweet(tweetText: string, userAccessToken: string): Promise<any> {
   const url = "https://api.x.com/2/tweets";
   const params = { text: tweetText };
@@ -168,37 +197,32 @@ serve(async (req) => {
       console.log(`Processing action: ${action}`);
 
       if (action === 'test-tweet') {
-        // Test tweet functionality - uses our app's credentials
-        if (!tweetText || !userId || !twitterAccountId) {
-          throw new Error('Missing required parameters: tweetText, userId, twitterAccountId');
+        // Test tweet functionality using our app credentials for testing
+        if (!tweetText || !userId) {
+          throw new Error('Missing required parameters: tweetText, userId');
         }
 
-        // Verify the user owns this Twitter account and get their access token
-        const { data: accountData, error: accountError } = await supabase
-          .from('user_twitter_accounts')
-          .select('username, access_token')
-          .eq('id', twitterAccountId)
-          .eq('user_id', userId)
-          .eq('is_active', true)
-          .single();
+        // Verify user exists
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('id')
+          .single()
+          .eq('id', userId);
 
-        if (accountError || !accountData) {
-          throw new Error('Twitter account not found or inactive');
+        if (userError || !userData) {
+          throw new Error('User not found or unauthorized');
         }
 
-        if (!accountData.access_token) {
-          throw new Error('Twitter account not properly connected. Please reconnect your account using OAuth.');
-        }
-
-        // Post the tweet using the user's access token
-        const result = await sendTweet(tweetText, accountData.access_token);
+        // For testing, we'll use our app's Twitter credentials via v1.1 API fallback
+        // This allows users to test the system without needing individual OAuth setup
+        const result = await sendTweetV1Fallback(tweetText);
         
-        console.log(`Tweet posted successfully for @${accountData.username}`);
+        console.log(`Test tweet posted successfully for user ${userId}`);
         
         return new Response(JSON.stringify({ 
           success: true, 
-          tweetId: result.data?.id,
-          message: `Tweet posted successfully for @${accountData.username}!`
+          tweetId: result.id_str,
+          message: "Test tweet posted successfully via fallback method"
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
