@@ -46,12 +46,6 @@ verify_jwt = false
 [functions.ai-agent-orchestrator]
 verify_jwt = false
 
-[functions.twitter-oauth-v2]
-verify_jwt = false
-
-[functions.twitter-api]
-verify_jwt = false
-
 [functions.agent-scheduler]
 verify_jwt = false
 
