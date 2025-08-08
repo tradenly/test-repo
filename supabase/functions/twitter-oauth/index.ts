@@ -97,7 +97,7 @@ serve(async (req) => {
         
         // Store in database
         const { error } = await supabase
-          .from('user_twitter_accounts')
+          .from('user_twitter_connections')
           .insert({
             user_id: userId,
             twitter_user_id: userData.data.id,

@@ -33,8 +33,8 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
 
   const loadTwitterAccounts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_twitter_accounts')
+      const { data, error } = await (supabase as any)
+        .from('user_twitter_connections')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
@@ -126,8 +126,8 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
 
   const removeTwitterAccount = async (accountId: string) => {
     try {
-      const { error } = await supabase
-        .from('user_twitter_accounts')
+      const { error } = await (supabase as any)
+        .from('user_twitter_connections')
         .delete()
         .eq('id', accountId);
 
@@ -151,8 +151,8 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
 
   const toggleAccountStatus = async (accountId: string, newStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('user_twitter_accounts')
+      const { error } = await (supabase as any)
+        .from('user_twitter_connections')
         .update({ is_active: newStatus })
         .eq('id', accountId);
 

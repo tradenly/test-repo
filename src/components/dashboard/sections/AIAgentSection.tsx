@@ -264,8 +264,8 @@ export const AIAgentSection = ({ user }: AIAgentSectionProps) => {
 
   const loadTwitterAccounts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_twitter_accounts')
+      const { data, error } = await (supabase as any)
+        .from('user_twitter_connections')
         .select('*')
         .eq('user_id', user.id)
         .eq('is_active', true);
