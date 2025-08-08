@@ -36,30 +36,51 @@ serve(async (req) => {
       console.log(`Processing OAuth action: ${action}`);
 
       if (action === 'get-auth-url') {
-        // Generate OAuth 2.0 authorization URL
-        const state_param = Math.random().toString(36).substring(2);
+        const state_param = Math.random().toString(36).slice(2);
         const redirect_uri = 'https://csdrraabfbrzteezkqkm.supabase.co/functions/v1/twitter-oauth';
-        
-        const authUrl = `https://twitter.com/i/oauth2/authorize?` +
-          `response_type=code&` +
-          `client_id=${CLIENT_ID}&` +
-          `redirect_uri=${encodeURIComponent(redirect_uri)}&` +
-          `scope=tweet.read%20tweet.write%20users.read&` +
-          `state=${state_param}&` +
-          `code_challenge=challenge&` +
-          `code_challenge_method=plain`;
+        // PKCE S256 code verifier/challenge
+        const randomBytes = crypto.getRandomValues(new Uint8Array(32));
+        const code_verifier = btoa(String.fromCharCode(...randomBytes))
+          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code_verifier));
+        const code_challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-        return new Response(JSON.stringify({ 
-          authUrl,
-          state: state_param
-        }), {
+        // Persist state for validation
+        const { error: stateError } = await supabase
+          .from('oauth_states')
+          .insert({
+            user_id: userId,
+            state_token: state_param,
+            code_verifier,
+            code_challenge,
+            redirect_uri,
+            expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+          });
+        if (stateError) throw stateError;
+
+        const scope = encodeURIComponent('tweet.read tweet.write users.read offline.access');
+        const authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&state=${state_param}&code_challenge=${code_challenge}&code_challenge_method=S256`;
+
+        return new Response(JSON.stringify({ authUrl, state: state_param }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       if (action === 'exchange-code') {
-        // Exchange authorization code for access token
-        const redirect_uri = 'https://csdrraabfbrzteezkqkm.supabase.co/functions/v1/twitter-oauth';
+        if (!state) throw new Error('Missing state');
+        // Validate and fetch stored OAuth state
+        const { data: oauthState, error: stateErr } = await supabase
+          .from('oauth_states')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('state_token', state)
+          .is('used_at', null)
+          .gt('expires_at', new Date().toISOString())
+          .single();
+        if (stateErr || !oauthState) throw new Error('Invalid or expired OAuth state');
+
+        const redirect_uri = oauthState.redirect_uri || 'https://csdrraabfbrzteezkqkm.supabase.co/functions/v1/twitter-oauth';
         
         const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
           method: 'POST',
@@ -71,16 +92,22 @@ serve(async (req) => {
             grant_type: 'authorization_code',
             code: code,
             redirect_uri: redirect_uri,
-            code_verifier: 'challenge',
+            code_verifier: oauthState.code_verifier,
           }),
         });
 
         if (!tokenResponse.ok) {
-          const error = await tokenResponse.text();
-          throw new Error(`Token exchange failed: ${error}`);
+          const errorText = await tokenResponse.text();
+          throw new Error(`Token exchange failed: ${errorText}`);
         }
 
         const tokenData = await tokenResponse.json();
+
+        // Mark state as used
+        await supabase
+          .from('oauth_states')
+          .update({ used_at: new Date().toISOString() })
+          .eq('id', oauthState.id);
         
         // Get user info
         const userResponse = await fetch('https://api.twitter.com/2/users/me', {
@@ -88,6 +115,36 @@ serve(async (req) => {
             'Authorization': `Bearer ${tokenData.access_token}`,
           },
         });
+
+        if (!userResponse.ok) {
+          throw new Error('Failed to get user info');
+        }
+
+        const userData = await userResponse.json();
+        
+        const { error } = await supabase
+          .from('user_twitter_connections')
+          .insert({
+            user_id: userId,
+            twitter_user_id: userData.data.id,
+            username: userData.data.username,
+            display_name: userData.data.name,
+            access_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            token_expires_at: tokenData.expires_in ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString() : null,
+            is_active: true,
+          });
+
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ 
+          success: true,
+          username: userData.data.username,
+          display_name: userData.data.name
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
         if (!userResponse.ok) {
           throw new Error('Failed to get user info');
