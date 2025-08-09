@@ -278,7 +278,7 @@ export const useTrafficTracking = (): TrafficTracking => {
   useEffect(() => {
     const pagePath = location.pathname + location.search;
     trackPageView(pagePath);
-  }, [location, trackPageView]);
+  }, [location.pathname, location.search]); // Remove trackPageView from deps to prevent loops
 
   // Track scroll depth
   useEffect(() => {

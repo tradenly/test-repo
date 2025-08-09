@@ -56,6 +56,9 @@ export const useCredits = (userId: string) => {
       return data as UserCredits;
     },
     enabled: !!userId,
+    staleTime: 30000, // 30 seconds
+    refetchInterval: false, // Disable automatic refetching
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 };
 

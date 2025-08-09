@@ -16,75 +16,55 @@ export type Database = {
     Tables: {
       agent_posts: {
         Row: {
-          agent_id: string
+          agent_signup_id: string
           content: string
           created_at: string
           error_message: string | null
           id: string
+          metadata: Json | null
+          post_type: string
           posted_at: string | null
+          retry_count: number | null
+          scheduled_for: string | null
           status: string
-          twitter_oauth_id: string
+          twitter_connection_id: string
           twitter_post_id: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
-          agent_id: string
+          agent_signup_id: string
           content: string
           created_at?: string
           error_message?: string | null
           id?: string
+          metadata?: Json | null
+          post_type?: string
           posted_at?: string | null
+          retry_count?: number | null
+          scheduled_for?: string | null
           status?: string
-          twitter_oauth_id: string
+          twitter_connection_id: string
           twitter_post_id?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
-          agent_id?: string
+          agent_signup_id?: string
           content?: string
           created_at?: string
           error_message?: string | null
           id?: string
+          metadata?: Json | null
+          post_type?: string
           posted_at?: string | null
+          retry_count?: number | null
+          scheduled_for?: string | null
           status?: string
-          twitter_oauth_id?: string
+          twitter_connection_id?: string
           twitter_post_id?: string | null
+          updated_at?: string
           user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agent_posts_twitter_oauth_id_fkey"
-            columns: ["twitter_oauth_id"]
-            isOneToOne: false
-            referencedRelation: "user_twitter_oauth"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      agent_twitter_links: {
-        Row: {
-          agent_id: string
-          created_at: string
-          id: string
-          is_active: boolean
-          twitter_account_id: string
-          updated_at: string
-        }
-        Insert: {
-          agent_id: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          twitter_account_id: string
-          updated_at?: string
-        }
-        Update: {
-          agent_id?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          twitter_account_id?: string
-          updated_at?: string
         }
         Relationships: []
       }
@@ -193,13 +173,6 @@ export type Database = {
             columns: ["agent_signup_id"]
             isOneToOne: false
             referencedRelation: "ai_agent_signups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_agent_schedules_twitter_account_id_fkey"
-            columns: ["twitter_account_id"]
-            isOneToOne: false
-            referencedRelation: "user_twitter_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -364,15 +337,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "ai_agent_tasks_twitter_account_id_fkey"
-            columns: ["twitter_account_id"]
-            isOneToOne: false
-            referencedRelation: "user_twitter_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       blockchain_transactions: {
         Row: {
@@ -808,6 +773,42 @@ export type Database = {
         }
         Relationships: []
       }
+      oauth_states: {
+        Row: {
+          code_challenge: string
+          code_verifier: string
+          created_at: string
+          expires_at: string
+          id: string
+          redirect_uri: string
+          state_token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code_challenge: string
+          code_verifier: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          redirect_uri: string
+          state_token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code_challenge?: string
+          code_verifier?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          redirect_uri?: string
+          state_token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       page_views: {
         Row: {
           created_at: string
@@ -1144,6 +1145,51 @@ export type Database = {
           },
         ]
       }
+      twitter_api_logs: {
+        Row: {
+          created_at: string
+          endpoint: string
+          error_message: string | null
+          execution_time_ms: number | null
+          id: string
+          method: string
+          rate_limit_remaining: number | null
+          request_data: Json | null
+          response_data: Json | null
+          status_code: number | null
+          twitter_connection_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          method: string
+          rate_limit_remaining?: number | null
+          request_data?: Json | null
+          response_data?: Json | null
+          status_code?: number | null
+          twitter_connection_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          method?: string
+          rate_limit_remaining?: number | null
+          request_data?: Json | null
+          response_data?: Json | null
+          status_code?: number | null
+          twitter_connection_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_bans: {
         Row: {
           banned_at: string
@@ -1329,15 +1375,20 @@ export type Database = {
           },
         ]
       }
-      user_twitter_accounts: {
+      user_twitter_connections: {
         Row: {
           access_token: string
-          authentication_method: string | null
+          connection_status: string
           created_at: string
           display_name: string | null
           id: string
           is_active: boolean
+          last_used_at: string | null
+          profile_image_url: string | null
+          rate_limit_remaining: number | null
+          rate_limit_reset: string | null
           refresh_token: string | null
+          scope: string | null
           token_expires_at: string | null
           twitter_user_id: string
           updated_at: string
@@ -1346,12 +1397,17 @@ export type Database = {
         }
         Insert: {
           access_token: string
-          authentication_method?: string | null
+          connection_status?: string
           created_at?: string
           display_name?: string | null
           id?: string
           is_active?: boolean
+          last_used_at?: string | null
+          profile_image_url?: string | null
+          rate_limit_remaining?: number | null
+          rate_limit_reset?: string | null
           refresh_token?: string | null
+          scope?: string | null
           token_expires_at?: string | null
           twitter_user_id: string
           updated_at?: string
@@ -1360,51 +1416,17 @@ export type Database = {
         }
         Update: {
           access_token?: string
-          authentication_method?: string | null
+          connection_status?: string
           created_at?: string
           display_name?: string | null
           id?: string
           is_active?: boolean
+          last_used_at?: string | null
+          profile_image_url?: string | null
+          rate_limit_remaining?: number | null
+          rate_limit_reset?: string | null
           refresh_token?: string | null
-          token_expires_at?: string | null
-          twitter_user_id?: string
-          updated_at?: string
-          user_id?: string
-          username?: string
-        }
-        Relationships: []
-      }
-      user_twitter_oauth: {
-        Row: {
-          access_token: string
-          created_at: string
-          id: string
-          is_active: boolean
-          refresh_token: string | null
-          token_expires_at: string | null
-          twitter_user_id: string
-          updated_at: string
-          user_id: string
-          username: string
-        }
-        Insert: {
-          access_token: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          refresh_token?: string | null
-          token_expires_at?: string | null
-          twitter_user_id: string
-          updated_at?: string
-          user_id: string
-          username: string
-        }
-        Update: {
-          access_token?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          refresh_token?: string | null
+          scope?: string | null
           token_expires_at?: string | null
           twitter_user_id?: string
           updated_at?: string
@@ -1622,6 +1644,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_oauth_states: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       generate_referral_code: {
         Args: Record<PropertyKey, never>
         Returns: string

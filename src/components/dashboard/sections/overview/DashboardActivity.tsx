@@ -150,6 +150,9 @@ export const DashboardActivity = ({ user }: DashboardActivityProps) => {
       return activities.slice(0, 10);
     },
     enabled: !!user.id,
+    staleTime: 30000, // 30 seconds
+    refetchInterval: false, // Disable automatic refetching
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   const getActivityIcon = (type: string) => {
