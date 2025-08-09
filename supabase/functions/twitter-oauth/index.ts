@@ -146,37 +146,6 @@ serve(async (req) => {
         });
       }
 
-        if (!userResponse.ok) {
-          throw new Error('Failed to get user info');
-        }
-
-        const userData = await userResponse.json();
-        
-        // Store in database
-        const { error } = await supabase
-          .from('user_twitter_connections')
-          .insert({
-            user_id: userId,
-            twitter_user_id: userData.data.id,
-            username: userData.data.username,
-            display_name: userData.data.name,
-            access_token: tokenData.access_token,
-            refresh_token: tokenData.refresh_token,
-            token_expires_at: tokenData.expires_in ? 
-              new Date(Date.now() + tokenData.expires_in * 1000).toISOString() : null,
-            is_active: true,
-          });
-
-        if (error) throw error;
-
-        return new Response(JSON.stringify({ 
-          success: true,
-          username: userData.data.username,
-          display_name: userData.data.name
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
 
       throw new Error(`Unknown action: ${action}`);
     }
