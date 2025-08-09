@@ -6,6 +6,7 @@ import { DashboardContent } from "@/components/dashboard/DashboardContent";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Menu } from "lucide-react";
+import { CreditsProvider } from "@/contexts/CreditsContext";
 
 export type DashboardSection = 
   | "overview" 
@@ -89,7 +90,9 @@ const Dashboard = () => {
             </h1>
           </div>
           <div className="bg-black">
-            <DashboardContent activeSection={activeSection} user={user} onSectionChange={handleSectionChange} />
+            <CreditsProvider userId={user.id}>
+              <DashboardContent activeSection={activeSection} user={user} onSectionChange={handleSectionChange} />
+            </CreditsProvider>
           </div>
         </div>
         
@@ -113,7 +116,9 @@ const Dashboard = () => {
           onSectionChange={handleSectionChange} 
         />
         <main className="flex-1 p-8">
-          <DashboardContent activeSection={activeSection} user={user} onSectionChange={handleSectionChange} />
+          <CreditsProvider userId={user.id}>
+            <DashboardContent activeSection={activeSection} user={user} onSectionChange={handleSectionChange} />
+          </CreditsProvider>
         </main>
       </div>
     </div>
