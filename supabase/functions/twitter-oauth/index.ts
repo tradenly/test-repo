@@ -17,8 +17,14 @@ const CLIENT_SECRET = Deno.env.get("TWITTER_CLIENT_SECRET")?.trim();
 
 function validateEnvironmentVariables() {
   console.log("🔍 Validating environment variables...");
+  console.log("CLIENT_ID exists:", !!CLIENT_ID);
+  console.log("CLIENT_SECRET exists:", !!CLIENT_SECRET);
+  console.log("SUPABASE_URL:", supabaseUrl);
+  
   if (!CLIENT_ID || !CLIENT_SECRET) {
     console.error("❌ Missing Twitter OAuth credentials");
+    console.error("CLIENT_ID:", CLIENT_ID ? "EXISTS" : "MISSING");
+    console.error("CLIENT_SECRET:", CLIENT_SECRET ? "EXISTS" : "MISSING");
     throw new Error("Missing Twitter OAuth credentials in environment variables");
   }
   if (!supabaseUrl || !supabaseServiceKey) {
@@ -39,6 +45,7 @@ serve(async (req) => {
     
     const url = new URL(req.url);
     console.log(`📝 Processing request: ${req.method} ${url.pathname}`);
+    console.log(`🌐 Full URL: ${req.url}`);
     
     if (req.method === 'POST') {
       const { action, userId, code, state } = await req.json();
@@ -51,7 +58,12 @@ serve(async (req) => {
         }
 
         const state_param = `${userId}_${Math.random().toString(36).slice(2)}`;
+        
+        // CRITICAL: Use the EXACT URL that Twitter expects
+        // This MUST match your Twitter app's callback URL configuration
         const redirect_uri = `${supabaseUrl}/functions/v1/twitter-oauth`;
+        
+        console.log(`🔗 Using redirect URI: ${redirect_uri}`);
         
         // Generate PKCE parameters
         const randomBytes = crypto.getRandomValues(new Uint8Array(32));
@@ -62,6 +74,8 @@ serve(async (req) => {
           .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
         console.log(`🔐 Generated PKCE for user ${userId}`);
+        console.log(`📋 Code verifier length: ${code_verifier.length}`);
+        console.log(`📋 Code challenge length: ${code_challenge.length}`);
 
         // Store OAuth state with extended expiration
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
@@ -83,16 +97,30 @@ serve(async (req) => {
 
         console.log(`✅ OAuth state stored for user ${userId}`);
 
-        // Twitter OAuth 2.0 scopes - requesting comprehensive permissions
-        const scope = encodeURIComponent('tweet.read tweet.write users.read follows.read follows.write offline.access');
-        const authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&state=${state_param}&code_challenge=${code_challenge}&code_challenge_method=S256`;
+        // Twitter OAuth 2.0 scopes - using minimal required scopes first
+        const scope = encodeURIComponent('tweet.read tweet.write users.read offline.access');
+        
+        // Build authorization URL with all required parameters
+        const authParams = new URLSearchParams({
+          response_type: 'code',
+          client_id: CLIENT_ID!,
+          redirect_uri: redirect_uri,
+          scope: 'tweet.read tweet.write users.read offline.access',
+          state: state_param,
+          code_challenge: code_challenge,
+          code_challenge_method: 'S256'
+        });
+        
+        const authUrl = `https://twitter.com/i/oauth2/authorize?${authParams.toString()}`;
 
         console.log(`🚀 Generated auth URL for user ${userId}`);
+        console.log(`📋 Auth URL: ${authUrl}`);
 
         return new Response(JSON.stringify({ 
           success: true,
           authUrl, 
-          state: state_param 
+          state: state_param,
+          redirect_uri // Include for debugging
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -100,6 +128,7 @@ serve(async (req) => {
 
       if (action === 'exchange-code') {
         if (!userId || !code || !state) {
+          console.error("❌ Missing required parameters:", { userId: !!userId, code: !!code, state: !!state });
           throw new Error('Missing required parameters: userId, code, and state');
         }
 
@@ -117,6 +146,7 @@ serve(async (req) => {
 
         if (stateErr || !oauthState) {
           console.error("❌ Invalid OAuth state:", stateErr);
+          console.error("❌ State lookup failed for:", { userId, state });
           throw new Error('Invalid or expired OAuth state');
         }
 
@@ -124,28 +154,41 @@ serve(async (req) => {
 
         const redirect_uri = oauthState.redirect_uri;
         
+        console.log(`🔄 Exchanging code with redirect_uri: ${redirect_uri}`);
+        
         // Exchange authorization code for access token
+        const tokenParams = new URLSearchParams({
+          grant_type: 'authorization_code',
+          code: code,
+          redirect_uri: redirect_uri,
+          code_verifier: oauthState.code_verifier,
+        });
+
+        console.log(`📤 Token request params:`, {
+          grant_type: 'authorization_code',
+          redirect_uri: redirect_uri,
+          code_verifier_length: oauthState.code_verifier.length
+        });
+
         const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Authorization': `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
           },
-          body: new URLSearchParams({
-            grant_type: 'authorization_code',
-            code: code,
-            redirect_uri: redirect_uri,
-            code_verifier: oauthState.code_verifier,
-          }),
+          body: tokenParams.toString(),
         });
 
+        const tokenResponseText = await tokenResponse.text();
+        console.log(`📥 Token response status: ${tokenResponse.status}`);
+        console.log(`📥 Token response body: ${tokenResponseText}`);
+
         if (!tokenResponse.ok) {
-          const errorText = await tokenResponse.text();
-          console.error("❌ Token exchange failed:", errorText);
-          throw new Error(`Token exchange failed: ${errorText}`);
+          console.error("❌ Token exchange failed:", tokenResponseText);
+          throw new Error(`Token exchange failed: ${tokenResponseText}`);
         }
 
-        const tokenData = await tokenResponse.json();
+        const tokenData = JSON.parse(tokenResponseText);
         console.log(`✅ Token exchange successful for user ${userId}`);
 
         // Mark OAuth state as used
@@ -154,38 +197,48 @@ serve(async (req) => {
           .update({ used_at: new Date().toISOString() })
           .eq('id', oauthState.id);
         
-        // Get Twitter user info
-        const userResponse = await fetch('https://api.twitter.com/2/users/me?user.fields=profile_image_url', {
+        // Get Twitter user info with expanded fields
+        const userResponse = await fetch('https://api.twitter.com/2/users/me?user.fields=profile_image_url,name,username,id', {
           headers: {
             'Authorization': `Bearer ${tokenData.access_token}`,
           },
         });
 
+        const userResponseText = await userResponse.text();
+        console.log(`📥 User info response status: ${userResponse.status}`);
+        console.log(`📥 User info response body: ${userResponseText}`);
+
         if (!userResponse.ok) {
-          const errorText = await userResponse.text();
-          console.error("❌ Failed to get user info:", errorText);
-          throw new Error(`Failed to get user info: ${errorText}`);
+          console.error("❌ Failed to get user info:", userResponseText);
+          throw new Error(`Failed to get user info: ${userResponseText}`);
         }
 
-        const userData = await userResponse.json();
+        const userData = JSON.parse(userResponseText);
         console.log(`✅ Retrieved Twitter user data for ${userData.data.username}`);
         
-        // Store Twitter connection
+        // Store Twitter connection with proper error handling
+        const connectionData = {
+          user_id: userId,
+          twitter_user_id: userData.data.id,
+          username: userData.data.username,
+          display_name: userData.data.name,
+          profile_image_url: userData.data.profile_image_url,
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          token_expires_at: tokenData.expires_in ? 
+            new Date(Date.now() + tokenData.expires_in * 1000).toISOString() : null,
+          is_active: true,
+          connection_status: 'active',
+          scope: 'tweet.read tweet.write users.read offline.access'
+        };
+
+        console.log(`💾 Storing connection data for user ${userId}`);
+
         const { error: insertError } = await supabase
           .from('user_twitter_connections')
-          .insert({
-            user_id: userId,
-            twitter_user_id: userData.data.id,
-            username: userData.data.username,
-            display_name: userData.data.name,
-            profile_image_url: userData.data.profile_image_url,
-            access_token: tokenData.access_token,
-            refresh_token: tokenData.refresh_token,
-            token_expires_at: tokenData.expires_in ? 
-              new Date(Date.now() + tokenData.expires_in * 1000).toISOString() : null,
-            is_active: true,
-            connection_status: 'active',
-            scope: 'tweet.read tweet.write users.read follows.read follows.write offline.access'
+          .upsert(connectionData, {
+            onConflict: 'user_id,twitter_user_id',
+            ignoreDuplicates: false
           });
 
         if (insertError) {
@@ -199,7 +252,8 @@ serve(async (req) => {
           success: true,
           username: userData.data.username,
           display_name: userData.data.name,
-          profile_image_url: userData.data.profile_image_url
+          profile_image_url: userData.data.profile_image_url,
+          twitter_user_id: userData.data.id
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -214,22 +268,31 @@ serve(async (req) => {
       const code = url.searchParams.get('code');
       const state = url.searchParams.get('state');
       const error = url.searchParams.get('error');
+      const error_description = url.searchParams.get('error_description');
 
-      console.log(`🔗 OAuth callback received - code: ${!!code}, state: ${state}, error: ${error}`);
+      console.log(`🔗 OAuth callback received`);
+      console.log(`📋 Callback params:`, { 
+        code: !!code, 
+        state: state, 
+        error: error,
+        error_description: error_description,
+        full_url: req.url
+      });
 
       if (error) {
-        console.error(`❌ OAuth error: ${error}`);
+        console.error(`❌ OAuth error: ${error} - ${error_description}`);
         return new Response(`
           <html>
             <head><title>Twitter Authorization Failed</title></head>
             <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
               <h1 style="color: #e74c3c;">Authorization Failed</h1>
               <p style="color: #7f8c8d; margin: 20px 0;">Error: ${error}</p>
+              <p style="color: #95a5a6;">Description: ${error_description || 'No additional details'}</p>
               <p style="color: #95a5a6;">You can close this window and try again.</p>
               <script>
                 setTimeout(() => {
                   window.close();
-                }, 3000);
+                }, 5000);
               </script>
             </body>
           </html>
@@ -256,22 +319,27 @@ serve(async (req) => {
                 }
               </style>
               <script>
+                console.log('📤 Sending message to parent window:', { code: '${code}', state: '${state}' });
                 try {
                   if (window.opener) {
-                    console.log('Sending message to parent window');
+                    console.log('✅ Sending message to parent window');
                     window.opener.postMessage({
                       type: 'TWITTER_AUTH_SUCCESS',
                       code: '${code}',
                       state: '${state}'
                     }, '*');
+                    console.log('✅ Message sent successfully');
+                  } else {
+                    console.error('❌ No window.opener available');
                   }
                 } catch (e) {
-                  console.error('Failed to send message to parent:', e);
+                  console.error('❌ Failed to send message to parent:', e);
                 }
                 
                 setTimeout(() => {
+                  console.log('🚪 Closing window');
                   window.close();
-                }, 2000);
+                }, 3000);
               </script>
             </body>
           </html>
@@ -280,6 +348,7 @@ serve(async (req) => {
         });
       }
 
+      console.error(`❌ Missing required callback parameters - code: ${!!code}, state: ${!!state}`);
       return new Response('Missing authorization code or state', { 
         status: 400,
         headers: corsHeaders 
@@ -293,9 +362,11 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error("💥 Twitter OAuth error:", error);
+    console.error("💥 Error stack:", error.stack);
     return new Response(JSON.stringify({ 
       success: false,
-      error: error.message 
+      error: error.message,
+      details: error.stack
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
