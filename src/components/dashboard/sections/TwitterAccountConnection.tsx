@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -83,7 +82,7 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
     setConnectionError(null);
 
     try {
-      console.log(`🔗 Starting Twitter connection for user: ${user.id}`);
+      console.log(`🔗 Starting Twitter OAuth 2.0 connection for user: ${user.id}`);
 
       // Get authorization URL from our OAuth function
       const { data, error } = await supabase.functions.invoke('twitter-oauth', {
@@ -103,13 +102,14 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
         throw new Error('Invalid response from authorization service');
       }
 
-      console.log(`🚀 Opening OAuth popup for user: ${user.id}`);
+      console.log(`🚀 Opening OAuth 2.0 popup for user: ${user.id}`);
+      console.log(`🔗 Auth URL: ${data.authUrl}`);
 
       // Open OAuth popup with better window options
       const popup = window.open(
         data.authUrl,
         'twitter-oauth',
-        'width=600,height=700,scrollbars=yes,resizable=yes,status=yes,location=yes'
+        'width=600,height=700,scrollbars=yes,resizable=yes,status=yes,location=yes,menubar=no,toolbar=no'
       );
 
       if (!popup) {
@@ -117,19 +117,22 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
       }
 
       let messageReceived = false;
+      let timeoutId: NodeJS.Timeout;
 
       // Listen for OAuth completion
       const handleMessage = async (event: MessageEvent) => {
-        console.log('📨 Received message:', event.data);
+        console.log('📨 Received message from popup:', event.data);
 
+        // Only process messages from our OAuth popup
         if (event.data.type === 'TWITTER_AUTH_SUCCESS' && event.data.code && event.data.state) {
           if (messageReceived) return; // Prevent duplicate handling
           messageReceived = true;
 
+          clearTimeout(timeoutId);
           popup?.close();
           
           try {
-            console.log(`🔄 Exchanging code for tokens...`);
+            console.log(`🔄 Exchanging OAuth 2.0 code for tokens...`);
 
             // Exchange code for tokens
             const { data: tokenData, error: tokenError } = await supabase.functions.invoke('twitter-oauth', {
@@ -151,7 +154,7 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
               throw new Error(tokenData?.error || 'Authorization failed');
             }
 
-            console.log(`🎉 Twitter connection successful!`);
+            console.log(`🎉 Twitter OAuth 2.0 connection successful!`);
 
             toast({
               title: 'Success',
@@ -173,6 +176,17 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
             setIsConnecting(false);
             window.removeEventListener('message', handleMessage);
           }
+        } else if (event.data.type === 'TWITTER_AUTH_ERROR') {
+          if (messageReceived) return;
+          messageReceived = true;
+          
+          clearTimeout(timeoutId);
+          popup?.close();
+          
+          console.error('❌ Twitter OAuth error:', event.data.error);
+          setConnectionError(event.data.error || 'Authorization failed');
+          setIsConnecting(false);
+          window.removeEventListener('message', handleMessage);
         }
       };
 
@@ -182,24 +196,35 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
       const checkClosed = setInterval(() => {
         if (popup?.closed) {
           clearInterval(checkClosed);
+          clearTimeout(timeoutId);
           window.removeEventListener('message', handleMessage);
           
           if (!messageReceived) {
             console.log('🚪 Popup closed without completing OAuth');
             setIsConnecting(false);
-            setConnectionError('Authorization was cancelled');
+            setConnectionError('Authorization was cancelled or failed. Please ensure your Twitter app is configured for OAuth 2.0.');
+            toast({
+              title: 'Authorization Cancelled',
+              description: 'Please try again. Make sure your Twitter app supports OAuth 2.0.',
+              variant: 'destructive',
+            });
           }
         }
       }, 1000);
 
       // Timeout after 5 minutes
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         if (!messageReceived && !popup.closed) {
           popup.close();
           clearInterval(checkClosed);
           window.removeEventListener('message', handleMessage);
           setIsConnecting(false);
           setConnectionError('Authorization timed out');
+          toast({
+            title: 'Timeout',
+            description: 'Authorization timed out. Please try again.',
+            variant: 'destructive',
+          });
         }
       }, 5 * 60 * 1000);
 
@@ -328,10 +353,25 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
           Twitter Account Management
         </CardTitle>
         <CardDescription>
-          Connect your Twitter accounts to enable AI agent posting (OAuth 2.0)
+          Connect your Twitter accounts using OAuth 2.0 to enable AI agent posting
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Twitter Authentication Method Info */}
+        <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg">
+          <div className="flex items-center gap-2 text-blue-800 mb-2">
+            <CheckCircle className="h-4 w-4" />
+            <span className="font-medium">OAuth 2.0 Authentication</span>
+          </div>
+          <p className="text-blue-700 text-sm">
+            This system uses Twitter's OAuth 2.0 flow for secure authentication. 
+            Make sure your Twitter Developer App is configured for OAuth 2.0 with the callback URL:
+          </p>
+          <code className="block mt-2 p-2 bg-blue-100 rounded text-xs font-mono">
+            https://csdrraabfbrzteezkqkm.supabase.co/functions/v1/twitter-oauth
+          </code>
+        </div>
+
         {connectionError && (
           <div className="p-4 border border-red-200 bg-red-50 rounded-lg">
             <div className="flex items-center gap-2 text-red-800">
@@ -339,6 +379,9 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
               <span className="font-medium">Connection Error</span>
             </div>
             <p className="text-red-700 mt-1">{connectionError}</p>
+            <p className="text-red-600 text-sm mt-2">
+              💡 <strong>Troubleshooting:</strong> Ensure your Twitter app has OAuth 2.0 enabled and the correct callback URL configured.
+            </p>
           </div>
         )}
 
@@ -347,7 +390,7 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
             <Twitter className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="font-semibold mb-2">No Twitter Accounts Connected</h3>
             <p className="text-muted-foreground mb-4">
-              Connect your Twitter account to enable AI agent posting
+              Connect your Twitter account using OAuth 2.0 to enable AI agent posting
             </p>
             <Button 
               onClick={connectTwitterAccount} 
@@ -357,12 +400,12 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
               {isConnecting ? (
                 <>
                   <RefreshCw className="h-4 w-4 animate-spin" />
-                  Connecting...
+                  Connecting via OAuth 2.0...
                 </>
               ) : (
                 <>
                   <Plus className="h-4 w-4" />
-                  Connect Twitter Account
+                  Connect Twitter Account (OAuth 2.0)
                 </>
               )}
             </Button>
@@ -443,6 +486,7 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
         <div className="text-xs text-muted-foreground">
           <p>🔒 Your Twitter credentials are securely stored and encrypted.</p>
           <p>📝 Connected accounts can be used by AI agents to post on your behalf.</p>
+          <p>⚡ Uses OAuth 2.0 for maximum security and compatibility.</p>
         </div>
       </CardContent>
     </Card>
