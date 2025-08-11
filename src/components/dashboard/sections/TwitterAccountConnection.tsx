@@ -123,11 +123,20 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
       const handleMessage = async (event: MessageEvent) => {
         console.log('📨 Received message from popup:', event.data);
 
-        // Only process messages from our OAuth popup
+        // Filter out non-Twitter auth messages and validate structure
+        if (!event.data || typeof event.data !== 'object') {
+          return;
+        }
+
+        // Only process messages with the correct type and required fields
         if (event.data.type === 'TWITTER_AUTH_SUCCESS' && event.data.code && event.data.state) {
-          if (messageReceived) return; // Prevent duplicate handling
+          if (messageReceived) {
+            console.log('⏭️ Duplicate message received, ignoring');
+            return; // Prevent duplicate handling
+          }
           messageReceived = true;
 
+          console.log('✅ Valid Twitter auth success message received');
           clearTimeout(timeoutId);
           popup?.close();
           
@@ -180,14 +189,21 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
           if (messageReceived) return;
           messageReceived = true;
           
+          console.error('❌ Twitter OAuth error:', event.data.error);
           clearTimeout(timeoutId);
           popup?.close();
           
-          console.error('❌ Twitter OAuth error:', event.data.error);
           setConnectionError(event.data.error || 'Authorization failed');
           setIsConnecting(false);
           window.removeEventListener('message', handleMessage);
+
+          toast({
+            title: 'Authorization Failed',
+            description: event.data.error || 'Twitter authorization failed',
+            variant: 'destructive',
+          });
         }
+        // Ignore all other message types (MetaMask, etc.)
       };
 
       window.addEventListener('message', handleMessage);
