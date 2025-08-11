@@ -156,25 +156,28 @@ serve(async (req) => {
         
         console.log(`🔄 Exchanging code with redirect_uri: ${redirect_uri}`);
         
-        // Exchange authorization code for access token
+        // FIXED: Exchange authorization code for access token using PKCE (no Basic auth)
         const tokenParams = new URLSearchParams({
           grant_type: 'authorization_code',
           code: code,
           redirect_uri: redirect_uri,
           code_verifier: oauthState.code_verifier,
+          client_id: CLIENT_ID!, // CRITICAL: Include client_id for PKCE
         });
 
         console.log(`📤 Token request params:`, {
           grant_type: 'authorization_code',
           redirect_uri: redirect_uri,
-          code_verifier_length: oauthState.code_verifier.length
+          code_verifier_length: oauthState.code_verifier.length,
+          client_id: 'present'
         });
 
+        // FIXED: Use PKCE flow without Basic Authorization header
         const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
+            // Removed Basic Authorization header - PKCE doesn't use it
           },
           body: tokenParams.toString(),
         });
