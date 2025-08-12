@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -105,7 +106,7 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
       console.log(`🚀 Opening OAuth 2.0 popup for user: ${user.id}`);
       console.log(`🔗 Auth URL: ${data.authUrl}`);
 
-      // Open OAuth popup with optimal settings for Twitter OAuth
+      // Open OAuth popup
       const popup = window.open(
         data.authUrl,
         'twitter-oauth',
@@ -118,94 +119,62 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
       }
 
       let authCompleted = false;
-      let messageCount = 0;
 
-      // Function to handle successful authentication
-      const handleAuthSuccess = async (code: string, state: string) => {
+      // Poll for completion using our new check-status endpoint
+      const pollForCompletion = async () => {
         if (authCompleted) return;
-        authCompleted = true;
 
-        console.log('✅ Twitter auth success detected - exchanging code for tokens');
-        
         try {
-          console.log(`🔄 Exchanging OAuth 2.0 code for tokens...`);
-
-          // Exchange code for tokens
-          const { data: tokenData, error: tokenError } = await supabase.functions.invoke('twitter-oauth', {
+          const { data: statusData, error: statusError } = await supabase.functions.invoke('twitter-oauth', {
             body: {
-              action: 'exchange-code',
+              action: 'check-status',
               userId: user.id,
-              code: code,
-              state: state,
+              state: data.state,
             },
           });
 
-          if (tokenError) {
-            console.error('❌ Token exchange failed:', tokenError);
-            throw new Error(tokenError.message || 'Failed to exchange authorization code');
+          if (statusError) {
+            console.error('❌ Status check error:', statusError);
+            return;
           }
 
-          if (!tokenData?.success) {
-            console.error('❌ Token exchange unsuccessful:', tokenData);
-            throw new Error(tokenData?.error || 'Authorization failed');
+          if (statusData?.completed) {
+            authCompleted = true;
+            console.log('✅ OAuth completion detected');
+            
+            toast({
+              title: 'Success',
+              description: `Twitter account @${statusData.username} connected successfully!`,
+            });
+
+            // Close popup and reload accounts
+            try {
+              popup?.close();
+            } catch (e) {
+              console.log('Popup already closed');
+            }
+
+            await loadTwitterAccounts();
+            setIsConnecting(false);
           }
-
-          console.log(`🎉 Twitter OAuth 2.0 connection successful!`);
-
-          toast({
-            title: 'Success',
-            description: `Twitter account @${tokenData.username} connected successfully!`,
-          });
-
-          // Reload accounts to show the new connection
-          await loadTwitterAccounts();
-
-        } catch (exchangeError: any) {
-          console.error('❌ Error during token exchange:', exchangeError);
-          setConnectionError(exchangeError.message);
-          toast({
-            title: 'Connection Failed',
-            description: exchangeError.message || 'Failed to complete Twitter connection',
-            variant: 'destructive',
-          });
-        } finally {
-          setIsConnecting(false);
-          // Always try to close the popup
-          try {
-            popup?.close();
-          } catch (e) {
-            console.log('Popup already closed or inaccessible');
-          }
+        } catch (pollingError) {
+          console.error('❌ Polling error:', pollingError);
         }
       };
 
-      // Enhanced message listener with better filtering and logging
-      const handleMessage = async (event: MessageEvent) => {
-        messageCount++;
-        
-        // Only log Twitter OAuth messages to reduce noise
-        if (event.data && typeof event.data === 'object' && event.data.type === 'TWITTER_AUTH_SUCCESS') {
-          console.log(`✅ Valid Twitter OAuth message #${messageCount}:`, event.data);
-          
-          if (event.data.code && event.data.state) {
-            await handleAuthSuccess(event.data.code, event.data.state);
-          }
-        }
-        // Silently ignore all other messages (MetaMask, etc.)
-      };
+      // Start polling every 2 seconds
+      const pollInterval = setInterval(pollForCompletion, 2000);
 
-      window.addEventListener('message', handleMessage);
-
-      // Enhanced popup monitoring
+      // Monitor popup for manual closure
       const monitorPopup = () => {
         const checkPopup = () => {
           if (popup.closed) {
-            window.removeEventListener('message', handleMessage);
+            clearInterval(pollInterval);
             
             if (!authCompleted) {
               console.log('🚪 Popup closed without completing OAuth');
               setIsConnecting(false);
-              setConnectionError('Authorization was cancelled or failed. Please try again.');
+              setConnectionError('Authorization was cancelled. Please try again.');
               toast({
                 title: 'Authorization Cancelled',
                 description: 'Please try again to connect your Twitter account.',
@@ -228,8 +197,8 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
       setTimeout(() => {
         if (!authCompleted && !popup.closed) {
           console.log('⏰ OAuth timeout reached, closing popup');
+          clearInterval(pollInterval);
           popup.close();
-          window.removeEventListener('message', handleMessage);
           setIsConnecting(false);
           setConnectionError('Authorization timed out');
           toast({

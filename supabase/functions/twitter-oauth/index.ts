@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -260,6 +261,39 @@ serve(async (req) => {
         });
       }
 
+      if (action === 'check-status') {
+        // New endpoint to check OAuth completion status
+        if (!userId || !state) {
+          throw new Error('Missing required parameters: userId and state');
+        }
+
+        const { data: connection, error } = await supabase
+          .from('user_twitter_connections')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error || !connection) {
+          return new Response(JSON.stringify({ 
+            success: false,
+            completed: false
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        return new Response(JSON.stringify({ 
+          success: true,
+          completed: true,
+          username: connection.username,
+          display_name: connection.display_name
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       throw new Error(`Unknown action: ${action}`);
     }
 
@@ -303,183 +337,116 @@ serve(async (req) => {
       }
 
       if (code && state) {
-        console.log(`✅ OAuth callback successful - preparing to communicate with parent window`);
+        console.log(`✅ OAuth callback successful - processing token exchange`);
         
-        // NEW APPROACH: Use a more reliable communication method
-        return new Response(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <title>Twitter Authorization Complete</title>
-              <style>
-                body {
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                  background: linear-gradient(135deg, #1DA1F2 0%, #0d8bd9 100%);
-                  color: white;
-                  margin: 0;
-                  padding: 40px 20px;
-                  text-align: center;
-                  min-height: 100vh;
-                  display: flex;
-                  flex-direction: column;
-                  justify-content: center;
-                  align-items: center;
-                }
-                .container {
-                  max-width: 400px;
-                  background: rgba(255, 255, 255, 0.1);
-                  padding: 30px;
-                  border-radius: 15px;
-                  backdrop-filter: blur(10px);
-                  border: 1px solid rgba(255, 255, 255, 0.2);
-                }
-                .spinner {
-                  width: 40px;
-                  height: 40px;
-                  border: 4px solid rgba(255, 255, 255, 0.3);
-                  border-top: 4px solid white;
-                  border-radius: 50%;
-                  animation: spin 1s linear infinite;
-                  margin: 20px auto;
-                }
-                @keyframes spin {
-                  0% { transform: rotate(0deg); }
-                  100% { transform: rotate(360deg); }
-                }
-                .status {
-                  margin-top: 20px;
-                  font-size: 14px;
-                  opacity: 0.8;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <h1>🎉 Authorization Successful!</h1>
-                <p>Connecting your Twitter account...</p>
-                <div class="spinner"></div>
-                <div class="status" id="status">Communicating with main application...</div>
-              </div>
-              
-              <script>
-                console.log('🚀 Twitter OAuth callback page loaded');
-                
-                const authData = {
-                  type: 'TWITTER_AUTH_SUCCESS',
-                  code: '${code}',
-                  state: '${state}',
-                  timestamp: Date.now()
-                };
-                
-                console.log('📤 Auth data to send:', authData);
-                
-                let messagesSent = 0;
-                let isClosing = false;
-                
-                function updateStatus(message) {
-                  const statusEl = document.getElementById('status');
-                  if (statusEl) {
-                    statusEl.textContent = message;
-                  }
-                }
-                
-                function sendMessageToParent() {
-                  try {
-                    // Method 1: Try window.opener (most common)
-                    if (window.opener && !window.opener.closed) {
-                      console.log('✅ Sending message via window.opener');
-                      window.opener.postMessage(authData, '*');
-                      messagesSent++;
-                      updateStatus('Message sent via opener (' + messagesSent + ')');
-                      return true;
+        // Extract user ID from state
+        const userId = state.split('_')[0];
+        
+        try {
+          // Process the token exchange directly here instead of relying on postMessage
+          const exchangeResponse = await fetch(`${supabaseUrl}/functions/v1/twitter-oauth`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              action: 'exchange-code',
+              userId: userId,
+              code: code,
+              state: state,
+            }),
+          });
+
+          const exchangeResult = await exchangeResponse.json();
+          
+          if (exchangeResult.success) {
+            console.log(`🎉 OAuth flow completed successfully for user ${userId}`);
+            
+            // Return a simple success page that closes immediately
+            return new Response(`
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <meta charset="utf-8">
+                  <title>Twitter Authorization Complete</title>
+                  <style>
+                    body {
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                      background: linear-gradient(135deg, #1DA1F2 0%, #0d8bd9 100%);
+                      color: white;
+                      margin: 0;
+                      padding: 40px 20px;
+                      text-align: center;
+                      min-height: 100vh;
+                      display: flex;
+                      flex-direction: column;
+                      justify-content: center;
+                      align-items: center;
                     }
-                    
-                    // Method 2: Try parent window
-                    if (window.parent && window.parent !== window) {
-                      console.log('✅ Sending message via window.parent');
-                      window.parent.postMessage(authData, '*');
-                      messagesSent++;
-                      updateStatus('Message sent via parent (' + messagesSent + ')');
-                      return true;
+                    .container {
+                      max-width: 400px;
+                      background: rgba(255, 255, 255, 0.1);
+                      padding: 30px;
+                      border-radius: 15px;
+                      backdrop-filter: blur(10px);
+                      border: 1px solid rgba(255, 255, 255, 0.2);
                     }
-                    
-                    // Method 3: Try top window
-                    if (window.top && window.top !== window) {
-                      console.log('✅ Sending message via window.top');
-                      window.top.postMessage(authData, '*');
-                      messagesSent++;
-                      updateStatus('Message sent via top (' + messagesSent + ')');
-                      return true;
+                    .checkmark {
+                      font-size: 48px;
+                      margin-bottom: 20px;
                     }
+                  </style>
+                </head>
+                <body>
+                  <div class="container">
+                    <div class="checkmark">✅</div>
+                    <h1>Success!</h1>
+                    <p>Your Twitter account <strong>@${exchangeResult.username}</strong> has been connected successfully!</p>
+                    <p style="opacity: 0.8; font-size: 14px;">This window will close automatically...</p>
+                  </div>
+                  
+                  <script>
+                    console.log('🎉 Twitter OAuth completed successfully');
                     
-                    console.error('❌ No valid parent window found');
-                    updateStatus('No parent window found');
-                    return false;
-                  } catch (e) {
-                    console.error('❌ Error sending message:', e);
-                    updateStatus('Error: ' + e.message);
-                    return false;
-                  }
-                }
-                
-                function attemptClose() {
-                  if (isClosing) return;
-                  isClosing = true;
-                  
-                  updateStatus('Closing window...');
-                  
-                  try {
-                    window.close();
-                  } catch (e) {
-                    console.error('Failed to close window:', e);
-                    updateStatus('Please close this window manually');
-                  }
-                }
-                
-                // Send messages immediately and repeatedly
-                function sendMessages() {
-                  const success = sendMessageToParent();
-                  
-                  if (success && messagesSent >= 3) {
-                    // After sending 3 messages successfully, wait a bit then close
+                    // Close the window immediately
                     setTimeout(() => {
-                      updateStatus('Connection complete! Closing...');
-                      setTimeout(attemptClose, 1000);
-                    }, 2000);
-                  } else if (messagesSent < 10) {
-                    // Keep trying for up to 10 attempts
-                    setTimeout(sendMessages, 500);
-                  } else {
-                    // Give up after 10 attempts
-                    updateStatus('Unable to communicate with main app. Please close this window.');
-                    setTimeout(attemptClose, 3000);
-                  }
-                }
-                
-                // Start sending messages immediately when page loads
-                sendMessages();
-                
-                // Also send when page becomes visible (in case it was backgrounded)
-                document.addEventListener('visibilitychange', () => {
-                  if (!document.hidden && messagesSent < 10) {
-                    sendMessages();
-                  }
-                });
-                
-                // Fallback: always close after 30 seconds maximum
-                setTimeout(() => {
-                  if (!isClosing) {
-                    updateStatus('Timeout reached. Closing window.');
-                    attemptClose();
-                  }
-                }, 30000);
-              </script>
-            </body>
-          </html>
-        `, {
-          headers: { 'Content-Type': 'text/html' },
-        });
+                      try {
+                        window.close();
+                      } catch (e) {
+                        console.log('Could not close window automatically');
+                      }
+                    }, 1500);
+                  </script>
+                </body>
+              </html>
+            `, {
+              headers: { 'Content-Type': 'text/html' },
+            });
+          } else {
+            throw new Error(exchangeResult.error || 'Token exchange failed');
+          }
+        } catch (exchangeError: any) {
+          console.error('❌ Error during token exchange:', exchangeError);
+          
+          return new Response(`
+            <html>
+              <head><title>Twitter Authorization Failed</title></head>
+              <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center; background: #1a1a1a; color: white;">
+                <h1 style="color: #e74c3c;">Connection Failed</h1>
+                <p style="color: #7f8c8d; margin: 20px 0;">Error: ${exchangeError.message}</p>
+                <p style="color: #95a5a6;">Please close this window and try again.</p>
+                <script>
+                  setTimeout(() => {
+                    window.close();
+                  }, 3000);
+                </script>
+              </body>
+            </html>
+          `, {
+            headers: { 'Content-Type': 'text/html' },
+          });
+        }
       }
 
       console.error(`❌ Missing required callback parameters - code: ${!!code}, state: ${!!state}`);
