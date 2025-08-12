@@ -156,7 +156,7 @@ serve(async (req) => {
         
         console.log(`🔄 Exchanging code with redirect_uri: ${redirect_uri}`);
         
-        // FIXED: Exchange authorization code for access token using PKCE (no Basic auth)
+        // Exchange authorization code for access token using PKCE
         const tokenParams = new URLSearchParams({
           grant_type: 'authorization_code',
           code: code,
@@ -172,12 +172,11 @@ serve(async (req) => {
           client_id: 'present'
         });
 
-        // FIXED: Use PKCE flow without Basic Authorization header
+        // Use PKCE flow without Basic Authorization header
         const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            // Removed Basic Authorization header - PKCE doesn't use it
           },
           body: tokenParams.toString(),
         });
@@ -322,27 +321,51 @@ serve(async (req) => {
                 }
               </style>
               <script>
-                console.log('📤 Sending message to parent window:', { code: '${code}', state: '${state}' });
-                try {
-                  if (window.opener) {
-                    console.log('✅ Sending message to parent window');
-                    window.opener.postMessage({
-                      type: 'TWITTER_AUTH_SUCCESS',
-                      code: '${code}',
-                      state: '${state}'
-                    }, '*');
-                    console.log('✅ Message sent successfully');
-                  } else {
-                    console.error('❌ No window.opener available');
-                  }
-                } catch (e) {
-                  console.error('❌ Failed to send message to parent:', e);
-                }
+                console.log('🚀 Twitter OAuth callback page loaded');
+                console.log('📤 Attempting to send message to parent window:', { code: '${code}', state: '${state}' });
                 
+                function sendMessageToParent() {
+                  try {
+                    if (window.opener && !window.opener.closed) {
+                      console.log('✅ Parent window detected, sending message');
+                      window.opener.postMessage({
+                        type: 'TWITTER_AUTH_SUCCESS',
+                        code: '${code}',
+                        state: '${state}'
+                      }, '*');
+                      console.log('✅ Message sent successfully to parent');
+                      
+                      // Close window after successful message send
+                      setTimeout(() => {
+                        console.log('🚪 Closing popup window');
+                        window.close();
+                      }, 1000);
+                    } else {
+                      console.error('❌ No parent window available or parent window closed');
+                      // Still try to close after a delay
+                      setTimeout(() => {
+                        window.close();
+                      }, 3000);
+                    }
+                  } catch (e) {
+                    console.error('❌ Failed to send message to parent:', e);
+                    // Still try to close after a delay
+                    setTimeout(() => {
+                      window.close();
+                    }, 3000);
+                  }
+                }
+
+                // Send message immediately and also after a small delay
+                sendMessageToParent();
+                setTimeout(sendMessageToParent, 500);
+                setTimeout(sendMessageToParent, 1000);
+                
+                // Fallback: close window after 5 seconds
                 setTimeout(() => {
-                  console.log('🚪 Closing window');
+                  console.log('🚪 Fallback: Closing window after timeout');
                   window.close();
-                }, 3000);
+                }, 5000);
               </script>
             </body>
           </html>
