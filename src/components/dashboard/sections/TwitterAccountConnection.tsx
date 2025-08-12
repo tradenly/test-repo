@@ -176,38 +176,25 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
         }
       };
 
-      // Listen for postMessage from popup
+      // Listen for postMessage from popup - IMPROVED FILTERING
       const handleMessage = async (event: MessageEvent) => {
-        console.log('📨 Received message from popup:', event.data);
+        // CRITICAL: Only log Twitter-related messages to reduce noise
+        if (event.data && event.data.type === 'TWITTER_AUTH_SUCCESS') {
+          console.log('📨 Received Twitter auth message from popup:', event.data);
+        }
 
-        // Filter out non-Twitter auth messages and validate structure
-        if (!event.data || typeof event.data !== 'object') {
+        // STRICT FILTERING: Only process messages with exact Twitter OAuth structure
+        if (!event.data || 
+            typeof event.data !== 'object' || 
+            event.data.type !== 'TWITTER_AUTH_SUCCESS' ||
+            !event.data.code || 
+            !event.data.state) {
+          // Ignore all non-Twitter OAuth messages (MetaMask, etc.)
           return;
         }
 
-        // Only process messages with the correct type and required fields
-        if (event.data.type === 'TWITTER_AUTH_SUCCESS' && event.data.code && event.data.state) {
-          console.log('✅ Valid Twitter auth success message received via postMessage');
-          await handleAuthSuccess(event.data.code, event.data.state);
-        } else if (event.data.type === 'TWITTER_AUTH_ERROR') {
-          if (authCompleted) return;
-          authCompleted = true;
-          
-          console.error('❌ Twitter OAuth error:', event.data.error);
-          clearTimeout(timeoutId);
-          clearInterval(pollInterval);
-          popup?.close();
-          
-          setConnectionError(event.data.error || 'Authorization failed');
-          setIsConnecting(false);
-
-          toast({
-            title: 'Authorization Failed',
-            description: event.data.error || 'Twitter authorization failed',
-            variant: 'destructive',
-          });
-        }
-        // Ignore all other message types (MetaMask, etc.)
+        console.log('✅ Valid Twitter OAuth success message received via postMessage');
+        await handleAuthSuccess(event.data.code, event.data.state);
       };
 
       window.addEventListener('message', handleMessage);
