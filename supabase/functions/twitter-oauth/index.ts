@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -286,7 +285,7 @@ serve(async (req) => {
         return new Response(`
           <html>
             <head><title>Twitter Authorization Failed</title></head>
-            <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
+            <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center; background: #1a1a1a; color: white;">
               <h1 style="color: #e74c3c;">Authorization Failed</h1>
               <p style="color: #7f8c8d; margin: 20px 0;">Error: ${error}</p>
               <p style="color: #95a5a6;">Description: ${error_description || 'No additional details'}</p>
@@ -294,7 +293,7 @@ serve(async (req) => {
               <script>
                 setTimeout(() => {
                   window.close();
-                }, 5000);
+                }, 3000);
               </script>
             </body>
           </html>
@@ -304,68 +303,177 @@ serve(async (req) => {
       }
 
       if (code && state) {
-        console.log(`✅ OAuth callback successful - forwarding to frontend`);
+        console.log(`✅ OAuth callback successful - preparing to communicate with parent window`);
+        
+        // NEW APPROACH: Use a more reliable communication method
         return new Response(`
+          <!DOCTYPE html>
           <html>
-            <head><title>Twitter Authorization Successful</title></head>
-            <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
-              <h1 style="color: #27ae60;">Authorization Successful!</h1>
-              <p style="color: #7f8c8d; margin: 20px 0;">Connecting your Twitter account...</p>
-              <div style="margin: 20px 0;">
-                <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-              </div>
+            <head>
+              <meta charset="utf-8">
+              <title>Twitter Authorization Complete</title>
               <style>
+                body {
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  background: linear-gradient(135deg, #1DA1F2 0%, #0d8bd9 100%);
+                  color: white;
+                  margin: 0;
+                  padding: 40px 20px;
+                  text-align: center;
+                  min-height: 100vh;
+                  display: flex;
+                  flex-direction: column;
+                  justify-content: center;
+                  align-items: center;
+                }
+                .container {
+                  max-width: 400px;
+                  background: rgba(255, 255, 255, 0.1);
+                  padding: 30px;
+                  border-radius: 15px;
+                  backdrop-filter: blur(10px);
+                  border: 1px solid rgba(255, 255, 255, 0.2);
+                }
+                .spinner {
+                  width: 40px;
+                  height: 40px;
+                  border: 4px solid rgba(255, 255, 255, 0.3);
+                  border-top: 4px solid white;
+                  border-radius: 50%;
+                  animation: spin 1s linear infinite;
+                  margin: 20px auto;
+                }
                 @keyframes spin {
                   0% { transform: rotate(0deg); }
                   100% { transform: rotate(360deg); }
                 }
+                .status {
+                  margin-top: 20px;
+                  font-size: 14px;
+                  opacity: 0.8;
+                }
               </style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>🎉 Authorization Successful!</h1>
+                <p>Connecting your Twitter account...</p>
+                <div class="spinner"></div>
+                <div class="status" id="status">Communicating with main application...</div>
+              </div>
+              
               <script>
                 console.log('🚀 Twitter OAuth callback page loaded');
-                console.log('📤 Attempting to send message to parent window:', { code: '${code}', state: '${state}' });
+                
+                const authData = {
+                  type: 'TWITTER_AUTH_SUCCESS',
+                  code: '${code}',
+                  state: '${state}',
+                  timestamp: Date.now()
+                };
+                
+                console.log('📤 Auth data to send:', authData);
+                
+                let messagesSent = 0;
+                let isClosing = false;
+                
+                function updateStatus(message) {
+                  const statusEl = document.getElementById('status');
+                  if (statusEl) {
+                    statusEl.textContent = message;
+                  }
+                }
                 
                 function sendMessageToParent() {
                   try {
+                    // Method 1: Try window.opener (most common)
                     if (window.opener && !window.opener.closed) {
-                      console.log('✅ Parent window detected, sending message');
-                      window.opener.postMessage({
-                        type: 'TWITTER_AUTH_SUCCESS',
-                        code: '${code}',
-                        state: '${state}'
-                      }, '*');
-                      console.log('✅ Message sent successfully to parent');
-                      
-                      // Close window after successful message send
-                      setTimeout(() => {
-                        console.log('🚪 Closing popup window');
-                        window.close();
-                      }, 1000);
-                    } else {
-                      console.error('❌ No parent window available or parent window closed');
-                      // Still try to close after a delay
-                      setTimeout(() => {
-                        window.close();
-                      }, 3000);
+                      console.log('✅ Sending message via window.opener');
+                      window.opener.postMessage(authData, '*');
+                      messagesSent++;
+                      updateStatus('Message sent via opener (' + messagesSent + ')');
+                      return true;
                     }
+                    
+                    // Method 2: Try parent window
+                    if (window.parent && window.parent !== window) {
+                      console.log('✅ Sending message via window.parent');
+                      window.parent.postMessage(authData, '*');
+                      messagesSent++;
+                      updateStatus('Message sent via parent (' + messagesSent + ')');
+                      return true;
+                    }
+                    
+                    // Method 3: Try top window
+                    if (window.top && window.top !== window) {
+                      console.log('✅ Sending message via window.top');
+                      window.top.postMessage(authData, '*');
+                      messagesSent++;
+                      updateStatus('Message sent via top (' + messagesSent + ')');
+                      return true;
+                    }
+                    
+                    console.error('❌ No valid parent window found');
+                    updateStatus('No parent window found');
+                    return false;
                   } catch (e) {
-                    console.error('❌ Failed to send message to parent:', e);
-                    // Still try to close after a delay
-                    setTimeout(() => {
-                      window.close();
-                    }, 3000);
+                    console.error('❌ Error sending message:', e);
+                    updateStatus('Error: ' + e.message);
+                    return false;
                   }
                 }
-
-                // Send message immediately and also after a small delay
-                sendMessageToParent();
-                setTimeout(sendMessageToParent, 500);
-                setTimeout(sendMessageToParent, 1000);
                 
-                // Fallback: close window after 5 seconds
+                function attemptClose() {
+                  if (isClosing) return;
+                  isClosing = true;
+                  
+                  updateStatus('Closing window...');
+                  
+                  try {
+                    window.close();
+                  } catch (e) {
+                    console.error('Failed to close window:', e);
+                    updateStatus('Please close this window manually');
+                  }
+                }
+                
+                // Send messages immediately and repeatedly
+                function sendMessages() {
+                  const success = sendMessageToParent();
+                  
+                  if (success && messagesSent >= 3) {
+                    // After sending 3 messages successfully, wait a bit then close
+                    setTimeout(() => {
+                      updateStatus('Connection complete! Closing...');
+                      setTimeout(attemptClose, 1000);
+                    }, 2000);
+                  } else if (messagesSent < 10) {
+                    // Keep trying for up to 10 attempts
+                    setTimeout(sendMessages, 500);
+                  } else {
+                    // Give up after 10 attempts
+                    updateStatus('Unable to communicate with main app. Please close this window.');
+                    setTimeout(attemptClose, 3000);
+                  }
+                }
+                
+                // Start sending messages immediately when page loads
+                sendMessages();
+                
+                // Also send when page becomes visible (in case it was backgrounded)
+                document.addEventListener('visibilitychange', () => {
+                  if (!document.hidden && messagesSent < 10) {
+                    sendMessages();
+                  }
+                });
+                
+                // Fallback: always close after 30 seconds maximum
                 setTimeout(() => {
-                  console.log('🚪 Fallback: Closing window after timeout');
-                  window.close();
-                }, 5000);
+                  if (!isClosing) {
+                    updateStatus('Timeout reached. Closing window.');
+                    attemptClose();
+                  }
+                }, 30000);
               </script>
             </body>
           </html>

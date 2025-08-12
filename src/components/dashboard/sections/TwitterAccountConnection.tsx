@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -106,11 +105,12 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
       console.log(`🚀 Opening OAuth 2.0 popup for user: ${user.id}`);
       console.log(`🔗 Auth URL: ${data.authUrl}`);
 
-      // Open OAuth popup with better window options
+      // Open OAuth popup with optimal settings for Twitter OAuth
       const popup = window.open(
         data.authUrl,
         'twitter-oauth',
-        'width=600,height=700,scrollbars=yes,resizable=yes,status=yes,location=yes,menubar=no,toolbar=no'
+        'width=600,height=700,scrollbars=yes,resizable=yes,status=yes,location=yes,menubar=no,toolbar=no,left=' + 
+        (window.screen.width / 2 - 300) + ',top=' + (window.screen.height / 2 - 350)
       );
 
       if (!popup) {
@@ -118,8 +118,7 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
       }
 
       let authCompleted = false;
-      let timeoutId: NodeJS.Timeout;
-      let pollInterval: NodeJS.Timeout;
+      let messageCount = 0;
 
       // Function to handle successful authentication
       const handleAuthSuccess = async (code: string, state: string) => {
@@ -127,9 +126,6 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
         authCompleted = true;
 
         console.log('✅ Twitter auth success detected - exchanging code for tokens');
-        clearTimeout(timeoutId);
-        clearInterval(pollInterval);
-        popup?.close();
         
         try {
           console.log(`🔄 Exchanging OAuth 2.0 code for tokens...`);
@@ -174,52 +170,65 @@ export const TwitterAccountConnection = ({ user, onAccountsChange }: TwitterAcco
           });
         } finally {
           setIsConnecting(false);
+          // Always try to close the popup
+          try {
+            popup?.close();
+          } catch (e) {
+            console.log('Popup already closed or inaccessible');
+          }
         }
       };
 
-      // Listen for postMessage from popup - FIXED MESSAGE FILTERING
+      // Enhanced message listener with better filtering and logging
       const handleMessage = async (event: MessageEvent) => {
-        // Only process messages with exact Twitter OAuth structure
-        if (!event.data || 
-            typeof event.data !== 'object' || 
-            event.data.type !== 'TWITTER_AUTH_SUCCESS' ||
-            !event.data.code || 
-            !event.data.state) {
-          // Ignore all non-Twitter OAuth messages
-          return;
+        messageCount++;
+        
+        // Only log Twitter OAuth messages to reduce noise
+        if (event.data && typeof event.data === 'object' && event.data.type === 'TWITTER_AUTH_SUCCESS') {
+          console.log(`✅ Valid Twitter OAuth message #${messageCount}:`, event.data);
+          
+          if (event.data.code && event.data.state) {
+            await handleAuthSuccess(event.data.code, event.data.state);
+          }
         }
-
-        console.log('✅ Valid Twitter OAuth success message received via postMessage:', event.data);
-        await handleAuthSuccess(event.data.code, event.data.state);
+        // Silently ignore all other messages (MetaMask, etc.)
       };
 
       window.addEventListener('message', handleMessage);
 
-      // Poll the popup for closure (no URL polling needed - relies on postMessage)
-      pollInterval = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(pollInterval);
-          clearTimeout(timeoutId);
-          window.removeEventListener('message', handleMessage);
-          
-          if (!authCompleted) {
-            console.log('🚪 Popup closed without completing OAuth');
-            setIsConnecting(false);
-            setConnectionError('Authorization was cancelled. Please try again.');
-            toast({
-              title: 'Authorization Cancelled',
-              description: 'Please try again to connect your Twitter account.',
-              variant: 'destructive',
-            });
+      // Enhanced popup monitoring
+      const monitorPopup = () => {
+        const checkPopup = () => {
+          if (popup.closed) {
+            window.removeEventListener('message', handleMessage);
+            
+            if (!authCompleted) {
+              console.log('🚪 Popup closed without completing OAuth');
+              setIsConnecting(false);
+              setConnectionError('Authorization was cancelled or failed. Please try again.');
+              toast({
+                title: 'Authorization Cancelled',
+                description: 'Please try again to connect your Twitter account.',
+                variant: 'destructive',
+              });
+            }
+            return;
           }
-        }
-      }, 1000);
+          
+          // Continue monitoring
+          setTimeout(checkPopup, 1000);
+        };
+        
+        checkPopup();
+      };
 
-      // Timeout after 5 minutes
-      timeoutId = setTimeout(() => {
+      monitorPopup();
+
+      // Safety timeout - 5 minutes
+      setTimeout(() => {
         if (!authCompleted && !popup.closed) {
+          console.log('⏰ OAuth timeout reached, closing popup');
           popup.close();
-          clearInterval(pollInterval);
           window.removeEventListener('message', handleMessage);
           setIsConnecting(false);
           setConnectionError('Authorization timed out');
