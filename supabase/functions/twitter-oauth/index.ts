@@ -23,8 +23,6 @@ function validateEnvironmentVariables() {
   
   if (!CLIENT_ID || !CLIENT_SECRET) {
     console.error("❌ Missing Twitter OAuth credentials");
-    console.error("CLIENT_ID:", CLIENT_ID ? "EXISTS" : "MISSING");
-    console.error("CLIENT_SECRET:", CLIENT_SECRET ? "EXISTS" : "MISSING");
     throw new Error("Missing Twitter OAuth credentials in environment variables");
   }
   if (!supabaseUrl || !supabaseServiceKey) {
@@ -45,7 +43,6 @@ serve(async (req) => {
     
     const url = new URL(req.url);
     console.log(`📝 Processing request: ${req.method} ${url.pathname}`);
-    console.log(`🌐 Full URL: ${req.url}`);
     
     if (req.method === 'POST') {
       const { action, userId, code, state } = await req.json();
@@ -59,7 +56,7 @@ serve(async (req) => {
 
         const state_param = `${userId}_${Math.random().toString(36).slice(2)}`;
         
-        // CRITICAL: Use the EXACT URL that Twitter expects
+        // Use the correct redirect URI
         const redirect_uri = `${supabaseUrl}/functions/v1/twitter-oauth`;
         
         console.log(`🔗 Using redirect URI: ${redirect_uri}`);
@@ -74,7 +71,7 @@ serve(async (req) => {
 
         console.log(`🔐 Generated PKCE for user ${userId}`);
 
-        // Store OAuth state with extended expiration
+        // Store OAuth state
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
         const { error: stateError } = await supabase
           .from('oauth_states')
@@ -94,7 +91,7 @@ serve(async (req) => {
 
         console.log(`✅ OAuth state stored for user ${userId}`);
 
-        // Build authorization URL with all required parameters
+        // Build authorization URL
         const authParams = new URLSearchParams({
           response_type: 'code',
           client_id: CLIENT_ID!,
@@ -123,7 +120,7 @@ serve(async (req) => {
           throw new Error('Missing required parameters: userId and state');
         }
 
-        // Check if we have a recent connection for this user and state
+        // Check for recent connection
         const { data: connection, error } = await supabase
           .from('user_twitter_connections')
           .select('*')
@@ -141,7 +138,7 @@ serve(async (req) => {
           });
         }
 
-        // Check if this connection was created recently (within last 5 minutes)
+        // Check if connection was created recently (within last 5 minutes)
         const connectionTime = new Date(connection.created_at);
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
         
@@ -224,7 +221,7 @@ serve(async (req) => {
       const userId = state.split('_')[0];
       
       try {
-        // Validate and fetch stored OAuth state
+        // Validate stored OAuth state
         const { data: oauthState, error: stateErr } = await supabase
           .from('oauth_states')
           .select('*')
@@ -245,28 +242,28 @@ serve(async (req) => {
         
         console.log(`🔄 Exchanging code with redirect_uri: ${redirect_uri}`);
         
-        // CRITICAL FIX: Create Basic Auth header for Twitter OAuth 2.0
+        // Create proper Basic Auth header for Twitter OAuth 2.0
         const basicAuth = btoa(`${CLIENT_ID}:${CLIENT_SECRET}`);
         
         // Exchange authorization code for access token using PKCE
-        const tokenParams = new URLSearchParams({
+        const tokenBody = new URLSearchParams({
           grant_type: 'authorization_code',
           code: code,
           redirect_uri: redirect_uri,
           code_verifier: oauthState.code_verifier,
-          client_id: CLIENT_ID!,
         });
 
         console.log(`📤 Token request with Basic Auth`);
+        console.log(`📤 Request body:`, tokenBody.toString());
 
         // Use proper Basic Authentication for Twitter OAuth 2.0
         const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${basicAuth}`, // CRITICAL: This was missing!
+            'Authorization': `Basic ${basicAuth}`,
           },
-          body: tokenParams.toString(),
+          body: tokenBody.toString(),
         });
 
         const tokenResponseText = await tokenResponse.text();
@@ -433,7 +430,6 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error("💥 Twitter OAuth error:", error);
-    console.error("💥 Error stack:", error.stack);
     return new Response(JSON.stringify({ 
       success: false,
       error: error.message,
